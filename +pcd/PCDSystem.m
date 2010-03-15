@@ -1,0 +1,92 @@
+classdef PCDSystem < models.BaseDynSystem
+    %PCDSYSTEM Summary of this class goes here
+    %   Detailed explanation goes here
+    
+    properties
+        % Space discretization
+        omega = [0 1; 0 1];
+        
+        % Spatial stepwidth
+        h = .05;
+        
+        % Exponent in ya,yi term (necessary casp-3 for casp-8 activation)
+        n = 2;
+        
+        % Parameter values from [1] in daub's milestone
+        Kc1 = 1e5;
+        Kc2 = 5.8e12;
+        Kd1 = .0001;
+        Kd2 = .0001;
+        Kp1 = 1.4e-11;
+        Kp2 = 2.3e-12;
+        
+        % System Rescaling settings
+        xa0 = 1e-7; %[M]
+        ya0 = 1e-7; %[M]
+        xi0 = 1e-7; %[M]
+        yi0 = 1e-7; %[M]
+        L = 1e-5; %[m]
+        d1 = 1e-11; %[m^2/s]
+        d2 = 1e-11; %[m^2/s]
+    end
+    
+    properties(SetAccess=private)
+        lam1;
+        lam2;
+        D;
+        dim1;
+        dim2;
+        tau;
+    end
+    
+    methods
+        function this = PCDSystem
+            
+            % Automatic values
+            this.tau = this.L^2/this.d1; %[s]
+            this.Kc1 = this.Kc1*this.ya0*this.tau;
+            this.Kc2 = this.Kc2*this.xa0^this.n*this.tau;
+            this.Kd1 = this.Kd1 * this.tau;
+            this.Kd2 = this.Kd2 * this.tau;
+            this.Kp1 = this.Kp1*this.tau/this.xi0;
+            this.Kp2 = this.Kp2*this.tau/this.yi0;
+            this.lam1 = this.xi0/this.xa0;
+            this.lam2 = this.yi0/this.ya0;
+            this.D = this.d1/this.d2;
+            
+            % compute size of each function elements
+            o = this.omega;
+            this.dim1 =  (o(1,2)-o(1,1)) / this.h;
+            this.dim2 =  (o(2,2)-o(2,1)) / this.h;
+            
+            % Add params
+            this.addParam('mu1', [0, 0], 1);
+            this.addParam('mu2', [0, 2], 1);
+            this.addParam('mu3', [0, 10], 1);
+            this.addParam('mu4', [0, 0], 1);
+            this.addParam('Kc1', this.Kc1, 1);
+            this.addParam('Kc2', this.Kc2, 1);
+            this.addParam('Kd1', this.Kd1, 1);
+            this.addParam('Kd2', this.Kd2, 1);
+            this.addParam('Kp1', this.Kp1, 1);
+            this.addParam('Kp2', this.Kp2, 1);
+            
+            this.x0 = @this.initialX;
+            
+            % Set core function
+            this.f = models.pcd.CoreFun(this);
+        end
+        
+        function x0 = initialX(this, mu)%#ok
+            m = this.dim1*this.dim2;
+            x0 = zeros(4*m,1);
+            %x0(2*m+1:end) = .3;
+            [X,Y] = meshgrid(1:this.dim2,1:this.dim1);
+            s = sin(X * pi/this.dim1) .* exp(-Y/4)*.5;
+            x0(2*m+1:3*m) = s(:);
+        end
+    end
+end
+
+
+
