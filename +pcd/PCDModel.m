@@ -3,12 +3,12 @@ classdef PCDModel < models.BaseFullModel
     %   Detailed explanation goes here
     
     methods
-        function this = PCDModel
-            this.Name = 'Programmed Cell Death';
+        function this = PCDModel(dim)
+            % Creates a new instance of the PCDModel
             this.Verbose = 0;
             
-            this.T = 1;
-            this.dt = .1;
+            this.T = 200;
+            this.dt = .2;
             
             %s = sampling.RandomSampler;
             %s.Samples = 10;
@@ -16,21 +16,44 @@ classdef PCDModel < models.BaseFullModel
             this.Sampler = sampling.GridSampler;
             
             % Use the PCDSystem
-            this.System = models.pcd.PCDSystem;
+            if nargin == 0
+                dim=1;
+            end
+            switch dim
+                case 2 
+                    this.System = models.pcd.PCDSystem2D;
+                    this.Name = 'Programmed Cell Death 2D';
+                otherwise
+                    this.System = models.pcd.PCDSystem1D;
+                    this.Name = 'Programmed Cell Death 1D';
+            end
             
             % Space reduction setup
             sr = spacereduction.PODReducer;
-            sr.Mode = 'eps';
-            sr.Value = .1;
+            sr.Mode = 'rel';
+            sr.Value = .2;
             this.SpaceReducer = sr;
             
             % Core Approximation
-            a = approx.CompWiseSVR;
-            a.eps = .3;
-            a.C = 1;
+%             a = approx.CompWiseLS;
+%             a.TimeKernel = kernels.RBFKernel;
+%             a.SystemKernel = kernels.RBFKernel(2);
+%             a.ParamKernel = kernels.LinearKernel;
+%             a.lambda = 2;
+            a = approx.CompWiseInt;
+            a.TimeKernel = kernels.RBFKernel(2);
+            a.SystemKernel = kernels.RBFKernel(2);
+            a.ParamKernel = kernels.RBFKernel(2);
+            
+%             a = approx.CompWiseSVR;
+%             a.TimeKernel = kernels.RBFKernel;
+%             a.SystemKernel = kernels.RBFKernel(2);
+%             a.ParamKernel = kernels.LinearKernel;
+%             a.eps = .05;
+%             a.C = 100;
             this.Approx = a;
             
-            this.ODESolver = @ode45;
+            this.ODESolver = @ode23;
         end
     end
     

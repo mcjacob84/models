@@ -1,4 +1,4 @@
-classdef PCDSystem < models.BaseDynSystem & ISimConstants
+classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
     %PCDSYSTEM The 2D dynamical system of the Programmed Cell Death Model
     %by Markus Daub.
     %
@@ -10,12 +10,9 @@ classdef PCDSystem < models.BaseDynSystem & ISimConstants
     %
     % @Daniel Wirtz, 15.03.2010
     
-    properties
-        % Space discretization
-        omega = [0 1; 0 1];
-        
+    properties       
         % Spatial stepwidth
-        h = .05;
+        h = .1;
         
         % Exponent in ya,yi term (necessary casp-3 for casp-8 activation)
         n = 2;
@@ -71,34 +68,16 @@ classdef PCDSystem < models.BaseDynSystem & ISimConstants
         lam2;
         % Typical timestep (dependent)
         tau; %[s]
-        % System's dimension 1
-        dim1;
-        % System's dimension 2
-        dim2;
         % Relative diffusion coefficient (d1/d2)
         D;
     end
     
     methods
-        function this = PCDSystem
-            
-            % Add params
-            this.addParam('mu1', [0, 0], 1);
-            this.addParam('mu2', [0, 2], 1);
-            this.addParam('mu3', [0, 10], 1);
-            this.addParam('mu4', [0, 0], 1);
-            
-            % Update simulation constants
-            this.updateSimConstants;
-            
+        function this = BasePCDSystem
             this.x0 = @(mu)this.initialX(mu);
-            
-            % Set core function
-            this.f = models.pcd.CoreFun(this);
             
             % Set output conversion
             this.C = dscomponents.PointerOutputConv(@(t,mu)this.getC(t,mu), false);
-            
         end
         
         function updateSimConstants(this)
@@ -106,9 +85,8 @@ classdef PCDSystem < models.BaseDynSystem & ISimConstants
             this.lam1 = this.xi0/this.xa0;
             this.lam2 = this.yi0/this.ya0;
             this.tau = this.L^2/this.d1;
-            this.dim1 = (this.omega(1,2)-this.omega(1,1)) / this.h;
-            this.dim2 = (this.omega(2,2)-this.omega(2,1)) / this.h;
             this.D = this.d1/this.d2;
+            this.updateDimSimConstants;
             
             this.setParam('Kc1', this.Kc1_real * this.ya0*this.tau, 1);
             this.setParam('Kc2', this.Kc2_real * this.xa0^this.n*this.tau, 1);
@@ -118,46 +96,12 @@ classdef PCDSystem < models.BaseDynSystem & ISimConstants
             this.setParam('Kp2', this.Kp2_real * this.tau/this.yi0, 1);
         end
         
-        function x0 = initialX(this, mu)%#ok
-            m = this.dim1*this.dim2;
-            x0 = zeros(4*m,1);
-            %x0(2*m+1:end) = .3;
-            [X,Y] = meshgrid(1:this.dim2,1:this.dim1);
-            s = sin(X * pi/this.dim1) .* exp(-Y/4)*.5;
-            x0(2*m+1:3*m) = s(:);
-        end
-        
-        function C = getC(this, t, mu)%#ok
-            % Extracts the caspase-3 concentrations from the result
-            m = this.dim1*this.dim2;
-            C = zeros(m,4*m);
-            
-            C(:,m+1:2*m) = diag(ones(1:m));
-        end
-        
-        %         function v = get.lam1(this)
-        %             v = this.xi0/this.xa0;
-        %         end
-        %
-        %         function v = get.lam2(this)
-        %             v = this.yi0/this.ya0;
-        %         end
-        %
-        %         function v = get.tau(this)
-        %             v = this.L^2/this.d1;
-        %         end
-        %
-        %         function v = get.dim1(this)
-        %             v = (this.omega(1,2)-this.omega(1,1)) / this.h;
-        %         end
-        %
-        %         function v = get.dim2(this)
-        %             v = (this.omega(2,2)-this.omega(2,1)) / this.h;
-        %         end
-        %
-        %         function v = get.D(this)
-        %             v = this.d1/this.d2;
-        %         end
+    end
+    
+    methods(Abstract, Access=protected)
+        updateDimSimConstants;
+        x0 = initialX(mu);
+        C = getC(t,mu);
     end
 end
 

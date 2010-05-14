@@ -1,5 +1,5 @@
 classdef CoreFun < dscomponents.ICoreFun
-    %CoreFun Summary of this class goes here
+    %CoreFun The core nonlinear function of 
     %   Detailed explanation goes here
     
     properties(Access=private)
@@ -23,8 +23,11 @@ classdef CoreFun < dscomponents.ICoreFun
         end
         
         function this = CoreFun(dynsys)
-            this.sys=dynsys;
-            
+            this.sys = dynsys;
+        end
+        
+        function updateSimConstants(this)
+
             % Create diffusion matrix
             d1 = this.sys.dim1;
             d2 = this.sys.dim2;
