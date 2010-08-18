@@ -8,7 +8,7 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
     %
     % See also: models.pcd.CoreFun
     %
-    % @Daniel Wirtz, 15.03.2010
+    % @author Daniel Wirtz @date 15.03.2010
     
     properties       
         % Spatial stepwidth

@@ -1,7 +1,7 @@
-classdef CoreFun2D < dscomponents.ICoreFun & ISimConstants
+classdef CoreFun2D < dscomponents.ACoreFun & ISimConstants
     %CoreFun The core nonlinear function of the PCD model.
     %
-    % @DanielWirtz, 16.03.2010
+    % @author Daniel Wirtz @date 16.03.2010
     
     properties(Access=private)
         % The assoc. dynamical system

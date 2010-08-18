@@ -1,7 +1,7 @@
-classdef CoreFun1D < dscomponents.ICoreFun & ISimConstants
+classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
     %CoreFun The core nonlinear function of the PCD model.
     %
-    % @DanielWirtz, 16.03.2010
+    % @author Daniel Wirtz @date 16.03.2010
     
     properties(Access=private)
         % The assoc. dynamical system
@@ -49,6 +49,10 @@ classdef CoreFun1D < dscomponents.ICoreFun & ISimConstants
             fx(m+1:2*m) = mu(3)*this.sys.lam2*yi.*xan - mu(5)*ya + this.sys.D*this.A*ya;
             fx(2*m+1:3*m) = -mu(2)*xi.*ya - mu(4)*xi + mu(6) + this.A*xi + rb;
             fx(3*m+1:end) = -mu(3)*yi.*xan - mu(5)*yi + mu(7) + this.sys.D*this.A*yi;
+        end
+        
+        function c = getGlobalLipschitz(this, mu, inputidx)
+            c = 1;
         end
     end
 end

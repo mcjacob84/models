@@ -1,0 +1,105 @@
+classdef RiemannBurgers < models.BaseFullModel & models.BaseDynSystem & dscomponents.ACoreFun
+    %RIEMANNBURGERS Summary of this class goes here
+    %   Detailed explanation goes here
+    
+    properties
+        RBMModel;
+        RBMDataCont;
+    end
+    
+    methods
+        function this = RiemannBurgers
+            setenv('RBMATLABTEMP','/datastore');
+            setenv('RBMATLABHOME','/afs/.mathe/project/agh/home/dwirtz/rbmatlab/');
+            addpath('/afs/.mathe/project/agh/home/dwirtz/rbmatlab/');
+            curdir = pwd;
+            startup_rbmatlab;
+            chdir(curdir);
+            
+            xnum = 80;
+            ynum = 50;
+            
+            % Setup rbmatlab param struct
+            params.xnumintervals = xnum;
+            params.ynumintervals = ynum;
+            
+            % Get rbmatlab model
+            m = riemann_burgers_model(params);
+            d = models.rbmatlab.RBMDataContainer(gen_model_data(m));
+            
+            %m = m.set_mu(m,[1 0 -1]);
+            m.newton_regularisation = 0;
+            
+            % Times
+            %m.T = 0.004;
+            %m.nt = 1;
+            this.T = m.T;
+            this.dt = m.T / m.nt;
+            
+            % Solver
+            this.ODESolver = solvers.ExplEuler(this.dt);
+            
+            % Sampling
+            this.Sampler = sampling.GridSampler;
+            
+            % Approximation
+            a = approx.CompWiseLS;
+            a.SystemKernel = kernels.GaussKernel(4);
+            a.TimeKernel = kernels.NoKernel;
+            a.ParamKernel = kernels.GaussKernel(2);
+            this.Approx = a;
+            
+            % Space reduction; choose only first row for subspace as the
+            % problem repeats in y-direction.
+            V = repmat(eye(xnum),ynum,1)*sqrt(1/xnum);
+            this.SpaceReducer = spacereduction.ManualReduction(V,V);
+            
+            %% System setup
+            this.System = this;
+            
+            % for a detailed simulation we do not need the affine parameter
+            % decomposition
+            m.decomp_mode = 0;
+            this.x0 = @(mu)this.getx0(mu);
+            
+            % DS-Components
+            this.f = this;
+            this.B = [];
+            this.Inputs = {};
+            
+            this.RBMModel = m;
+            this.RBMDataCont = d;
+            
+            % Parameters
+            this.addParam('ULeft', [0, 1], 2);
+            this.addParam('URight', [0, 1], 2);
+            this.addParam('xFlux', [-1, 1], 3);
+            
+            %c = zeros(1, m.xnumintervals*m.ynumintervals);
+            %c(round(.75*m.xnumintervals)) = 1;
+            %this.C = dscomponents.PointerOutputConv(@(t,mu)c,false);
+        end
+        
+        function y = evaluateCoreFun(this, x, t, mu)
+            this.RBMModel = this.RBMModel.set_mu(this.RBMModel,mu);
+            this.RBMModel = this.RBMModel.set_time(this.RBMModel,t);
+            [y, dummy] = this.RBMModel.L_E_local_ptr(this.RBMModel, this.RBMDataCont.RBMData, x, []);
+            y = -y;
+        end        
+        
+        function plot(this, t, y)
+            sd.U = y;
+            plot_sim_data(this.RBMModel, this.RBMDataCont.RBMData, sd, []);
+        end
+    end
+    
+    methods(Access=private)
+        function x0 = getx0(this, mu) 
+            this.RBMModel = this.RBMModel.set_mu(this.RBMModel,mu);
+            % initial values by midpoint evaluation
+            x0 = this.RBMModel.init_values_algorithm(this.RBMModel,this.RBMDataCont.RBMData);
+        end
+    end
+    
+end
+
