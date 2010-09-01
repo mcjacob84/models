@@ -1,34 +1,27 @@
-classdef RiemannBurgers < models.BaseFullModel & models.BaseDynSystem & dscomponents.ACoreFun
+classdef RiemannBurgers < models.rbmatlab.BaseRBMatlabWrapper & models.BaseDynSystem & dscomponents.ACoreFun
     %RIEMANNBURGERS Summary of this class goes here
     %   Detailed explanation goes here
-    
-    properties
-        RBMModel;
-        RBMDataCont;
-    end
-    
+        
     methods
-        function this = RiemannBurgers
-            setenv('RBMATLABTEMP','/datastore');
-            setenv('RBMATLABHOME','/afs/.mathe/project/agh/home/dwirtz/rbmatlab/');
-            addpath('/afs/.mathe/project/agh/home/dwirtz/rbmatlab/');
-            curdir = pwd;
-            startup_rbmatlab;
-            chdir(curdir);
-            
-            xnum = 80;
-            ynum = 50;
+        function this = RiemannBurgers(xnum, ynum)
+            % Call superconstructor
+            this = this@models.rbmatlab.BaseRBMatlabWrapper;            
             
             % Setup rbmatlab param struct
-            params.xnumintervals = xnum;
-            params.ynumintervals = ynum;
+            params.ynumintervals = 50;
+            params.xnumintervals = 80;
+            if nargin > 0
+                params.xnumintervals = xnum;
+                if nargin > 1
+                    params.ynumintervals = ynum;        
+                end
+            end
             
             % Get rbmatlab model
             m = riemann_burgers_model(params);
-            d = models.rbmatlab.RBMDataContainer(gen_model_data(m));
-            
-            %m = m.set_mu(m,[1 0 -1]);
             m.newton_regularisation = 0;
+            
+            d = models.rbmatlab.RBMDataContainer(gen_model_data(m));
             
             % Times
             %m.T = 0.004;
@@ -39,19 +32,22 @@ classdef RiemannBurgers < models.BaseFullModel & models.BaseDynSystem & dscompon
             % Solver
             this.ODESolver = solvers.ExplEuler(this.dt);
             
+            this.PODFix.Value = 3;
+            
             % Sampling
             this.Sampler = sampling.GridSampler;
             
             % Approximation
-            a = approx.CompWiseLS;
-            a.SystemKernel = kernels.GaussKernel(4);
-            a.TimeKernel = kernels.NoKernel;
-            a.ParamKernel = kernels.GaussKernel(2);
+            a = approx.CompWiseInt;
+            a.SystemKernel = kernels.GaussKernel(100);
+            a.TimeKernel = kernels.GaussKernel(100);
+            a.ParamKernel = kernels.GaussKernel(100);
             this.Approx = a;
             
             % Space reduction; choose only first row for subspace as the
             % problem repeats in y-direction.
-            V = repmat(eye(xnum),ynum,1)*sqrt(1/xnum);
+            V = repmat(eye(params.xnumintervals),...
+                params.ynumintervals,1)*sqrt(1/params.xnumintervals);
             this.SpaceReducer = spacereduction.ManualReduction(V,V);
             
             %% System setup
@@ -67,24 +63,24 @@ classdef RiemannBurgers < models.BaseFullModel & models.BaseDynSystem & dscompon
             this.B = [];
             this.Inputs = {};
             
+            % Parameters
+            this.addParam('ULeft', [.1, .4], 3);
+            this.addParam('URight', [.6, 1], 3);
+            this.addParam('xFlux', [-1, -.1], 3);
+            
             this.RBMModel = m;
             this.RBMDataCont = d;
             
-            % Parameters
-            this.addParam('ULeft', [0, 1], 2);
-            this.addParam('URight', [0, 1], 2);
-            this.addParam('xFlux', [-1, 1], 3);
-            
-            %c = zeros(1, m.xnumintervals*m.ynumintervals);
-            %c(round(.75*m.xnumintervals)) = 1;
+            % Output conversion
+            %c = zeros(1, params.xnumintervals*params.ynumintervals);
+            %c(round(.75*params.xnumintervals)) = 1;
             %this.C = dscomponents.PointerOutputConv(@(t,mu)c,false);
         end
         
         function y = evaluateCoreFun(this, x, t, mu)
             this.RBMModel = this.RBMModel.set_mu(this.RBMModel,mu);
             this.RBMModel = this.RBMModel.set_time(this.RBMModel,t);
-            [y, dummy] = this.RBMModel.L_E_local_ptr(this.RBMModel, this.RBMDataCont.RBMData, x, []);
-            y = -y;
+            y = -this.RBMModel.L_E_local_ptr(this.RBMModel, this.RBMDataCont.RBMData, x, []);
         end        
         
         function plot(this, t, y)

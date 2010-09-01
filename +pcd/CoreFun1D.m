@@ -28,7 +28,7 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
             this.A = spdiags([e -2*e e],-1:1,d,d);
         end
         
-        function fx = evaluate(this, x, t, mu)%#ok
+        function fx = evaluateCoreFun(this, x, t, mu)%#ok
             % Allocate result vector
             fx = zeros(size(x));
             

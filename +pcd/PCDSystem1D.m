@@ -17,7 +17,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             this.h = .03;
             
             % Add params
-            this.addParam('U', [0, 2], 6);
+            this.addParam('U', [0, 2], 12);
             
             % Set core function
             this.f = models.pcd.CoreFun1D(this);

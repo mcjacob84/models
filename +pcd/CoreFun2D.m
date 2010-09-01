@@ -41,7 +41,7 @@ classdef CoreFun2D < dscomponents.ACoreFun & ISimConstants
             this.dim = d;
         end
         
-        function fx = evaluate(this, x, t, mu)%#ok
+        function fx = evaluateCoreFun(this, x, t, mu)%#ok
             % Allocate result vector
             fx = zeros(size(x));
             

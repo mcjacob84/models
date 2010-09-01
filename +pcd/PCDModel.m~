@@ -7,13 +7,17 @@ classdef PCDModel < models.BaseFullModel
             % Creates a new instance of the PCDModel
             this.Verbose = 0;
             
-            this.T = 25;
-            this.dt = .1;
+            this.T = 200;
+            this.dt = .2;
             
             %s = sampling.RandomSampler;
             %s.Samples = 10;
             %this.Sampler = s;
             this.Sampler = sampling.GridSampler;
+            
+            % Snapshot generation
+            this.PODFix.Mode = 'rel';
+            this.PODFix.Val
             
             % Use the PCDSystem
             if nargin == 0
@@ -34,15 +38,27 @@ classdef PCDModel < models.BaseFullModel
             sr.Value = .2;
             this.SpaceReducer = sr;
             
+            
             % Core Approximation
-            a = approx.CompWiseSVR;
-            a.TimeKernel = kernels.RBFKernel;
-            a.SystemKernel = kernels.RBFKernel;
-            a.eps = .05;
-            a.C = 100;
+%             a = approx.CompWiseLS;
+%             a.TimeKernel = kernels.GaussKernel;
+%             a.SystemKernel = kernels.GaussKernel(2);
+%             a.ParamKernel = kernels.LinearKernel;
+%             a.lambda = 2;
+            a = approx.CompWiseInt;
+            a.TimeKernel = kernels.GaussKernel(2);
+            a.SystemKernel = kernels.GaussKernel(2);
+            a.ParamKernel = kernels.GaussKernel(2);
+            
+%             a = approx.CompWiseSVR;
+%             a.TimeKernel = kernels.GaussKernel;
+%             a.SystemKernel = kernels.GaussKernel(2);
+%             a.ParamKernel = kernels.LinearKernel;
+%             a.eps = .05;
+%             a.C = 100;
             this.Approx = a;
             
-            this.ODESolver = @ode23;
+            this.ODESolver = solvers.MLWrapper(@ode23);
         end
     end
     
