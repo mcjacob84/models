@@ -32,16 +32,17 @@ classdef RiemannBurgers < models.rbmatlab.BaseRBMatlabWrapper & models.BaseDynSy
             % Solver
             this.ODESolver = solvers.ExplEuler(this.dt);
             
-            this.PODFix.Value = 3;
+            %this.PODFix.Value = 3;
             
             % Sampling
             this.Sampler = sampling.GridSampler;
             
-            % Approximation
+            % Approximation: Use same kernels
             a = approx.CompWiseInt;
-            a.SystemKernel = kernels.GaussKernel(100);
-            a.TimeKernel = kernels.GaussKernel(100);
-            a.ParamKernel = kernels.GaussKernel(100);
+            k = kernels.GaussKernel(100);
+            a.SystemKernel = k;
+            a.TimeKernel = k;
+            a.ParamKernel = k;
             this.Approx = a;
             
             % Space reduction; choose only first row for subspace as the

@@ -57,7 +57,8 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
             
             % Sample bases
             this.svNum = 20;
-            this.snData.xi = repmat(linspace(-20,20,this.svNum),this.dim,1);
+            this.snData.xi = repmat(linspace(-24,24,this.svNum),this.dim,1);
+            %this.snData.xi = linspace(-20,20,this.svNum);
             this.snData.ti = [];
             this.snData.mui = [];
             
@@ -73,10 +74,17 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
             
             %% BaseCompWiseKernelApprox settings
             %this.SystemKernel = kernels.GaussKernel(4*sqrt(dims));
-            this.SystemKernel = kernels.GaussKernel(4*dims);
+            this.SystemKernel = kernels.GaussKernel(40*dims);
             this.TimeKernel = kernels.NoKernel;
             this.ParamKernel = kernels.NoKernel;
         end
+        
+%         function proj = project(this, V, W)
+%             proj = project@dscomponents.CompwiseKernelCoreFun(this, V, W);
+%             if this.RotationInvariantKernel
+%                 proj.snData.xi = W' * proj.snData.xi;
+%             end
+%         end
         
         function c = getcfi(this, z, C, t, mu)
             C = 100;
