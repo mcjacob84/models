@@ -9,15 +9,12 @@ classdef PCDModel < models.BaseFullModel
             
             this.T = 500;
             this.dt = .2;
+            this.ApproxExpansionSize = 300;
             
             %s = sampling.RandomSampler;
             %s.Samples = 10;
             %this.Sampler = s;
             this.Sampler = sampling.GridSampler;
-            
-            % Snapshot generation - take 40% of snapshot data
-            this.PODFix.Mode = 'rel';
-            this.PODFix.Value = .4;
             
             % Use the PCDSystem
             if nargin == 0
@@ -45,8 +42,11 @@ classdef PCDModel < models.BaseFullModel
 %             a.SystemKernel = kernels.GaussKernel(2);
 %             a.ParamKernel = kernels.LinearKernel;
 %             a.lambda = 2;
-            a = approx.CompWiseInt;
-            a.TimeKernel = kernels.GaussKernel(50);
+
+            a = approx.CompWiseSVR;
+            a.ScalarSVR = general.regression.ScalarNuSVR;
+            a.ScalarSVR.nu = .6;
+            a.TimeKernel = kernels.LinearKernel;
             a.SystemKernel = kernels.GaussKernel(50);
             a.ParamKernel = kernels.GaussKernel(50);
             

@@ -1,24 +1,29 @@
-classdef RiemannBurgers < models.BaseFullModel & models.BaseDynSystem & dscomponents.ACoreFun
+classdef RiemannBurgers < models.rbmatlab.BaseRBMatlabWrapper & models.BaseDynSystem & dscomponents.ACoreFun
     %RIEMANNBURGERS Summary of this class goes here
     %   Detailed explanation goes here
-        
+            
     methods
-        function this = RiemannBurgers(params)
-            xnum = 80;
-            ynum = 50;
+        function this = RiemannBurgers(xnum, ynum)
+            % Call superconstructor
+            this = this@models.rbmatlab.BaseRBMatlabWrapper;            
             
             % Setup rbmatlab param struct
-            if nargin == 0
+            params.ynumintervals = 20;
+            params.xnumintervals = 100;
+            if nargin > 0
                 params.xnumintervals = xnum;
-                params.ynumintervals = ynum;
+                if nargin > 1
+                    params.ynumintervals = ynum;        
+                end
             end
             
             % Get rbmatlab model
             m = riemann_burgers_model(params);
+            m.newton_regularisation = 0;
+            
             d = models.rbmatlab.RBMDataContainer(gen_model_data(m));
             
-            %m = m.set_mu(m,[1 0 -1]);
-            m.newton_regularisation = 0;
+            %this.ComputeParallel = false;
             
             % Times
             %m.T = 0.004;
@@ -32,16 +37,29 @@ classdef RiemannBurgers < models.BaseFullModel & models.BaseDynSystem & dscompon
             % Sampling
             this.Sampler = sampling.GridSampler;
             
-            % Approximation
-            a = approx.CompWiseLS;
-            a.SystemKernel = kernels.GaussKernel(4);
-            a.TimeKernel = kernels.NoKernel;
-            a.ParamKernel = kernels.GaussKernel(2);
+            % Approximation: Use same kernels
+            if true
+                a = approx.CompWiseSVR;
+                svr = general.regression.ScalarNuSVR;
+                svr.nu = .6;
+                qp = solvers.qpOASES;
+                svr.QPSolver = qp;
+                a.ScalarSVR = svr;
+            else
+                a = approx.CompWiseInt;
+            end
+            a.SystemKernel = kernels.GaussKernel(60);
+            a.TimeKernel = kernels.GaussKernel(5/m.nt);
+            a.ParamKernel = kernels.NoKernel;
             this.Approx = a;
+            this.ApproxExpansionSize = 180;
+            this.preApproximationTrainingCallback = @this.preApproxCallback;
+            this.postApproximationTrainingCallback = @this.postApproxCallback;
             
             % Space reduction; choose only first row for subspace as the
             % problem repeats in y-direction.
-            V = repmat(eye(xnum),ynum,1)*sqrt(1/xnum);
+            V = repmat(eye(params.xnumintervals),...
+                params.ynumintervals,1)*sqrt(1/params.ynumintervals);
             this.SpaceReducer = spacereduction.ManualReduction(V,V);
             
             %% System setup
@@ -58,15 +76,16 @@ classdef RiemannBurgers < models.BaseFullModel & models.BaseDynSystem & dscompon
             this.Inputs = {};
             
             % Parameters
-            this.addParam('ULeft', [0, 1], 2);
-            this.addParam('URight', [0, 1], 2);
-            this.addParam('xFlux', [-1, 1], 3);
+            this.addParam('ULeft', [.3, .3], 1);
+            this.addParam('URight', [.1, 1], 20);
+            this.addParam('xFlux', [-.1, -.1], 1);
             
-            
+            this.RBMModel = m;
+            this.RBMDataCont = d;
             
             % Output conversion
-            %c = zeros(1, m.xnumintervals*m.ynumintervals);
-            %c(round(.75*m.xnumintervals)) = 1;
+            %c = zeros(1, params.xnumintervals*params.ynumintervals);
+            %c(round(.75*params.xnumintervals)) = 1;
             %this.C = dscomponents.PointerOutputConv(@(t,mu)c,false);
         end
         
@@ -80,13 +99,28 @@ classdef RiemannBurgers < models.BaseFullModel & models.BaseDynSystem & dscompon
             sd.U = y;
             plot_sim_data(this.RBMModel, this.RBMDataCont.RBMData, sd, []);
         end
+        
+       
     end
     
     methods(Access=private)
-        function x0 = getx0(this, mu) 
+        function x0 = getx0(this, mu)
             this.RBMModel = this.RBMModel.set_mu(this.RBMModel,mu);
             % initial values by midpoint evaluation
             x0 = this.RBMModel.init_values_algorithm(this.RBMModel,this.RBMDataCont.RBMData);
+        end
+        
+        function preApproxCallback(this)
+            xnum = this.RBMModel.xnumintervals;
+            %this.Data.ApproxTrainData = this.Data.ApproxTrainData(1:xnum+3,:);
+            this.Data.ApproxfValues = this.Data.ApproxfValues(1:xnum,:);
+        end
+        
+        function postApproxCallback(this)
+            ynum = this.RBMModel.ynumintervals;
+            this.Data.ApproxfValues = repmat(this.Data.ApproxfValues,ynum,1);
+            this.Approx.Ma = repmat(this.Approx.Ma,ynum,1);
+            this.Approx.off = repmat(this.Approx.off,ynum,1);
         end
     end
     

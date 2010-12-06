@@ -19,6 +19,7 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
         
         function this = CoreFun1D(dynsys)
             this.sys = dynsys;
+            this.updateSimConstants;
         end
         
         function updateSimConstants(this)

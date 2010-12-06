@@ -20,7 +20,7 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
     methods
         function this = BaseRBMatlabWrapper
             % Environmental setup
-            rbmatlab = '/afs/.mathe/project/agh/home/dwirtz/rbmatlab/';
+            rbmatlab = '/afs/.mathe/project/agh/home/dwirtz/Software/rbmatlab/';
             if isempty(getenv('KERMORTEMP'))
                 error('No KERMORTEMP environment path set. Aborting. (Forgot to run startup_kermor?)');
             end
