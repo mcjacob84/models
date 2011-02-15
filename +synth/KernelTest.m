@@ -38,6 +38,7 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
             this.Approx = [];
             
             s = spacereduction.PODReducer;
+            s.UseSVDS = true;
             s.Mode = 'abs';
             s.Value = 1;
             this.SpaceReducer = s;
@@ -114,45 +115,45 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
     
     methods(Static)
         
-        function [r,e1,e2,e3,e4,e5,e6] = runEstimatorTest(num,varargin)
-            if nargin == 0
-                num = 3;
-            end
-            eval(sprintf('m = models.synth.KernelTest.getTest%d(varargin{:});',num));
-            
-            %m.ODESolver = solvers.Heun;
-            
-            m.dt = .05;
-            
-            m.offlineGenerations;
-            r = m.buildReducedModel;
-            
-            k = m.System.f.SystemKernel;
-            e = error.LocalLipKernelEstimator(r);
-            e.UseTimeDiscreteC = false;
-            r.ErrorEstimator = e;
-            
-            e.KernelLipschitzFcn = @k.getLocalGradientLipschitz;
-            [t,err,e1] = r.getError;
-            e.KernelLipschitzFcn = @k.getLocalSecantLipschitz;
-            [t,err,e2] = r.getError;
-            e.KernelLipschitzFcn = @k.getImprovedLocalSecantLipschitz;
-            [t,err,e3] = r.getError;
-            e.Iterations = 1;
-            e.KernelLipschitzFcn = @k.getLocalGradientLipschitz;
-            [t,err,e4] = r.getError;
-            e.KernelLipschitzFcn = @k.getLocalSecantLipschitz;
-            [t,err,e5] = r.getError;
-            e.KernelLipschitzFcn = @k.getImprovedLocalSecantLipschitz;
-            [t,err,e6] = r.getError;
-            
-            plot(t,err,'black',t,e1,'r',t,e2,'b:',t,e3,'g',t,e4,'r--',t,e5,'b--',t,e6,'g--');
-%             subplot(1,2,1);
-%             ph = plot(t,err,'black',t,e1,'r',t,e2,'b:',t,e3,'g');
-%             subplot(1,2,2);
-%             plot(t,err,'black',t,e4,'r',t,e5,'b',t,e6,'g');
-%             set(ph(3),'LineWidth',3);
-        end
+%         function [r,e1,e2,e3,e4,e5,e6] = runEstimatorTest(num,varargin)
+%             if nargin == 0
+%                 num = 3;
+%             end
+%             eval(sprintf('m = models.synth.KernelTest.getTest%d(varargin{:});',num));
+%             
+%             %m.ODESolver = solvers.Heun;
+%             
+%             m.dt = .05;
+%             
+%             m.offlineGenerations;
+%             r = m.buildReducedModel;
+%             
+%             k = m.System.f.SystemKernel;
+%             e = error.LocalLipKernelEstimator(r);
+%             e.UseTimeDiscreteC = false;
+%             r.ErrorEstimator = e;
+%             
+%             e.KernelLipschitzFcn = @k.getLocalGradientLipschitz;
+%             [t,err,e1] = r.getError;
+%             e.KernelLipschitzFcn = @k.getLocalSecantLipschitz;
+%             [t,err,e2] = r.getError;
+%             e.KernelLipschitzFcn = @k.getImprovedLocalSecantLipschitz;
+%             [t,err,e3] = r.getError;
+%             e.Iterations = 1;
+%             e.KernelLipschitzFcn = @k.getLocalGradientLipschitz;
+%             [t,err,e4] = r.getError;
+%             e.KernelLipschitzFcn = @k.getLocalSecantLipschitz;
+%             [t,err,e5] = r.getError;
+%             e.KernelLipschitzFcn = @k.getImprovedLocalSecantLipschitz;
+%             [t,err,e6] = r.getError;
+%             
+%             plot(t,err,'black',t,e1,'r',t,e2,'b:',t,e3,'g',t,e4,'r--',t,e5,'b--',t,e6,'g--');
+% %             subplot(1,2,1);
+% %             ph = plot(t,err,'black',t,e1,'r',t,e2,'b:',t,e3,'g');
+% %             subplot(1,2,2);
+% %             plot(t,err,'black',t,e4,'r',t,e5,'b',t,e6,'g');
+% %             set(ph(3),'LineWidth',3);
+%         end
         
         function r = runTest(model)
             model.offlineGenerations;
