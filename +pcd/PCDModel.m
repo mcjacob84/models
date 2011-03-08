@@ -5,27 +5,28 @@ classdef PCDModel < models.BaseFullModel
     methods
         function this = PCDModel(dim)
             % Creates a new instance of the PCDModel
+            
+            % Use the PCDSystem
+            if nargin == 0
+                dim=1;
+            end
+            
             this.Verbose = 0;
             
-            this.T = 500;
-            this.dt = .2;
-            this.ApproxExpansionSize = 300;
+            this.T = 500; %[s]
+            this.dt = .2; %[s]
             
             %s = sampling.RandomSampler;
             %s.Samples = 10;
             %this.Sampler = s;
             this.Sampler = sampling.GridSampler;
             
-            % Use the PCDSystem
-            if nargin == 0
-                dim=1;
-            end
             switch dim
                 case 2 
-                    this.System = models.pcd.PCDSystem2D;
+                    this.System = models.pcd.PCDSystem2D(this);
                     this.Name = 'Programmed Cell Death 2D';
                 otherwise
-                    this.System = models.pcd.PCDSystem1D;
+                    this.System = models.pcd.PCDSystem1D(this);
                     this.Name = 'Programmed Cell Death 1D';
             end
             
@@ -44,6 +45,7 @@ classdef PCDModel < models.BaseFullModel
 %             a.lambda = 2;
 
             a = approx.CompWiseSVR;
+            a.ApproxExpansionSize = 300;
             a.ScalarSVR = general.regression.ScalarNuSVR;
             a.ScalarSVR.nu = .6;
             a.TimeKernel = kernels.LinearKernel;
@@ -58,12 +60,13 @@ classdef PCDModel < models.BaseFullModel
 %             a.C = 100;
             this.Approx = a;
             
-            this.ODESolver = solvers.MLWrapper(@ode23);
+            %this.ODESolver = solvers.MLWrapper(@ode23);
+            this.ODESolver = solvers.ExplEuler(this.dt);
         end
         
         function plot(this, t, y)
             % Overrides standard method and forwards to the system's plot
-            % function.
+            % function. (they are 1D and 2D)
             this.System.plot(this,t,y);
         end
     end

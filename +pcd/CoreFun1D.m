@@ -19,7 +19,6 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
         
         function this = CoreFun1D(dynsys)
             this.sys = dynsys;
-            this.updateSimConstants;
         end
         
         function updateSimConstants(this)
@@ -44,12 +43,12 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
             
             % Boundary conditions
             rb = zeros(m,1);
-            rb(end) = - (xi(end)*mu(1))/this.sys.h;
+            rb(end) = - (xi(end)*mu(9))/this.sys.h;
             
-            fx(1:m) = mu(2)*this.sys.lam1*xi.*ya - mu(4)*xa + this.A*xa - rb;
-            fx(m+1:2*m) = mu(3)*this.sys.lam2*yi.*xan - mu(5)*ya + this.sys.D*this.A*ya;
-            fx(2*m+1:3*m) = -mu(2)*xi.*ya - mu(4)*xi + mu(6) + this.A*xi + rb;
-            fx(3*m+1:end) = -mu(3)*yi.*xan - mu(5)*yi + mu(7) + this.sys.D*this.A*yi;
+            fx(1:m) = mu(1)*xi.*ya - mu(3)*xa + this.A*xa - rb;
+            fx(m+1:2*m) = mu(2)*yi.*xan - mu(4)*ya + this.sys.D2*this.A*ya;
+            fx(2*m+1:3*m) = -mu(1)*xi.*ya - mu(5)*xi + mu(7) + this.sys.D3*this.A*xi + rb;
+            fx(3*m+1:end) = -mu(2)*yi.*xan - mu(6)*yi + mu(8) + this.sys.D4*this.A*yi;
         end
         
         function c = getGlobalLipschitz(this, mu, inputidx)

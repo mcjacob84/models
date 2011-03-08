@@ -13,11 +13,14 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
     end
     
     methods
-        function this = PCDSystem1D
+        function this = PCDSystem1D(model)
+            this = this@models.pcd.BasePCDSystem(model);
+            
             this.h = .03;
             
-            % Add params
-            this.addParam('U', [0, 2], 12);
+            % Add input param (is getting inserted after the BasePCDSystem
+            % condtructor params, so number 9!)
+            this.addParam('U', [0, 0.001], 12);
             
             % Set core function
             this.f = models.pcd.CoreFun1D(this);
@@ -32,12 +35,21 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             figure;
             X = t;
             Y = this.Range(1):this.h:this.Range(2);
-            mesh(X,Y,y);
-            xlabel('Times');
-            ylabel(sprintf('0 to %d: Cell core to hull',this.Range(2)));
-            grid off;
-            axis tight;
-            title(sprintf('Plot for output of model "%s"', model.Name));
+            m = model.System.dim;
+            doplot(y(1:m,:),'Caspase-8',1);
+            doplot(y(m+1:2*m,:),'Caspase-3',2);
+            doplot(y(2*m+1:3*m,:),'Pro-Caspase-8',3);
+            doplot(y(3*m+1:end,:),'Pro-Caspase-3',4);
+            
+            function doplot(y,thetitle,pnr)
+                subplot(2,2,pnr);
+                mesh(X,Y,y);
+                xlabel('Time [s]');
+                ylabel(sprintf('0 to %d: Cell core to hull [m]',this.Range(2)));
+                grid off;
+                axis tight;
+                title(sprintf('Model "%s", %s concentrations', model.Name, thetitle));
+            end
         end
     end
     
@@ -59,7 +71,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             C = sparse(C);
         end
         
-        function updateDimSimConstants(this)
+        function updateDims(this)
             this.dim = length(this.Range(1):this.h:this.Range(2));
         end
     end

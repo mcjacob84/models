@@ -15,7 +15,9 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
     end
     
     methods
-        function this = PCDSystem2D
+        function this = PCDSystem2D(model)
+            this = this@models.pcd.BasePCDSystem(model);
+            
             this.h = .2;
             
             % Add params
@@ -68,7 +70,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             C = sparse(C);
         end
         
-        function updateDimSimConstants(this)
+        function updateDims(this)
             this.dim1 = length(this.Omega(1,1):this.h:this.Omega(1,2));
             this.dim2 = length(this.Omega(2,1):this.h:this.Omega(2,2));
         end
