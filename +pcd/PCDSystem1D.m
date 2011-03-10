@@ -1,6 +1,14 @@
 classdef PCDSystem1D < models.pcd.BasePCDSystem
     %PCDSYSTEM1D Summary of this class goes here
     %   Detailed explanation goes here
+    %
+    % @author Daniel Wirtz @date 
+    %
+    % @change{0,3,dw,2011-03-09} Implemented the model according to the
+    % Paper <a
+    % href="http://www.simtech.uni-stuttgart.de/publikationen/prints.php?ID=285" 
+    % target="_blank">Death wins against life in a spatially extended
+    % apoptosis model</a>
     
     properties
         % Spatial area
@@ -57,6 +65,10 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
         function x0 = initialX(this, mu)%#ok
             m = this.dim;
             x0 = zeros(4*m,1);
+            
+            % Initial 
+            %x0(round(2*m/3):m) = .001;
+            
             %x0(2*m+1:end) = .3;
             %[X,Y] = meshgrid(1:this.dim2,1:this.dim1);
             %s = sin(X * pi/this.dim1) .* exp(-Y/4)*.5;
