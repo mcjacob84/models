@@ -2,7 +2,12 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
     %BASERBMATLABMODEL Base class for all rbmatlab model wrappers
     %
     % Subclassing instances MUST explicitly call this classes constructor
-    % in order to gain access to rbmatlab's file paths etc.
+    % in order to ensure that KerMor is connected to rbmatlab.
+    %
+    % @new{0,3,dw,2011-03-17} Added overloads for the
+    % models.BaseModel.simulate and models.BaseModel.computeTrajectory
+    % methods that check for a valid connection to rbmatlab before
+    % computations are made.
     
     properties
         % The adopted RB matlab model.
@@ -19,17 +24,37 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
     
     methods
         function this = BaseRBMatlabWrapper
-            % Environmental setup
-            rbmatlab = '/afs/.mathe/project/agh/home/dwirtz/Software/rbmatlab/';
-            if isempty(getenv('KERMORTEMP'))
-                error('No KERMORTEMP environment path set. Aborting. (Forgot to run startup_kermor?)');
+            if ~KerMor.App.Hasrbmatlab
+                error('rbmatlab is not registered with KerMor. Set KerMor.App.rbmatlabDirectory to fix.');
             end
-            setenv('RBMATLABTEMP', getenv('KERMORTEMP'));
-            setenv('RBMATLABHOME',rbmatlab);
-            addpath(rbmatlab);
-            curdir = pwd;
-            startup_rbmatlab;
-            chdir(curdir);
+        end
+        
+        function [t,y,sec,x] = simulate(this, mu, inputidx)
+            % Simulates the RBMatlab model for given parameter and
+            % inputindex.
+            % 
+            % Overloads the base method in models.BaseModel.
+            %
+            % Inherited documentation:
+            % @copydoc models::BaseModel::simulate()
+            if ~KerMor.App.Hasrbmatlab
+                error('rbmatlab is not registered with KerMor. Set KerMor.App.rbmatlabDirectory to fix.');
+            end
+            [t,y,sec,x] = simulate@BaseModel(this, mu, inputidx);
+        end
+        
+        function [t,x] = computeTrajectory(this, mu, inputidx)
+            % Computes a trajectory of the RBMatlab model for given
+            % parameter and inputindex.
+            % 
+            % Overloads the base method in models.BaseModel.
+            %
+            % Inherited documentation:
+            % @copydoc models::BaseModel::computeTrajectory()
+            if ~KerMor.App.Hasrbmatlab
+                error('rbmatlab is not registered with KerMor. Set KerMor.App.rbmatlabDirectory to fix.');
+            end
+            [t,x] = computeTrajectory@BaseModel(this, mu, inputidx);
         end
     end
     

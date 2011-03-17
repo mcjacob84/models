@@ -1,10 +1,12 @@
 classdef PCDModel < models.BaseFullModel
-    %PCDMODEL Summary of this class goes here
-    %   Detailed explanation goes here
+    % Base class for both 1D and 2D pcd models
     
     methods
         function this = PCDModel(dim)
             % Creates a new instance of the PCDModel
+            %
+            % Parameters:
+            % dim: The dimension to use @default 1
             
             % Use the PCDSystem
             if nargin == 0
@@ -35,7 +37,6 @@ classdef PCDModel < models.BaseFullModel
             sr.Mode = 'rel';
             sr.Value = .3;
             this.SpaceReducer = sr;
-            
             
             % Core Approximation
 %             a = approx.CompWiseLS;
