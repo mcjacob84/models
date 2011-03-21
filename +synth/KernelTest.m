@@ -82,7 +82,7 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
         
 %         function proj = project(this, V, W)
 %             proj = project@dscomponents.CompwiseKernelCoreFun(this, V, W);
-%             if this.RotationInvariantKernel
+%             if this.RotationInvariant
 %                 proj.snData.xi = W' * proj.snData.xi;
 %             end
 %         end

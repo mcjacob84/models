@@ -51,7 +51,8 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             
             function doplot(y,thetitle,pnr)
                 subplot(2,2,pnr);
-                mesh(X,Y,y);
+                %mesh(X,Y,y);
+                surf(X,Y,y,'EdgeColor','none');
                 xlabel('Time [s]');
                 ylabel(sprintf('0 to %d: Cell core to hull [m]',this.Range(2)));
                 grid off;

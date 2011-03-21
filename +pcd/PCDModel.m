@@ -45,13 +45,13 @@ classdef PCDModel < models.BaseFullModel
 %             a.ParamKernel = kernels.LinearKernel;
 %             a.lambda = 2;
 
-            a = approx.CompWiseSVR;
+            a = approx.CompWiseInt;
             a.ApproxExpansionSize = 300;
-            a.ScalarSVR = general.regression.ScalarNuSVR;
-            a.ScalarSVR.nu = .6;
-            a.TimeKernel = kernels.LinearKernel;
+            %a.ScalarSVR = general.regression.ScalarNuSVR;
+            %a.ScalarSVR.nu = .6;
+            %a.TimeKernel = kernels.LinearKernel;
             a.SystemKernel = kernels.GaussKernel(50);
-            a.ParamKernel = kernels.GaussKernel(50);
+            a.ParamKernel = kernels.GaussKernel(0.002);
             
 %             a = approx.CompWiseSVR;
 %             a.TimeKernel = kernels.GaussKernel;
