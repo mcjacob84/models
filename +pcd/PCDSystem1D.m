@@ -4,7 +4,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
     %
     % @author Daniel Wirtz @date 
     %
-    % @change{0,3,dw,2011-03-09} Implemented the model according to the
+    % @change{0,2,dw,2011-03-09} Implemented the model according to the
     % Paper <a
     % href="http://www.simtech.uni-stuttgart.de/publikationen/prints.php?ID=285" 
     % target="_blank">Death wins against life in a spatially extended

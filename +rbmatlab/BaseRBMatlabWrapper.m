@@ -4,7 +4,7 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
     % Subclassing instances MUST explicitly call this classes constructor
     % in order to ensure that KerMor is connected to rbmatlab.
     %
-    % @new{0,3,dw,2011-03-17} Added overloads for the
+    % @new{0,2,dw,2011-03-17} Added overloads for the
     % models.BaseModel.simulate and models.BaseModel.computeTrajectory
     % methods that check for a valid connection to rbmatlab before
     % computations are made.
