@@ -39,13 +39,14 @@ classdef PCDModel < models.BaseFullModel
             this.SpaceReducer = sr;
             
             % Core Approximation
-%             a = approx.CompWiseLS;
+%             a = approx.DefaultCompWiseKernelApprox;
+%             a.CoeffComp = general.regression.KernelLS;
 %             a.TimeKernel = kernels.GaussKernel;
 %             a.SystemKernel = kernels.GaussKernel(2);
 %             a.ParamKernel = kernels.LinearKernel;
 %             a.lambda = 2;
 
-            a = approx.CompWiseInt;
+            a = approx.DefaultCompWiseKernelApprox;
             a.ApproxExpansionSize = 300;
             %a.ScalarSVR = general.regression.ScalarNuSVR;
             %a.ScalarSVR.nu = .6;
@@ -53,7 +54,8 @@ classdef PCDModel < models.BaseFullModel
             a.SystemKernel = kernels.GaussKernel(50);
             a.ParamKernel = kernels.GaussKernel(0.002);
             
-%             a = approx.CompWiseSVR;
+%             a = approx.DefaultCompWiseKernelApprox;
+%             a.CoeffComp = general.regression.ScalarEpsSVR;
 %             a.TimeKernel = kernels.GaussKernel;
 %             a.SystemKernel = kernels.GaussKernel(2);
 %             a.ParamKernel = kernels.LinearKernel;

@@ -42,14 +42,14 @@ classdef RiemannBurgers < models.rbmatlab.BaseRBMatlabWrapper & models.BaseDynSy
             
             % Approximation: Use same kernels
             if false
-                a = approx.CompWiseSVR;
+                a = approx.DefaultCompWiseKernelApprox;
                 svr = general.regression.ScalarNuSVR;
                 svr.nu = .6;
                 qp = solvers.qpOASES;
                 svr.QPSolver = qp;
-                a.ScalarSVR = svr;
+                a.CoeffComp = svr;
             else
-                a = approx.CompWiseInt;
+                a = approx.DefaultCompWiseKernelApprox;
             end
             a.SystemKernel = kernels.GaussKernel(60);
             a.TimeKernel = kernels.GaussKernel(10*m.T/m.nt);

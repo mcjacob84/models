@@ -58,10 +58,10 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
             
             % Sample bases
             this.svNum = 20;
-            this.snData.xi = repmat(linspace(-24,24,this.svNum),this.dim,1);
-            %this.snData.xi = linspace(-20,20,this.svNum);
-            this.snData.ti = [];
-            this.snData.mui = [];
+            this.Centers.xi = repmat(linspace(-24,24,this.svNum),this.dim,1);
+            %this.Centers.xi = linspace(-20,20,this.svNum);
+            this.Centers.ti = [];
+            this.Centers.mui = [];
             
             % Function coefficients
             offset = .5;
@@ -83,7 +83,7 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
 %         function proj = project(this, V, W)
 %             proj = project@dscomponents.CompwiseKernelCoreFun(this, V, W);
 %             if this.RotationInvariant
-%                 proj.snData.xi = W' * proj.snData.xi;
+%                 proj.Centers.xi = W' * proj.Centers.xi;
 %             end
 %         end
         
