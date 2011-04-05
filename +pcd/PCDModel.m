@@ -13,8 +13,6 @@ classdef PCDModel < models.BaseFullModel
                 dim=1;
             end
             
-            this.Verbose = 0;
-            
             this.T = 500; %[s]
             this.dt = .2; %[s]
             
@@ -46,8 +44,9 @@ classdef PCDModel < models.BaseFullModel
 %             a.ParamKernel = kernels.LinearKernel;
 %             a.lambda = 2;
 
-            a = approx.DefaultCompWiseKernelApprox;
-            a.ApproxExpansionSize = 300;
+            a = approx.AdaptiveCompWiseKernelApprox;
+            a.MaxExpansionSize = 150;
+            a.MaxTrainingSize = 8000;
             %a.ScalarSVR = general.regression.ScalarNuSVR;
             %a.ScalarSVR.nu = .6;
             %a.TimeKernel = kernels.LinearKernel;
@@ -71,6 +70,18 @@ classdef PCDModel < models.BaseFullModel
             % Overrides standard method and forwards to the system's plot
             % function. (they are 1D and 2D)
             this.System.plot(this,t,y);
+        end
+    end
+    
+    methods (Static, Access=protected)
+        function obj = loadobj(s)
+            % Loads the properties for the PCDModel part of this
+            % class.
+            %
+            % See also: ILoadable BaseFullModel.loadobj
+            obj = models.pcd.PCDModel;
+            
+            obj = loadobj@models.BaseFullModel(s, obj);
         end
     end
     

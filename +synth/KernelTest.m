@@ -25,7 +25,6 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
             this.dim = dims;
             
             %% Model settings
-            this.Verbose = 0;
             this.Name = 'Test model';
             
             this.T = 5;
@@ -80,6 +79,10 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
             this.ParamKernel = kernels.NoKernel;
         end
         
+%         function copy = clone(this)
+%             copy = models.synth.KernelTest;
+%         end
+        
 %         function proj = project(this, V, W)
 %             proj = project@dscomponents.CompwiseKernelCoreFun(this, V, W);
 %             if this.RotationInvariant
@@ -113,47 +116,21 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
         
     end
     
+    methods (Static, Access=protected)
+        function obj = loadobj(s)
+            % Loads the properties for the BaseFullModel part of this
+            % class.
+            %
+            % See also: ILoadable BaseFullModel.loadobj
+            obj = models.synth.KernelTest;
+            
+            obj = loadobj@models.BaseFullModel(s, obj);
+            obj.dim = s.dim;
+            obj.svNum = s.svNum;
+        end
+    end
+    
     methods(Static)
-        
-%         function [r,e1,e2,e3,e4,e5,e6] = runEstimatorTest(num,varargin)
-%             if nargin == 0
-%                 num = 3;
-%             end
-%             eval(sprintf('m = models.synth.KernelTest.getTest%d(varargin{:});',num));
-%             
-%             %m.ODESolver = solvers.Heun;
-%             
-%             m.dt = .05;
-%             
-%             m.offlineGenerations;
-%             r = m.buildReducedModel;
-%             
-%             k = m.System.f.SystemKernel;
-%             e = error.LocalLipKernelEstimator(r);
-%             e.UseTimeDiscreteC = false;
-%             r.ErrorEstimator = e;
-%             
-%             e.KernelLipschitzFcn = @k.getLocalGradientLipschitz;
-%             [t,err,e1] = r.getError;
-%             e.KernelLipschitzFcn = @k.getLocalSecantLipschitz;
-%             [t,err,e2] = r.getError;
-%             e.KernelLipschitzFcn = @k.getImprovedLocalSecantLipschitz;
-%             [t,err,e3] = r.getError;
-%             e.Iterations = 1;
-%             e.KernelLipschitzFcn = @k.getLocalGradientLipschitz;
-%             [t,err,e4] = r.getError;
-%             e.KernelLipschitzFcn = @k.getLocalSecantLipschitz;
-%             [t,err,e5] = r.getError;
-%             e.KernelLipschitzFcn = @k.getImprovedLocalSecantLipschitz;
-%             [t,err,e6] = r.getError;
-%             
-%             plot(t,err,'black',t,e1,'r',t,e2,'b:',t,e3,'g',t,e4,'r--',t,e5,'b--',t,e6,'g--');
-% %             subplot(1,2,1);
-% %             ph = plot(t,err,'black',t,e1,'r',t,e2,'b:',t,e3,'g');
-% %             subplot(1,2,2);
-% %             plot(t,err,'black',t,e4,'r',t,e5,'b',t,e6,'g');
-% %             set(ph(3),'LineWidth',3);
-%         end
         
         function r = runTest(model)
             model.offlineGenerations;
@@ -273,27 +250,7 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
             
             m.System.B = dscomponents.LinearInputConv(rand(m.dim,1));
             m.System.Inputs{1} = @(t)sin(2*t);
-            
-            %x0 = (rand(m.dim,1)-.5)*3;
-            %m.System.x0 = @(mu)x0;
-            
-            %V = ones(m.dim,1)*sqrt(1/m.dim);
-            %m.SpaceReducer = spacereduction.ManualReduction(V);
         end
-        
-%         function r = runExplTimeTest(varargin)
-%             m = models.synth.KernelTest(varargin{:});
-%             
-%             m.System.x0 = @(mu)rand(m.dim,1);
-%             
-%             m.offlineGenerations;
-%             r = m.buildReducedModel;
-%             r.analyze;
-%             
-%             pause;
-%             
-%             m.ODESolver = solvers.ExplEuler;
-%         end
     end
     
 end
