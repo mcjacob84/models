@@ -11,9 +11,6 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
     % @author Daniel Wirtz @date 15.03.2010
     
     properties       
-        % The parent PCD model
-        model;
-        
         % Spatial stepwidth
         h = .1;
         
@@ -89,8 +86,7 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
     end
     
     methods
-        function this = BasePCDSystem(model)
-            this.model = model;
+        function this = BasePCDSystem
             this.x0 = @(mu)this.initialX(mu);
             
             % Set output conversion
@@ -112,7 +108,7 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
             %this.lam2 = this.yi0/this.ya0;
             t = this.L^2/this.d1;
             % Set scaling of the model from here
-            this.model.tau = t;
+            this.Model.tau = t;
             this.D2 = this.d2/this.d1;
             this.D3 = this.d3/this.d1;
             this.D4 = this.d4/this.d1;
@@ -135,6 +131,16 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
         x0 = initialX(mu);
         C = getC(t,mu);
     end
+    
+%     methods(Static,Access=protected)
+%         function obj = loadobj(s, obj)
+%             if nargin < 2
+%                 error('Missing subclass loadobj method.');
+%             end
+%             obj = loadobj@models.BaseDynSystem(s, obj);
+%             ALoadable.loadProps(mfilename('class'), obj, s);
+%         end
+%     end
 end
 
 

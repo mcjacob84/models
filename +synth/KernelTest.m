@@ -121,10 +121,15 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
             % Loads the properties for the BaseFullModel part of this
             % class.
             %
-            % See also: ILoadable BaseFullModel.loadobj
+            % See also: ALoadable BaseFullModel.loadobj
             obj = models.synth.KernelTest;
             
             obj = loadobj@models.BaseFullModel(s, obj);
+            % Need to re-assign self references as matlab obviously does
+            % not load it correctly
+            obj.System = obj;
+            obj.f = obj;
+            
             obj.dim = s.dim;
             obj.svNum = s.svNum;
         end

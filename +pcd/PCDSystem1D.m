@@ -21,20 +21,17 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
     end
     
     methods
-        function this = PCDSystem1D(model)
-            this = this@models.pcd.BasePCDSystem(model);
-            
+        function this = PCDSystem1D
+            this = this@models.pcd.BasePCDSystem;
+
             this.h = .03;
-            
+
             % Add input param (is getting inserted after the BasePCDSystem
             % condtructor params, so number 9!)
             this.addParam('U', [0, 0.001], 12);
-            
+
             % Set core function
             this.f = models.pcd.CoreFun1D(this);
-            
-            % Update simulation constants
-            this.updateSimConstants;
         end
         
         function plot(this, model, t, y)
@@ -88,6 +85,14 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             this.dim = length(this.Range(1):this.h:this.Range(2));
         end
     end
+    
+%     methods(Static,Access=protected)
+%         function obj = loadobj(s)
+%             obj = models.pcd.PCDSystem1D;
+%             obj = loadobj@models.pcd.BasePCDSystem(s, obj);
+%             ALoadable.loadProps(mfilename('class'), obj, s);
+%         end
+%     end
     
 end
 

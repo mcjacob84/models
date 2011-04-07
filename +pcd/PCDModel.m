@@ -23,12 +23,15 @@ classdef PCDModel < models.BaseFullModel
             
             switch dim
                 case 2 
-                    this.System = models.pcd.PCDSystem2D(this);
+                    s = models.pcd.PCDSystem2D;
                     this.Name = 'Programmed Cell Death 2D';
                 otherwise
-                    this.System = models.pcd.PCDSystem1D(this);
+                    s = models.pcd.PCDSystem1D;
                     this.Name = 'Programmed Cell Death 1D';
             end
+            s.Model = this;
+            s.updateSimConstants;
+            this.System = s;
             
             % Space reduction setup
             sr = spacereduction.PODReducer;
@@ -73,17 +76,16 @@ classdef PCDModel < models.BaseFullModel
         end
     end
     
-    methods (Static, Access=protected)
-        function obj = loadobj(s)
-            % Loads the properties for the PCDModel part of this
-            % class.
-            %
-            % See also: ILoadable BaseFullModel.loadobj
-            obj = models.pcd.PCDModel;
-            
-            obj = loadobj@models.BaseFullModel(s, obj);
-        end
-    end
+%     methods (Static, Access=protected)
+%         function obj = loadobj(s)
+%             % Loads the properties for the PCDModel part of this
+%             % class.
+%             %
+%             % See also: ALoadable BaseFullModel.loadobj
+%             obj = models.pcd.PCDModel;
+%             obj = loadobj@models.BaseFullModel(s, obj);
+%         end
+%     end
     
 end
 
