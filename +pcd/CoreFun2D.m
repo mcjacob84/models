@@ -1,5 +1,5 @@
 classdef CoreFun2D < dscomponents.ACoreFun & ISimConstants
-    %CoreFun The core nonlinear function of the PCD model.
+    % The core nonlinear function of the PCD model.
     %
     % @author Daniel Wirtz @date 16.03.2010
     
@@ -18,12 +18,25 @@ classdef CoreFun2D < dscomponents.ACoreFun & ISimConstants
     
     methods
         
-        function res = project(this, V)%#ok
-            error('Projection of pure model core function not supported in this model.');
+        function copy = clone(this)
+            copy = models.pcd.CoreFun2D(this.sys);
+            
+            % Call superclass method
+            copy = clone@dscomponents.ACoreFun(this, copy);
+            
+            % copy reference!
+            %copy.sys = this.sys; % already done in constructor
+            copy.A = this.A;
+            copy.dim = this.dim;
+            copy.left = this.left;
+            copy.right = this.right;
+            copy.lower = this.lower;
+            copy.upper = this.upper;
         end
         
         function this = CoreFun2D(dynsys)
             this.sys = dynsys;
+            this.MultiArgumentEvaluations = true;
         end
         
         function updateSimConstants(this)
@@ -34,7 +47,7 @@ classdef CoreFun2D < dscomponents.ACoreFun & ISimConstants
             [this.A,idxmat] = general.MatUtils.laplacemat(this.sys.h,...
                                 this.sys.dim1,this.sys.dim2);
             this.upper = idxmat(1:d1:d);
-            this.right = idxmat(d-d1:d);
+            this.right = idxmat(d-d1+1:d);
             this.lower = idxmat(d1:d1:d);
             this.left = idxmat(1:d1);
             
@@ -49,32 +62,52 @@ classdef CoreFun2D < dscomponents.ACoreFun & ISimConstants
             n = this.sys.n;
             h = this.sys.h;
             
-            % Extract single functions
-            xa = x(1:m);
-            xan = xa.^n;
-            ya = x(m+1:2*m);
-            xi = x(2*m+1:3*m);
-            yi = x(3*m+1:end);
-            
-            % Compile boundary conditions
-            rb = zeros(m,1);
-            rb(this.upper) = -(xi(this.upper)*mu(1))/h;
-            rb(this.right) = rb(this.right) - (xi(this.right)*mu(2))/h;
-            rb(this.lower) = rb(this.lower) - (xi(this.lower)*mu(3))/h;
-            rb(this.left) = rb(this.left) - (xi(this.left)*mu(4))/h;
-            edges = [this.upper(1) this.upper(end)...
-                     this.lower(1) this.lower(end)];
-            rb(edges) = .5*rb(edges);
-            
-            % Handle xa function
-            %         fx(1:m) = A*xa;
-            %         fx(m+1:2*m) = A*ya;
-            %         fx(2*m+1:3*m) = A*xi;
-            %         fx(3*m+1:end) = A*yi;
-            fx(1:m) = mu(5)*this.sys.lam1*xi.*ya - mu(7)*xa + this.A*xa - rb;
-            fx(m+1:2*m) = mu(6)*this.sys.lam2*yi.*xan - mu(8)*ya + this.sys.D*this.A*ya;
-            fx(2*m+1:3*m) = -mu(5)*xi.*ya - mu(7)*xi + mu(9) + this.A*xi + rb;
-            fx(3*m+1:end) = -mu(6)*yi.*xan - mu(8)*yi + mu(10) + this.sys.D*this.A*yi;
+%             if size(x,2) == 1
+                % Extract single functions
+                xa = x(1:m);
+                xan = xa.^n;
+                ya = x(m+1:2*m);
+                xi = x(2*m+1:3*m);
+                yi = x(3*m+1:end);
+
+                % Compile boundary conditions
+                rb = zeros(m,1);
+%                 rb(this.upper) = -(xi(this.upper)*mu(1))/h;
+%                 rb(this.right) = rb(this.right) - (xi(this.right)*mu(2))/h;
+%                 rb(this.lower) = rb(this.lower) - (xi(this.lower)*mu(3))/h;
+%                 rb(this.left) = rb(this.left) - (xi(this.left)*mu(4))/h;
+%                 edges = [this.upper(1) this.upper(end)...
+%                          this.lower(1) this.lower(end)];
+%                 %rb(edges) = .5*rb(edges);
+%                 rb(edges) = 0;
+
+                fx(1:m) = mu(1)*xi.*ya - mu(3)*xa + this.A*xa - rb;
+                fx(m+1:2*m) = mu(2)*yi.*xan - mu(4)*ya + this.sys.D2*this.A*ya;
+                fx(2*m+1:3*m) = -mu(1)*xi.*ya - mu(5)*xi + mu(7) + this.sys.D3*this.A*xi + rb;
+                fx(3*m+1:end) = -mu(2)*yi.*xan - mu(6)*yi + mu(8) + this.sys.D4*this.A*yi;
+%             else
+%                 % Extract single functions
+%                 xa = x(1:m,:);
+%                 xan = xa.^n;
+%                 ya = x(m+1:2*m,:);
+%                 xi = x(2*m+1:3*m,:);
+%                 yi = x(3*m+1:end,:);
+% 
+%                 % Compile boundary conditions
+%                 rb = zeros(m,size(x,2));
+%                 rb(this.upper,:) = -(bsxfun(@mult,xi(this.upper,:),mu(9,:)))/h;
+%                 rb(this.right,:) = rb(this.right,:) - (bsxfun(@mult,xi(this.right,:),mu(10,:)))/h;
+%                 rb(this.lower,:) = rb(this.lower,:) - (bsxfun(@mult,xi(this.lower,:),mu(11,:)))/h;
+%                 rb(this.left,:) = rb(this.left,:) - (bsxfun(@mult,xi(this.left,:),mu(12,:)))/h;
+%                 edges = [this.upper(1) this.upper(end)...
+%                          this.lower(1) this.lower(end)];
+%                 rb(edges,:) = .5*rb(edges,:);
+% 
+%                 fx(1:m,:) = bsxfun(@mult,xi.*ya,mu(1,:)) - bsxfun(@mult,xa,mu(3,:)) + this.A*xa - rb;
+%                 fx(m+1:2*m,:) = bsxfun(@mult,yi.*xan,mu(2,:)) - bsxfun(@mult,ya,mu(4,:)) + this.sys.D2*this.A*ya;
+%                 fx(2*m+1:3*m,:) = -bsxfun(@mult,xi.*ya,mu(1,:)) - bsxfun(@mult,xi,mu(5,:)) + bsxfun(@mult,ones(size(xi)),mu(7,:)) + this.sys.D3*this.A*xi + rb;
+%                 fx(3*m+1:end,:) = -bsxfun(@mult,yi.*xan,mu(2,:)) - bsxfun(@mult,yi,mu(6,:)) + bsxfun(@mult,ones(size(xi)),mu(8,:)) + this.sys.D4*this.A*yi;
+%             end
             
             %         figure(1);
             %         plo(x,1);

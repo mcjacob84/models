@@ -13,8 +13,8 @@ classdef PCDModel < models.BaseFullModel
                 dim=1;
             end
             
-            this.T = 500; %[s]
-            this.dt = .2; %[s]
+            this.T = 400; %[s]
+            this.dt = .25; %[s]
             
             %s = sampling.RandomSampler;
             %s.Samples = 10;
@@ -37,7 +37,8 @@ classdef PCDModel < models.BaseFullModel
             sr = spacereduction.PODReducer;
             sr.Mode = 'rel';
             sr.Value = .3;
-            this.SpaceReducer = sr;
+            %this.SpaceReducer = sr;
+            this.SpaceReducer = [];
             
             % Core Approximation
 %             a = approx.DefaultCompWiseKernelApprox;
@@ -49,12 +50,16 @@ classdef PCDModel < models.BaseFullModel
 
             a = approx.AdaptiveCompWiseKernelApprox;
             a.MaxExpansionSize = 150;
-            a.MaxTrainingSize = 8000;
+            a.MaxRelErr = 1e-5;
+            a.MaxAbsErrFactor = 1e-5;
+            s = approx.selection.TimeSelector;
+            s.MaxSize = 10000;
+            a.TrainDataSelector = s;
             %a.ScalarSVR = general.regression.ScalarNuSVR;
             %a.ScalarSVR.nu = .6;
             %a.TimeKernel = kernels.LinearKernel;
-            a.SystemKernel = kernels.GaussKernel(50);
-            a.ParamKernel = kernels.GaussKernel(0.002);
+            a.SystemKernel = kernels.GaussKernel;
+            a.ParamKernel = kernels.GaussKernel;
             
 %             a = approx.DefaultCompWiseKernelApprox;
 %             a.CoeffComp = general.regression.ScalarEpsSVR;

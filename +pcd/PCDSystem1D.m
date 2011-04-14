@@ -28,7 +28,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
 
             % Add input param (is getting inserted after the BasePCDSystem
             % condtructor params, so number 9!)
-            this.addParam('U', [0, 0.001], 12);
+            this.addParam('U', [0.0005, 0.003], 12);
 
             % Set core function
             this.f = models.pcd.CoreFun1D(this);
@@ -54,7 +54,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
                 ylabel(sprintf('0 to %d: Cell core to hull [m]',this.Range(2)));
                 grid off;
                 axis tight;
-                title(sprintf('Model "%s", %s concentrations', model.Name, thetitle));
+                title(sprintf('Model "%s"\n%s concentrations', model.Name, thetitle));
             end
         end
     end
@@ -65,7 +65,10 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             x0 = zeros(4*m,1);
             
             % Initial 
-            %x0(round(2*m/3):m) = .001;
+            %x0(round(2/3*m):m) = .001;
+            
+            % Initial procasp-concentrations
+            %x0(2*m+1:end) = sin(2*pi*(1:2*m)/(2*m))*.01;
             
             %x0(2*m+1:end) = .3;
             %[X,Y] = meshgrid(1:this.dim2,1:this.dim1);

@@ -15,22 +15,19 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
     end
     
     methods
-        function this = PCDSystem2D(model)
-            this = this@models.pcd.BasePCDSystem(model);
+        function this = PCDSystem2D
+            this = this@models.pcd.BasePCDSystem;
             
-            this.h = .2;
+            this.h = .1;
             
             % Add params
-            this.addParam('mu1', [0, 2], 5);
-            this.addParam('mu2', [0, 2], 3);
-            this.addParam('mu3', [0, 1], 3);
-            this.addParam('mu4', [0, 1], 3);
+            this.addParam('mu1', [0, 0.002], 5);
+            this.addParam('mu2', 0, 1);
+            this.addParam('mu3', [0, 0.002], 3);
+            this.addParam('mu4', 0, 1);
             
             % Set core function
             this.f = models.pcd.CoreFun2D(this);
-            
-            % Update simulation constants
-            this.updateSimConstants;
         end
         
         function plot(this, model, t, y)
@@ -40,14 +37,24 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             %[X,Y] = meshgrid(1:d1,1:d2);
             X = this.Omega(1,1):this.h:this.Omega(1,2);
             Y = this.Omega(2,1):this.h:this.Omega(2,2);
+            m = this.dim1*this.dim2;
             for idx=1:length(t)
-                Z = reshape(y(:,idx),this.dim1,[]);
-                surf(X,Y,Z);
-                grid off;
-                %imagesc(Z);
-                axis tight;
-                title(sprintf('Plot for output of model "%s" at time %1.2f', model.Name, t(idx)));
+                doplot(y(1:m,idx),'Caspase-8',1);
+                doplot(y(m+1:2*m,idx),'Caspase-3',2);
+                doplot(y(2*m+1:3*m,idx),'Pro-Caspase-8',3);
+                doplot(y(3*m+1:end,idx),'Pro-Caspase-3',4);
                 pause;
+            end
+            
+            function doplot(y,thetitle,pnr)
+                subplot(2,2,pnr);
+                Z = reshape(y,this.dim1,[]);
+                surf(X,Y,Z,'EdgeColor','none');
+                xlabel(sprintf('%f to %f',this.Omega(1,1),this.Omega(1,2)));
+                ylabel(sprintf('%f to %f',this.Omega(2,1),this.Omega(2,2)));
+                grid off;
+                axis tight;
+                title(sprintf('Model "%s", %s concentrations', model.Name, thetitle));
             end
         end
     end
