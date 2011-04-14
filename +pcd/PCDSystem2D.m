@@ -15,8 +15,8 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
     end
     
     methods
-        function this = PCDSystem2D
-            this = this@models.pcd.BasePCDSystem;
+        function this = PCDSystem2D(model)
+            this = this@models.pcd.BasePCDSystem(model);
             
             this.h = .1;
             

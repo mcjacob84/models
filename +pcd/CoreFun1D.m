@@ -38,7 +38,7 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
             % Create diffusion matrix
             d = this.sys.dim;
             e = ones(d,1);
-            this.A = spdiags([e -2*e e],-1:1,d,d);
+            this.A = spdiags([e -2*e e],-1:1,d,d)/this.sys.hs^2;
         end
         
         function fx = evaluateCoreFun(this, x, t, mu)%#ok
@@ -58,12 +58,13 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
 
                 % Boundary conditions
                 rb = zeros(m,1);
-                rb(end) = - (xi(end).*mu(9))/this.sys.h;
+                rb(end) = - (xi(end).*mu(9))/this.sys.hs;
 
                 fx(1:m) = mu(1)*xi.*ya - mu(3)*xa + this.A*xa - rb;
                 fx(m+1:2*m) = mu(2)*yi.*xan - mu(4)*ya + this.sys.D2*this.A*ya;
                 fx(2*m+1:3*m) = -mu(1)*xi.*ya - mu(5)*xi + mu(7) + this.sys.D3*this.A*xi + rb;
                 fx(3*m+1:end) = -mu(2)*yi.*xan - mu(6)*yi + mu(8) + this.sys.D4*this.A*yi;
+                %plot(fx); pause;
             else
                 % Extract single functions
                 xa = x(1:m,:);
@@ -74,7 +75,7 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
 
                 % Boundary conditions
                 rb = zeros(m,size(xi,2));
-                rb(end,:) = - (xi(end,:).*mu(9,:))/this.sys.h;
+                rb(end,:) = - (xi(end,:).*mu(9,:))/this.sys.hs;
 
                 fx(1:m,:) = bsxfun(@mult,xi.*ya,mu(1,:)) - bsxfun(@mult,xa,mu(3,:)) + this.A*xa - rb;
                 fx(m+1:2*m,:) = bsxfun(@mult,yi.*xan,mu(2,:)) - bsxfun(@mult,ya,mu(4,:)) + this.sys.D2*this.A*ya;

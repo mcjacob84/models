@@ -12,7 +12,12 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
     
     properties
         % Spatial area
-        Range = [0 1];
+        Range;
+    end
+    
+    properties(Access=private)
+        % Spatial area
+        SRange;
     end
     
     properties(SetAccess=private)
@@ -21,17 +26,25 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
     end
     
     methods
-        function this = PCDSystem1D
-            this = this@models.pcd.BasePCDSystem;
+        function this = PCDSystem1D(model)
+            this = this@models.pcd.BasePCDSystem(model);
 
-            this.h = .03;
-
+            % Spatial resolution
+            elems = 20;
+            this.Range = [0 this.Model.L];
+            this.h = (this.Range(2)-this.Range(1))/(elems-1);
+           
             % Add input param (is getting inserted after the BasePCDSystem
             % condtructor params, so number 9!)
-            this.addParam('U', [0.0005, 0.003], 12);
+            this.addParam('U', [0.001, 0.1], 12);
 
             % Set core function
             this.f = models.pcd.CoreFun1D(this);
+        end
+        
+        function set.Range(this, value)
+            this.SRange = value/this.Model.L;%#ok
+            this.Range = value;
         end
         
         function plot(this, model, t, y)
@@ -85,7 +98,10 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
         end
         
         function updateDims(this)
+            
+            % Should not matter which version as rescaling applies to all values
             this.dim = length(this.Range(1):this.h:this.Range(2));
+            %this.dim = length(this.SRange(1):this.hs:this.SRange(2));
         end
     end
     

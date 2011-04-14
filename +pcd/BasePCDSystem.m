@@ -9,10 +9,12 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
     % See also: models.pcd.CoreFun
     %
     % @author Daniel Wirtz @date 15.03.2010
+    %
+    % @todo Set typical concentrations at model level (state scaling)
     
     properties       
         % Spatial stepwidth
-        h = .1;
+        h = []; % is set in subclasses
         
         % Exponent in ya,yi term (necessary casp-3 for casp-8 activation)
         n = 2;
@@ -50,31 +52,9 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
         % Procaspase-3 production rate
         % Empiric value from [1] in daub's milestone
         Kp2_real = 0.0001;
-        
-        %% System Rescaling settings
-        
-        % Typical Caspase-8 concentration
-        xa0 = 1e-7; %[M]
-        % Typical Caspase-3 concentration
-        ya0 = 1e-7; %[M]
-        % Typical Procaspase-8 concentration
-        xi0 = 1e-7; %[M]
-        % Typical Procaspase-3 concentration
-        yi0 = 1e-7; %[M]
-        % Typical cell length (from 1D)
-        L = 1e-5; %[m]
-        
-        % Typical diffusion rate for Caspase-8
-        d1 = 1.8e-11; %[m^2/s]
-        % Typical diffusion rate for Caspase-3
-        d2 = 1.86e-11; %[m^2/s]
-        % Typical diffusion rate for Pro-Caspase-8
-        d3 = 1.89e-11; %[m^2/s]
-        % Typical diffusion rate for Pro-Caspase-3
-        d4 = 2.27e-11; %[m^2/s]
     end
     
-    properties(SetAccess=private)        
+    properties(SetAccess=private)
         % Relative diffusion coefficient (d2/d1)
         D2;
         
@@ -83,37 +63,64 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
         
         % Relative diffusion coefficient (d4/d1)
         D4;
+        
+        % scaled spatial stepwidth
+        hs;
     end
     
     methods
-        function this = BasePCDSystem
+        function this = BasePCDSystem(model)
+            this = this@models.BaseDynSystem(model);
+            
+            % Scale diffusion coefficients
+            m = this.Model;
+            this.D2 = m.d2/m.d1;
+            this.D3 = m.d3/m.d1;
+            this.D4 = m.d4/m.d1;
+            
             this.x0 = @(mu)this.initialX(mu);
             
             % Set output conversion
             %this.C = dscomponents.PointerOutputConv(@(t,mu)this.getC(t,mu), false);
             
-            this.setParam('Kc1', this.Kc1_real, 1); % *this.ya0
-            this.setParam('Kc2', this.Kc2_real, 1); % *this.xa0^this.n
-            this.setParam('Kd1', this.Kd1_real, 1);
-            this.setParam('Kd2', this.Kd2_real, 1);
-            this.setParam('Kd3', this.Kd3_real, 1);
-            this.setParam('Kd4', this.Kd4_real, 1);
-            this.setParam('Kp1', this.Kp1_real, 1); %/this.xi0
-            this.setParam('Kp2', this.Kp2_real, 1); %/this.yi0
+            this.updateSimConstants;
+%             this.setParam('Kc1', this.Kc1_real, 1); % *this.ya0
+%             this.setParam('Kc2', this.Kc2_real, 1); % *this.xa0^this.n
+%             this.setParam('Kd1', this.Kd1_real, 1);
+%             this.setParam('Kd2', this.Kd2_real, 1);
+%             this.setParam('Kd3', this.Kd3_real, 1);
+%             this.setParam('Kd4', this.Kd4_real, 1);
+%             this.setParam('Kp1', this.Kp1_real, 1); %/this.xi0
+%             this.setParam('Kp2', this.Kp2_real, 1); %/this.yi0
+        end
+        
+        function [bool,mi] = checkCFL(this)
+            m = this.Model;
+            if ~isa(m.ODESolver,'solvers.MLImplSolver')
+                mi = max([m.d1 m.d2 m.d3 m.d4])*m.dt;
+                bool = mi < .9*this.h^2;
+            else
+                bool = true;
+                mi = 0;
+            end
+        end
+        
+        function set.h(this, value)
+            oldh = this.h;
+            % Set and check CFL
+            this.h = value;
+            [b,m] = this.checkCFL;%#ok
+            if b
+                this.hs = value / this.Model.L;%#ok
+                this.updateDims;%#ok
+            else
+                error('CFL condition violated. Any h²=%5.3e must be greater than %5.3e, consider adjusting the time-step before trying again.',value^2,m);
+                this.h = oldh;
+            end
         end
         
         function updateSimConstants(this)
-            % Initializes constants for a simulation.
-            %this.lam1 = this.xi0/this.xa0;
-            %this.lam2 = this.yi0/this.ya0;
-            t = this.L^2/this.d1;
-            % Set scaling of the model from here
-            this.Model.tau = t;
-            this.D2 = this.d2/this.d1;
-            this.D3 = this.d3/this.d1;
-            this.D4 = this.d4/this.d1;
-            this.updateDims;
-            
+            t = this.Model.tau;
             this.setParam('Kc1', this.Kc1_real * t, 1); % *this.ya0
             this.setParam('Kc2', this.Kc2_real * t, 1); % *this.xa0^this.n
             this.setParam('Kd1', this.Kd1_real * t, 1);
@@ -122,25 +129,24 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
             this.setParam('Kd4', this.Kd4_real * t, 1);
             this.setParam('Kp1', this.Kp1_real * t, 1); %/this.xi0
             this.setParam('Kp2', this.Kp2_real * t, 1); %/this.yi0
+            
+            [b,m] = this.checkCFL;
+            if ~b
+                fprintf('ATTENTION: CFL condition violated with current dt/h settings. Setting dt = %f\n',.9*m);
+                this.Model.dt = .9*m;
+            end
         end
         
     end
     
     methods(Abstract, Access=protected)
         updateDims;
+        
         x0 = initialX(mu);
+        
         C = getC(t,mu);
     end
-    
-%     methods(Static,Access=protected)
-%         function obj = loadobj(s, obj)
-%             if nargin < 2
-%                 error('Missing subclass loadobj method.');
-%             end
-%             obj = loadobj@models.BaseDynSystem(s, obj);
-%             ALoadable.loadProps(mfilename('class'), obj, s);
-%         end
-%     end
+
 end
 
 
