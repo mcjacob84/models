@@ -80,6 +80,13 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
         function updateDims(this)
             this.dim1 = length(this.Omega(1,1):this.h:this.Omega(1,2));
             this.dim2 = length(this.Omega(2,1):this.h:this.Omega(2,2));
+            m = this.dim1*this.dim2;
+            ss = zeros(4*m,1);
+            ss(1:m) = this.xa0;
+            ss(m+1:2*m) = this.ya0;
+            ss(2*m+1:3*m) = this.xi0;
+            ss(3*m+1:end) = this.yi0;
+            this.StateScaling = ss;
         end
     end
     

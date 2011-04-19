@@ -16,16 +16,6 @@ classdef PCDModel < models.BaseFullModel
         
         % Typical cell length (from 1D)
         L = 1e-5; %[m]
-        
-        %% System Rescaling settings
-%         % Typical Caspase-8 concentration
-%         xa0 = 1e-7; %[M]
-%         % Typical Caspase-3 concentration
-%         ya0 = 1e-7; %[M]
-%         % Typical Procaspase-8 concentration
-%         xi0 = 1e-7; %[M]
-%         % Typical Procaspase-3 concentration
-%         yi0 = 1e-7; %[M]
     end
     
     methods
@@ -40,8 +30,8 @@ classdef PCDModel < models.BaseFullModel
                 dim=1;
             end
             
-            this.T = 40; %[s]
-            this.dt = .005; %[s]
+            this.T = 6; %[s]
+            this.dt = .001; %[s]
             % time scaling
             this.tau = this.L^2/this.d1;
             
@@ -49,6 +39,10 @@ classdef PCDModel < models.BaseFullModel
             %s.Samples = 10;
             %this.Sampler = s;
             this.Sampler = sampling.GridSampler;
+            
+            %this.ODESolver = solvers.ode.MLWrapper(@ode23);
+            %this.ODESolver = solvers.ode.ExplEuler;
+            this.ODESolver = solvers.ode.MLImplSolver;
             
             switch dim
                 case 2 
@@ -77,7 +71,7 @@ classdef PCDModel < models.BaseFullModel
 %             a.lambda = 2;
 
             a = approx.AdaptiveCompWiseKernelApprox;
-            a.MaxExpansionSize = 150;
+            a.MaxExpansionSize = 164;
             a.MaxRelErr = 1e-5;
             a.MaxAbsErrFactor = 1e-5;
             s = approx.selection.TimeSelector;
@@ -97,9 +91,6 @@ classdef PCDModel < models.BaseFullModel
 %             a.eps = .05;
 %             a.C = 100;
             this.Approx = a;
-            
-            %this.ODESolver = solvers.MLWrapper(@ode23);
-            this.ODESolver = solvers.ExplEuler;
         end
         
         function plot(this, t, y)

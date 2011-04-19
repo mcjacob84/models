@@ -1,4 +1,4 @@
-classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents.CompwiseKernelCoreFun
+classdef KernelTest < models.BaseFullModel
     % Kernel core function test model 1
     %
     % This class implements both the model and dynamical system!
@@ -7,9 +7,6 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
     properties
         % The system's dimension
         dim;
-        
-        % SV's
-        svNum;
     end
     
     methods
@@ -24,8 +21,9 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
             end
             this.dim = dims;
             
+            
             %% Model settings
-            this.Name = 'Test model';
+            this.Name = 'Kernel test model';
             
             this.T = 5;
             this.dt = .08;
@@ -42,99 +40,16 @@ classdef KernelTest < models.BaseFullModel & models.BaseDynSystem & dscomponents
             s.Value = 1;
             this.SpaceReducer = s;
             
-            %this.ODESolver = solvers.MLWrapper(@ode45);
-            this.ODESolver = solvers.ExplEuler;
-            %this.ODESolver = solvers.Heun;
+            %this.ODESolver = solvers.ode.MLWrapper(@ode45);
+            this.ODESolver = solvers.ode.ExplEuler;
+            %this.ODESolver = solvers.ode.Heun;
             
             %% System settings
-            this.System = this;
-            
-            this.x0 = @(mu)ones(dims,1)*.5;
-            
-            this.f = this;
-            
-            %this.Inputs{1} = @(t)0;
-            
-            % Sample bases
-            this.svNum = 20;
-            this.Centers.xi = repmat(linspace(-24,24,this.svNum),this.dim,1);
-            %this.Centers.xi = linspace(-20,20,this.svNum);
-            this.Centers.ti = [];
-            this.Centers.mui = [];
-            
-            % Function coefficients
-            offset = .5;
-            %offset = 0;
-            if pos_flag
-                offset = 0;
-            end
-            ai = (rand(1,this.svNum)-offset);
-            
-            this.Ma = repmat(ai,dims,1);
-            
-            %% BaseCompWiseKernelApprox settings
-            %this.SystemKernel = kernels.GaussKernel(4*sqrt(dims));
-            this.SystemKernel = kernels.GaussKernel(40*dims);
-            this.TimeKernel = kernels.NoKernel;
-            this.ParamKernel = kernels.NoKernel;
-        end
-        
-%         function copy = clone(this)
-%             copy = models.synth.KernelTest;
-%         end
-        
-%         function proj = project(this, V, W)
-%             proj = project@dscomponents.CompwiseKernelCoreFun(this, V, W);
-%             if this.RotationInvariant
-%                 proj.Centers.xi = W' * proj.Centers.xi;
-%             end
-%         end
-        
-        function c = getcfi(this, z, C, t, mu)
-            C = 100;
-            di = this.xi - repmat(this.Data.V*z,1,this.sv);
-            di = sqrt(sum(di.^2));
-            case1 = di - C >= 0;
-            case2 = ~case1;
-            b = this.sk.Gamma;
-            t2 = exp(-((di+C).^2/b));
-            ci(case1) = (exp(-(di(case1)-C).^2/b) - t2(case1));
-            ci(case2) = (1 - t2(case2));
-            c = this.Ma_norms*ci';
-        end
-        
-        function showBaseFun(this)
-            % Debug method; displays the core function for each parameter
-            % sample.
-            figure;
-            x = repmat(linspace(-50,50,max(this.svNum*5,100)),this.dim,1);
-            fx = this.evaluate(x,0,[]);
-            plot(x(1,:),fx(1,:),'r');
-            xlabel('x'); ylabel('f(x)');
-            title('KernelTest base function');
+            this.System = models.synth.KernelTestSys(this, pos_flag);
         end
         
     end
-    
-    methods (Static, Access=protected)
-        function obj = loadobj(s)
-            % Loads the properties for the BaseFullModel part of this
-            % class.
-            %
-            % See also: ALoadable BaseFullModel.loadobj
-            obj = models.synth.KernelTest;
-            
-            obj = loadobj@models.BaseFullModel(s, obj);
-            % Need to re-assign self references as matlab obviously does
-            % not load it correctly
-            obj.System = obj;
-            obj.f = obj;
-            
-            obj.dim = s.dim;
-            obj.svNum = s.svNum;
-        end
-    end
-    
+      
     methods(Static)
         
         function r = runTest(model)

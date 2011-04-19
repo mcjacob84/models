@@ -13,9 +13,6 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
     % @todo Set typical concentrations at model level (state scaling)
     
     properties       
-        % Spatial stepwidth
-        h = []; % is set in subclasses
-        
         % Exponent in ya,yi term (necessary casp-3 for casp-8 activation)
         n = 2;
         
@@ -52,6 +49,25 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
         % Procaspase-3 production rate
         % Empiric value from [1] in daub's milestone
         Kp2_real = 0.0001;
+        
+        %% System Rescaling settings
+        % Typical Caspase-8 concentration
+        xa0 = 1e-7; %[M]
+        % Typical Caspase-3 concentration
+        ya0 = 1e-7; %[M]
+        % Typical Procaspase-8 concentration
+        xi0 = 1e-7; %[M]
+        % Typical Procaspase-3 concentration
+        yi0 = 1e-7; %[M]
+    end
+    
+    properties(Dependent)
+        % Spatial stepwidth
+        h; % is set in subclasses
+    end
+    
+    properties(Access=private)
+        fh = [];
     end
     
     properties(SetAccess=private)
@@ -82,7 +98,7 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
             
             % Set output conversion
             %this.C = dscomponents.PointerOutputConv(@(t,mu)this.getC(t,mu), false);
-            
+
             this.updateSimConstants;
 %             this.setParam('Kc1', this.Kc1_real, 1); % *this.ya0
 %             this.setParam('Kc2', this.Kc2_real, 1); % *this.xa0^this.n
@@ -94,29 +110,27 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
 %             this.setParam('Kp2', this.Kp2_real, 1); %/this.yi0
         end
         
-        function [bool,mi] = checkCFL(this)
+        function checkCFL(this)
             m = this.Model;
-            if ~isa(m.ODESolver,'solvers.MLImplSolver')
-                mi = max([m.d1 m.d2 m.d3 m.d4])*m.dt;
-                bool = mi < .9*this.h^2;
-            else
-                bool = true;
-                mi = 0;
+            if ~isa(m.ODESolver,'solvers.ode.MLImplSolver')
+                mi = max([m.d1 m.d2 m.d3 m.d4]);
+                if mi*m.dt > .95*this.h^2
+                    m.dt = .95*this.h^2/mi;
+                    fprintf('Attention. CFL condition violated, setting model dt=%5.3e\n',m.dt);
+                end
             end
         end
         
         function set.h(this, value)
-            oldh = this.h;
             % Set and check CFL
-            this.h = value;
-            [b,m] = this.checkCFL;%#ok
-            if b
-                this.hs = value / this.Model.L;%#ok
-                this.updateDims;%#ok
-            else
-                error('CFL condition violated. Any h²=%5.3e must be greater than %5.3e, consider adjusting the time-step before trying again.',value^2,m);
-                this.h = oldh;
-            end
+            this.fh = value;
+            this.checkCFL;
+            this.hs = value / this.Model.L;
+            this.updateDims;
+        end
+        
+        function h = get.h(this)
+            h = this.fh;
         end
         
         function updateSimConstants(this)
@@ -130,11 +144,7 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
             this.setParam('Kp1', this.Kp1_real * t, 1); %/this.xi0
             this.setParam('Kp2', this.Kp2_real * t, 1); %/this.yi0
             
-            [b,m] = this.checkCFL;
-            if ~b
-                fprintf('ATTENTION: CFL condition violated with current dt/h settings. Setting dt = %f\n',.9*m);
-                this.Model.dt = .9*m;
-            end
+            this.checkCFL;
         end
         
     end

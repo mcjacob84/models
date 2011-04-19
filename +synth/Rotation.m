@@ -46,7 +46,7 @@ classdef Rotation < models.BaseFullModel
             a.ParamKernel = kernels.GaussKernel(2);
             this.Approx = a;
             
-            this.ODESolver = @ode45;
+            this.ODESolver = solvers.ode.MLWrapper(@ode45);
         end
         
     end

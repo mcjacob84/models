@@ -10,7 +10,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
     % target="_blank">Death wins against life in a spatially extended
     % apoptosis model</a>
     
-    properties
+    properties(Dependent)
         % Spatial area
         Range;
     end
@@ -23,6 +23,8 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
     properties(SetAccess=private)
         % System's dimension
         dim;
+        
+        fRange;
     end
     
     methods
@@ -30,7 +32,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             this = this@models.pcd.BasePCDSystem(model);
 
             % Spatial resolution
-            elems = 20;
+            elems = 25;
             this.Range = [0 this.Model.L];
             this.h = (this.Range(2)-this.Range(1))/(elems-1);
            
@@ -43,8 +45,12 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
         end
         
         function set.Range(this, value)
-            this.SRange = value/this.Model.L;%#ok
-            this.Range = value;
+            this.SRange = value/this.Model.L;
+            this.fRange = value;
+        end
+        
+        function r = get.Range(this)
+            r = this.fRange;
         end
         
         function plot(this, model, t, y)
@@ -54,10 +60,10 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             X = t;
             Y = this.Range(1):this.h:this.Range(2);
             m = model.System.dim;
-            doplot(y(1:m,:),'Caspase-8',1);
-            doplot(y(m+1:2*m,:),'Caspase-3',2);
-            doplot(y(2*m+1:3*m,:),'Pro-Caspase-8',3);
-            doplot(y(3*m+1:end,:),'Pro-Caspase-3',4);
+            doplot(y(1:m,:),'Caspase-8 (x_a)',1);
+            doplot(y(m+1:2*m,:),'Caspase-3 (y_a)',2);
+            doplot(y(2*m+1:3*m,:),'Pro-Caspase-8 (x_i)',3);
+            doplot(y(3*m+1:end,:),'Pro-Caspase-3 (y_i)',4);
             
             function doplot(y,thetitle,pnr)
                 subplot(2,2,pnr);
@@ -78,7 +84,11 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             x0 = zeros(4*m,1);
             
             % Initial 
-            %x0(round(2/3*m):m) = .001;
+            %x0(1:15) = 2e-8;
+            %x0(m+(1:15)) = 2e-8;
+            
+            %x0(2*m+(16:m)) = 2e-8;
+            %x0(3*m+(16:m)) = 2e-8;
             
             % Initial procasp-concentrations
             %x0(2*m+1:end) = sin(2*pi*(1:2*m)/(2*m))*.01;
@@ -98,10 +108,17 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
         end
         
         function updateDims(this)
-            
             % Should not matter which version as rescaling applies to all values
-            this.dim = length(this.Range(1):this.h:this.Range(2));
-            %this.dim = length(this.SRange(1):this.hs:this.SRange(2));
+            %m = length(this.SRange(1):this.hs:this.SRange(2));
+            m = length(this.Range(1):this.h:this.Range(2));
+            this.dim = m;
+            % Set state scaling
+            ss = zeros(4*m,1);
+            ss(1:m) = this.xa0;
+            ss(m+1:2*m) = this.ya0;
+            ss(2*m+1:3*m) = this.xi0;
+            ss(3*m+1:end) = this.yi0;
+            this.StateScaling = ss;
         end
     end
     

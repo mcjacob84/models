@@ -35,7 +35,7 @@ classdef RiemannBurgers < models.rbmatlab.BaseRBMatlabWrapper & models.BaseDynSy
             this.dt = m.T / m.nt;
             
             % Solver
-            this.ODESolver = solvers.ExplEuler(this.dt);
+            this.ODESolver = solvers.ode.ExplEuler(this.dt);
             
             % Sampling
             this.Sampler = sampling.GridSampler;
@@ -45,7 +45,7 @@ classdef RiemannBurgers < models.rbmatlab.BaseRBMatlabWrapper & models.BaseDynSy
                 a = approx.DefaultCompWiseKernelApprox;
                 svr = general.regression.ScalarNuSVR;
                 svr.nu = .6;
-                qp = solvers.qpOASES;
+                qp = solvers.qp.qpOASES;
                 svr.QPSolver = qp;
                 a.CoeffComp = svr;
             else

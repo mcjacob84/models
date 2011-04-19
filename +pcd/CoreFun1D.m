@@ -39,6 +39,8 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
             d = this.sys.dim;
             e = ones(d,1);
             this.A = spdiags([e -2*e e],-1:1,d,d)/this.sys.hs^2;
+            this.A(1,2) = 2/this.sys.hs^2;
+            this.A(end,end-1) = 2/this.sys.hs^2;
         end
         
         function fx = evaluateCoreFun(this, x, t, mu)%#ok
@@ -58,7 +60,10 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
 
                 % Boundary conditions
                 rb = zeros(m,1);
-                rb(end) = - (xi(end).*mu(9))/this.sys.hs;
+                if xi(end) ~= 0
+                    %keyboard;
+                end
+                rb(end) = - (xi(end)*mu(9))/this.sys.hs;
 
                 fx(1:m) = mu(1)*xi.*ya - mu(3)*xa + this.A*xa - rb;
                 fx(m+1:2*m) = mu(2)*yi.*xan - mu(4)*ya + this.sys.D2*this.A*ya;
@@ -77,10 +82,10 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
                 rb = zeros(m,size(xi,2));
                 rb(end,:) = - (xi(end,:).*mu(9,:))/this.sys.hs;
 
-                fx(1:m,:) = bsxfun(@mult,xi.*ya,mu(1,:)) - bsxfun(@mult,xa,mu(3,:)) + this.A*xa - rb;
-                fx(m+1:2*m,:) = bsxfun(@mult,yi.*xan,mu(2,:)) - bsxfun(@mult,ya,mu(4,:)) + this.sys.D2*this.A*ya;
-                fx(2*m+1:3*m,:) = -bsxfun(@mult,xi.*ya,mu(1,:)) - bsxfun(@mult,xi,mu(5,:)) + bsxfun(@mult,ones(size(xi)),mu(7,:)) + this.sys.D3*this.A*xi + rb;
-                fx(3*m+1:end,:) = -bsxfun(@mult,yi.*xan,mu(2,:)) - bsxfun(@mult,yi,mu(6,:)) + bsxfun(@mult,ones(size(xi)),mu(8,:)) + this.sys.D4*this.A*yi;
+                fx(1:m,:) = bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xa,mu(3,:)) + this.A*xa - rb;
+                fx(m+1:2*m,:) = bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,ya,mu(4,:)) + this.sys.D2*this.A*ya;
+                fx(2*m+1:3*m,:) = -bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xi,mu(5,:)) + bsxfun(@times,ones(size(xi)),mu(7,:)) + this.sys.D3*this.A*xi + rb;
+                fx(3*m+1:end,:) = -bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,yi,mu(6,:)) + bsxfun(@times,ones(size(xi)),mu(8,:)) + this.sys.D4*this.A*yi;
             end
         end
         
