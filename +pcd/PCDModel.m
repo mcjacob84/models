@@ -42,7 +42,7 @@ classdef PCDModel < models.BaseFullModel
             
             %this.ODESolver = solvers.ode.MLWrapper(@ode23);
             %this.ODESolver = solvers.ode.ExplEuler;
-            this.ODESolver = solvers.ode.MLImplSolver;
+            this.ODESolver = solvers.ode.MLode15i;
             
             switch dim
                 case 2 
@@ -79,7 +79,7 @@ classdef PCDModel < models.BaseFullModel
             a.TrainDataSelector = s;
             %a.ScalarSVR = general.regression.ScalarNuSVR;
             %a.ScalarSVR.nu = .6;
-            %a.TimeKernel = kernels.LinearKernel;
+            a.TimeKernel = kernels.NoKernel;
             a.SystemKernel = kernels.GaussKernel;
             a.ParamKernel = kernels.GaussKernel;
             

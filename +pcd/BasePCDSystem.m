@@ -10,14 +10,18 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
     %
     % @author Daniel Wirtz @date 15.03.2010
     %
+    % @new{0,3,dw,2011-04-21} Integrated this class to the property default value changed
+    % supervision system @ref propclasses. This class now inherits from KerMorObject and has an
+    % extended constructor registering any user-relevant properties using
+    % KerMorObject.registerProps.
+    %
     % @todo Set typical concentrations at model level (state scaling)
     
-    properties       
+    properties(Constant)
         % Exponent in ya,yi term (necessary casp-3 for casp-8 activation)
         n = 2;
         
-        %% Coefficient values
-        
+        %% Coefficient values        
         % Procaspase-8 to Caspase-8 reaction rate
         % Empiric value from [1] in daub's milestone
         Kc1_real = 0.08;
@@ -53,16 +57,21 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
         %% System Rescaling settings
         % Typical Caspase-8 concentration
         xa0 = 1e-7; %[M]
+        
         % Typical Caspase-3 concentration
         ya0 = 1e-7; %[M]
+        
         % Typical Procaspase-8 concentration
         xi0 = 1e-7; %[M]
+        
         % Typical Procaspase-3 concentration
         yi0 = 1e-7; %[M]
     end
     
-    properties(Dependent)
+    properties(SetObservable, Dependent)
         % Spatial stepwidth
+        %
+        % @propclass{critical} Determines the spatial resolution of the model.
         h; % is set in subclasses
     end
     
@@ -100,19 +109,13 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
             %this.C = dscomponents.PointerOutputConv(@(t,mu)this.getC(t,mu), false);
 
             this.updateSimConstants;
-%             this.setParam('Kc1', this.Kc1_real, 1); % *this.ya0
-%             this.setParam('Kc2', this.Kc2_real, 1); % *this.xa0^this.n
-%             this.setParam('Kd1', this.Kd1_real, 1);
-%             this.setParam('Kd2', this.Kd2_real, 1);
-%             this.setParam('Kd3', this.Kd3_real, 1);
-%             this.setParam('Kd4', this.Kd4_real, 1);
-%             this.setParam('Kp1', this.Kp1_real, 1); %/this.xi0
-%             this.setParam('Kp2', this.Kp2_real, 1); %/this.yi0
+            
+            this.registerProps('h');
         end
         
         function checkCFL(this)
             m = this.Model;
-            if ~isa(m.ODESolver,'solvers.ode.MLImplSolver')
+            if ~isa(m.ODESolver,'solvers.ode.MLode15i')
                 mi = max([m.d1 m.d2 m.d3 m.d4]);
                 if mi*m.dt > .95*this.h^2
                     m.dt = .95*this.h^2/mi;

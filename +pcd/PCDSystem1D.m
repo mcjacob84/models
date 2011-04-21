@@ -10,7 +10,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
     % target="_blank">Death wins against life in a spatially extended
     % apoptosis model</a>
     
-    properties(Dependent)
+    properties(SetAccess=private, Dependent)
         % Spatial area
         Range;
     end
