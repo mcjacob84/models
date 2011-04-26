@@ -4,14 +4,18 @@ classdef KernelTest < models.BaseFullModel
     % This class implements both the model and dynamical system!
     %
     
-    properties
+    properties(SetObservable)
         % The system's dimension
+        %
+        % @propclass{experimental} Test quantity.
         dim;
     end
     
     methods
         
         function this = KernelTest(dims, pos_flag)
+            
+            this.registerProps('dim');
             
             if nargin < 2
                 pos_flag = false;

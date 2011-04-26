@@ -3,8 +3,10 @@ classdef KernelTestSys < models.BaseDynSystem & dscomponents.CompwiseKernelCoreF
     %
     % This class implements the dynamical system!
         
-    properties
+    properties(SetObservable)
         % SV's
+        %
+        % @propclass{experimental} Test quantity.
         svNum;
     end
     
@@ -13,6 +15,7 @@ classdef KernelTestSys < models.BaseDynSystem & dscomponents.CompwiseKernelCoreF
         function this = KernelTestSys(m, pos_flag)
             
             this = this@models.BaseDynSystem(m);
+            this.registerProps('svNum');
             
             if nargin < 2
                 pos_flag = false;
