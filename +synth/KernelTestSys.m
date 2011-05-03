@@ -47,7 +47,7 @@ classdef KernelTestSys < models.BaseDynSystem & dscomponents.CompwiseKernelCoreF
             
             %% BaseCompWiseKernelApprox settings
             %this.SystemKernel = kernels.GaussKernel(4*sqrt(dims));
-            this.SystemKernel = kernels.GaussKernel(40*this.Model.dim);
+            this.SystemKernel = kernels.GaussKernel(sqrt(this.Model.dim));
             this.TimeKernel = kernels.NoKernel;
             this.ParamKernel = kernels.NoKernel;
         end
