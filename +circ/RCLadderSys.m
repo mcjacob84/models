@@ -25,21 +25,18 @@ classdef RCLadderSys < models.BaseDynSystem
             this.B = dscomponents.LinearInputConv(B);
             this.C = dscomponents.LinearOutputConv(B');
             
-            this.x0 = @(mu)this.getX0(mu);
-            
             this.f = models.circ.RCLadderFun;
             
             %this.Inputs = {@(t)exp(-t),@(t)sin(t),@(t)0};
-            this.Inputs = {@(t)exp(-t)};
+            this.Inputs = {@(t)exp(-t),@(t)(cos(2*pi*t/10) + 1)/2};
             
             this.MaxTimestep = [];
             this.StateScaling = 1;            
         end
         
-        function x0 = getX0(this, mu)%#ok
-            x0 = zeros(this.Model.Dims,1);
+        function x = x0(this, mu)%#ok
+            x = zeros(this.Model.Dims,1);
         end
-
     end
     
     methods(Access=protected)

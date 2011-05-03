@@ -1,7 +1,16 @@
 classdef RCLadder < models.BaseFullModel
-% RCLadder: 
+% RCLadder: Model of a nonlinear resistor with independent current source
 %
+% This model has been used as benchmark in many papers. This implementation follows the details in
+% [BS06] - Bai, Z., Skoogh, D.: A projection method for model reduction of bilinear dynamical systems.
+% Linear Algebra and its Applications 415(2-3), 406?425 (2006)
 %
+% This model is also used in several papers dealing with MOR of nonlinear systems, i.e.
+% [Re03] Rewienski, M.: A trajectory piecewise-linear approach to model order reduction of nonlinear
+% dynamical systems. Ph.D. thesis, Citeseer (2003)
+% or
+% [CI04] M. Condon and R. Ivanov. Empirical balanced truncation of nonlinear systems. Journal of
+% Nonlinear Science, 14:405?414, 2004. 10.1007/s00332-004-0617-5.
 %
 % @author Daniel Wirtz @date 2011-04-29
 %
@@ -33,7 +42,7 @@ classdef RCLadder < models.BaseFullModel
             this.Name = 'RC Ladder circuit model';
             
             this.T = 1;
-            this.dt = .005;
+            this.dt = .0025;
             this.tau = 1;
             
             this.System = models.circ.RCLadderSys(this);
@@ -56,7 +65,7 @@ classdef RCLadder < models.BaseFullModel
             this.SpaceReducer = s;
             
             s = solvers.ode.ExplEuler;
-            s.MaxStep = [];
+            s.MaxStep = .005; % Stability constraint due to diffusion term
             this.ODESolver = s;
         end
     end
