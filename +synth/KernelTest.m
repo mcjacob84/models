@@ -3,6 +3,7 @@ classdef KernelTest < models.BaseFullModel
     %
     % This class implements both the model and dynamical system!
     %
+    % @change{0,3,sa,2011-05-11} Implemented property setter
     
     properties(SetObservable)
         % The system's dimension
@@ -52,6 +53,12 @@ classdef KernelTest < models.BaseFullModel
             this.System = models.synth.KernelTestSys(this, pos_flag);
         end
         
+        function set.dim(this,value)
+            if ~isposintscalar(value)
+                error('Value must be a positive integer scalar');
+            end
+            this.dim = value;
+        end
     end
       
     methods(Static)
