@@ -47,6 +47,9 @@ classdef RCLadder < models.BaseFullModel
             
             this.System = models.circ.RCLadderSys(this);
             
+            % Only train with first input!
+            this.TrainingInputs = 1;
+            
             this.Sampler = [];
             
             a = approx.AdaptiveCompWiseKernelApprox;
@@ -56,6 +59,9 @@ classdef RCLadder < models.BaseFullModel
             a.MaxRelErr = 1e-5;
             a.MaxAbsErrFactor = 1e-3;
             a.NumGammas = 10;
+            t = approx.selection.TimeSelector;
+            t.Size = 12000;
+            a.TrainDataSelector = t;
             this.Approx = a;
             
             s = spacereduction.PODReducer;
@@ -67,6 +73,46 @@ classdef RCLadder < models.BaseFullModel
             s = solvers.ode.ExplEuler;
             s.MaxStep = .005; % Stability constraint due to diffusion term
             this.ODESolver = s;
+        end
+    end
+    
+    methods(Static)
+        function m = getTPWLVersion
+            m = models.circ.RCLadder(100);
+            m.T = 10;
+            m.SpaceReducer.Mode = 'abs';
+            m.SpaceReducer.Value = 10;
+            %m.SpaceReducer = [];
+            a = approx.TPWLApprox;
+            a.TrainDataSelector.EpsRad = 0.02;%0.0059;
+            m.Approx = a;
+            m.TrainingInputs = 1;
+        end
+        
+        function m = getSVRVersion
+            m = models.circ.RCLadder(50);
+            m.T = 2;
+            m.System.Inputs(1) = [];
+            %m.SpaceReducer.Mode = 'abs';
+            %m.SpaceReducer.Value = 10;
+            m.SpaceReducer = [];
+            a = approx.AdaptiveCompWiseKernelApprox;
+            %c = general.regression.ScalarNuSVR;
+            %c.C = 50;
+            %c.nu = .3;
+            c = general.regression.KernelLS;
+            c.CGTol = c.CGTol;
+            c.lambda = 1;
+            c.CGMaxIt = 10000;
+            a.CoeffComp = c;
+            a.TimeKernel = kernels.NoKernel;
+            a.ParamKernel = kernels.NoKernel;
+            a.SystemKernel = kernels.GaussKernel(1);
+            a.MaxRelErr = 1e-5;
+            a.MaxAbsErrFactor = 1e-5;
+            a.TrainDataSelector.Size = 1500;
+            m.Approx = a;
+            m.TrainingInputs = 1;
         end
     end
     
