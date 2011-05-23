@@ -153,10 +153,13 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
     end
     
     methods(Abstract, Access=protected)
+        % Updates the spatial dimensions if a new h is set
         updateDims;
         
+        % Returns the initial state
         x0 = initialX(mu);
         
+        % Returns the output conversion matrix
         C = getC(t,mu);
     end
 

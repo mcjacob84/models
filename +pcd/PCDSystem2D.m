@@ -61,6 +61,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
     
     methods(Access=protected)
         function x0 = initialX(this, mu)%#ok
+            % Boo2.
             m = this.dim1*this.dim2;
             x0 = zeros(4*m,1);
             %x0(2*m+1:end) = .3;
