@@ -4,6 +4,8 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
     % Subclassing instances MUST explicitly call this classes constructor
     % in order to ensure that KerMor is connected to rbmatlab.
     %
+    % @change{0,3,sa,2011-05-11} Implemented setters for the properties
+    %
     % @new{0,2,dw,2011-03-17} Added overloads for the
     % models.BaseModel.simulate and models.BaseModel.computeTrajectory
     % methods that check for a valid connection to rbmatlab before
@@ -27,6 +29,20 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
             if ~KerMor.App.Hasrbmatlab
                 error('rbmatlab is not registered with KerMor. Set KerMor.App.rbmatlabDirectory to fix.');
             end
+        end
+        
+        function set.RBMModel(this, value)
+            if ~isa(value, 'double')
+                error('Value must be a valid double matrix');
+            end
+            this.RBMModel = value;
+        end
+        
+        function set.RBMDataCont(this, value)
+            if ~isa(value, 'double')
+                error('Value must be a valid double matrix');
+            end
+            this.RBMDataCont = value;
         end
         
         function [t,y,sec,x] = simulate(this, mu, inputidx)

@@ -14,6 +14,8 @@ classdef RCLadder < models.BaseFullModel
 %
 % @author Daniel Wirtz @date 2011-04-29
 %
+% @change{0,3,sa,2011-05-11} Implemented proeprty setter
+%
 % @new{0,3,dw,2011-04-29} Added this class.
 %
 % This class is part of the framework
@@ -73,6 +75,13 @@ classdef RCLadder < models.BaseFullModel
             s = solvers.ode.ExplEuler;
             s.MaxStep = .005; % Stability constraint due to diffusion term
             this.ODESolver = s;
+        end
+        
+        function set.Dims(this, value)
+            if ~isposintscalar(value)
+                error('value must be a positive integer scalar');
+            end
+            this.Dims = value;
         end
     end
     

@@ -1,6 +1,8 @@
 classdef PCDSystem2D < models.pcd.BasePCDSystem
     %PCDSYSTEM2D Summary of this class goes here
     %   Detailed explanation goes here
+    %
+    % @change{0,3,sa,2011-05-11} Implemented property setter
     
     properties
         % Spatial area
@@ -28,6 +30,13 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             
             % Set core function
             this.f = models.pcd.CoreFun2D(this);
+        end
+        
+        function set.Omega(this,value)
+            if ~isa(value, 'double')
+                error('Value must be a valid double matrix');
+            end
+            this.Omega = value;
         end
         
         function plot(this, model, t, y)
