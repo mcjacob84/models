@@ -108,7 +108,7 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
             % Set output conversion
             %this.C = dscomponents.PointerOutputConv(@(t,mu)this.getC(t,mu), false);
 
-            this.updateSimConstants;
+            this.prepareConstants;
             
             this.registerProps('h');
         end
@@ -136,7 +136,7 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
             h = this.fh;
         end
         
-        function updateSimConstants(this)
+        function prepareConstants(this)
             t = this.Model.tau;
             this.setParam('Kc1', this.Kc1_real * t, 1); % *this.ya0
             this.setParam('Kc2', this.Kc2_real * t, 1); % *this.xa0^this.n

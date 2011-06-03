@@ -34,7 +34,7 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
             copy.A = this.A;
         end
         
-        function updateSimConstants(this)
+        function prepareConstants(this)
             % Create diffusion matrix
             d = this.sys.dim;
             e = ones(d,1);

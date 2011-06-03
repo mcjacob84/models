@@ -19,6 +19,8 @@ classdef RCLadderSys < models.BaseDynSystem
             
             dim = this.Model.Dims;
             
+            this.x0 = @(mu)zeros(this.Model.Dims,1);
+            
             B = zeros(dim,1);
             B(1) = 1;
             
@@ -31,10 +33,6 @@ classdef RCLadderSys < models.BaseDynSystem
             
             this.MaxTimestep = [];
             this.StateScaling = 1;            
-        end
-        
-        function x = x0(this, mu)%#ok
-            x = zeros(this.Model.Dims,1);
         end
     end
     

@@ -105,10 +105,11 @@ classdef RCLadder < models.BaseFullModel
             m.SpaceReducer.Mode = 'abs';
             m.SpaceReducer.Value = 10;
             %m.SpaceReducer = [];
-            a = approx.AdaptiveCompWiseKernelApprox;
+            a = approx.FixedCompWiseKernelApprox;
+            a.Gammas = logspace(log10(.01),log10(10),30);
             c = general.regression.ScalarNuSVR;
-            c.C = 10000;
-            c.nu = .5;
+            c.C = 500;
+            c.nu = .4;
             c.QPSolver = solvers.qp.qpMosek;
             c.QPSolver.MaxIterations = 20000;
 %             c = general.regression.KernelLS;
@@ -119,9 +120,7 @@ classdef RCLadder < models.BaseFullModel
             a.TimeKernel = kernels.NoKernel;
             a.ParamKernel = kernels.NoKernel;
             a.SystemKernel = kernels.GaussKernel(1);
-            a.MaxRelErr = 1e-5;
-            a.MaxAbsErrFactor = 1e-5;
-            a.TrainDataSelector.Size = 1500;
+            a.TrainDataSelector.Size = 200;
             m.Approx = a;
             m.TrainingInputs = 1;
         end

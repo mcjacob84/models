@@ -39,7 +39,7 @@ classdef CoreFun2D < dscomponents.ACoreFun & ISimConstants
             this.MultiArgumentEvaluations = true;
         end
         
-        function updateSimConstants(this)
+        function prepareConstants(this)
             % Create diffusion matrix
             d1 = this.sys.dim1;
             d2 = this.sys.dim2;

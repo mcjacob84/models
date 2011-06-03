@@ -52,7 +52,7 @@ classdef PCDModel < models.BaseFullModel
                     s = models.pcd.PCDSystem1D(this);
                     this.Name = 'Programmed Cell Death 1D';
             end
-            s.updateSimConstants;
+            s.prepareConstants;
             this.System = s;
             
             % Space reduction setup
