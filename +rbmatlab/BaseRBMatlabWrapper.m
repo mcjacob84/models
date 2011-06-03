@@ -21,6 +21,8 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
         %
         % A handle class containing the usual 'model_data' struct as
         % single property RBMData.
+        %
+        % @type models.rbmatlab.RBMDataContainer
         RBMDataCont;
     end
     
@@ -32,16 +34,14 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
         end
         
         function set.RBMModel(this, value)
-            if ~isa(value, 'double')
+            if ~isstruct(value)
                 error('Value must be a valid double matrix');
             end
             this.RBMModel = value;
         end
         
         function set.RBMDataCont(this, value)
-            if ~isa(value, 'double')
-                error('Value must be a valid double matrix');
-            end
+            this.checkType(value, 'models.rbmatlab.RBMDataContainer');
             this.RBMDataCont = value;
         end
         
