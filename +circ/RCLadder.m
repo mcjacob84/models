@@ -54,10 +54,10 @@ classdef RCLadder < models.BaseFullModel
             
             this.Sampler = [];
             
-            a = approx.AdaptiveCompWiseKernelApprox;
+            a = approx.algorithms.AdaptiveCompWiseKernelApprox;
             a.TimeKernel = kernels.NoKernel;
             a.ParamKernel = kernels.NoKernel;
-            a.SystemKernel = kernels.GaussKernel(.5);
+            a.Kernel = kernels.GaussKernel(.5);
             a.MaxRelErr = 1e-5;
             a.MaxAbsErrFactor = 1e-3;
             a.NumGammas = 10;
@@ -105,7 +105,7 @@ classdef RCLadder < models.BaseFullModel
             m.SpaceReducer.Mode = 'abs';
             m.SpaceReducer.Value = 10;
             %m.SpaceReducer = [];
-            a = approx.FixedCompWiseKernelApprox;
+            a = approx.algorithms.FixedCompWiseKernelApprox;
             a.Gammas = logspace(log10(.01),log10(10),30);
             c = general.regression.ScalarNuSVR;
             c.C = 500;
@@ -119,7 +119,7 @@ classdef RCLadder < models.BaseFullModel
             a.CoeffComp = c;
             a.TimeKernel = kernels.NoKernel;
             a.ParamKernel = kernels.NoKernel;
-            a.SystemKernel = kernels.GaussKernel(1);
+            a.Kernel = kernels.GaussKernel(1);
             a.TrainDataSelector.Size = 200;
             m.Approx = a;
             m.TrainingInputs = 1;

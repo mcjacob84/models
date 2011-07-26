@@ -1,4 +1,4 @@
-classdef KernelTest < models.BaseFullModel
+classdef AffParamKernelTest < models.BaseFullModel
     % Kernel core function test model 1
     %
     % This class implements both the model and dynamical system!
@@ -20,7 +20,7 @@ classdef KernelTest < models.BaseFullModel
     
     methods
         
-        function this = KernelTest(dims, pos_flag)
+        function this = AffParamKernelTest(dims, pos_flag)
             
             this.registerProps('dim');
             
@@ -57,7 +57,8 @@ classdef KernelTest < models.BaseFullModel
             this.ODESolver.MaxStep = [];
             
             %% System settings
-            this.System = models.synth.KernelTestSys(this, pos_flag);
+            this.System = models.synth.AffParamKernelTestSys(this, pos_flag);
+            this.TrainingInputs = 1;
         end
         
         function set.dim(this,value)

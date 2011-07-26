@@ -23,25 +23,25 @@ classdef Rotation < models.BaseFullModel
 %             this.SpaceReducer = sr;
 %             
             % Core Approximation
-%             a = approx.DefaultCompWiseKernelApprox;
+%             a = approx.algorithms.DefaultCompWiseKernelApprox;
 %             a.CoeffComp = general.regression.KernelLS;
 %             a.TimeKernel = kernels.GaussKernel;
-%             a.SystemKernel = kernels.GaussKernel(2);
+%             a.Kernel = kernels.GaussKernel(2);
 %             a.ParamKernel = kernels.LinearKernel;
 %             a.lambda = 2;
             
-%             a = approx.DefaultCompWiseKernelApprox;
+%             a = approx.algorithms.DefaultCompWiseKernelApprox;
 %             a.CoeffComp = general.regression.ScalarEpsSVR;
 %             a.TimeKernel = kernels.GaussKernel;
-%             a.SystemKernel = kernels.GaussKernel(2);
+%             a.Kernel = kernels.GaussKernel(2);
 %             a.ParamKernel = kernels.LinearKernel;
 %             a.eps = .05;
 %             a.C = 100;
 %             this.Approx = a;
             
-            a = approx.DefaultCompWiseKernelApprox;
+            a = approx.algorithms.DefaultCompWiseKernelApprox;
             a.TimeKernel = kernels.GaussKernel;
-            a.SystemKernel = kernels.GaussKernel(2);
+            a.Kernel = kernels.GaussKernel(2);
             %a.ParamKernel = kernels.LinearKernel;
             a.ParamKernel = kernels.GaussKernel(2);
             this.Approx = a;
