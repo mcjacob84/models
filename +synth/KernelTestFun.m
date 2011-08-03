@@ -53,7 +53,7 @@ classdef KernelTestFun < dscomponents.ParamTimeKernelCoreFun
             %% KernelApprox settings
             %this.Kernel = kernels.GaussKernel(4*sqrt(dims));
             this.Kernel = kernels.GaussKernel(sqrt(dim));
-            this.TimeKernel = kernels.LinearKernel;
+            this.TimeKernel = kernels.GaussKernel(.4);
             this.ParamKernel = kernels.GaussKernel(.4);
             
             this.dim = dim;
