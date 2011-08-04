@@ -43,7 +43,15 @@ classdef KernelTest < models.BaseFullModel
             
             % This class implements a fake Approx subclass to allow access
             % to the this.Ma property for the error estimator.
-            this.Approx = [];
+            a = approx.KernelApprox;
+            a.Algorithm = approx.algorithms.DefaultCompWiseKernelApprox;
+%             a.TrainDataSelector = approx.selection.DefaultSelector;
+            a.TrainDataSelector = approx.selection.LinspaceSelector;
+            a.TrainDataSelector.Size = 150;
+            a.Kernel = kernels.GaussKernel(3);
+            a.TimeKernel = kernels.GaussKernel(2);
+            a.ParamKernel = kernels.GaussKernel(3);
+            this.Approx = a;
             
             s = spacereduction.PODReducer;
             s.UseSVDS = true;
