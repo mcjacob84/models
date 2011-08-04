@@ -35,6 +35,8 @@ classdef PCDModel < models.BaseFullModel
             % time scaling
             this.tau = this.L^2/this.d1;
             
+            this.Data = data.FileModelData(this);
+            
             %s = sampling.RandomSampler;
             %s.Samples = 10;
             %this.Sampler = s;
@@ -42,7 +44,11 @@ classdef PCDModel < models.BaseFullModel
             
             %this.ODESolver = solvers.ode.MLWrapper(@ode23);
             %this.ODESolver = solvers.ode.ExplEuler;
-            this.ODESolver = solvers.ode.MLode15i;
+            o = solvers.ode.MLode15i;
+            o.AbsTol = 1e-5;
+            o.RelTol = 1e-5;
+            o.MaxStep = this.dt;
+            this.ODESolver = o;
             
             switch dim
                 case 2 
@@ -52,15 +58,14 @@ classdef PCDModel < models.BaseFullModel
                     s = models.pcd.PCDSystem1D(this);
                     this.Name = 'Programmed Cell Death 1D';
             end
+            s.MaxTimestep = this.dt;
             s.prepareConstants;
             this.System = s;
             
             % Space reduction setup
-            sr = spacereduction.PODReducer;
-            sr.Mode = 'rel';
-            sr.Value = .3;
-            %this.SpaceReducer = sr;
-            this.SpaceReducer = [];
+            sr = spacereduction.TrajectoryGreedy;
+            sr.Eps = 1e-6;
+            this.SpaceReducer = sr;
             
             % Core Approximation
 %             a = approx.algorithms.DefaultCompWiseKernelApprox;
@@ -70,27 +75,26 @@ classdef PCDModel < models.BaseFullModel
 %             a.ParamKernel = kernels.LinearKernel;
 %             a.lambda = 2;
 
-            a = approx.algorithms.AdaptiveCompWiseKernelApprox;
-            a.MaxExpansionSize = 164;
-            a.MaxRelErr = 1e-5;
-            a.MaxAbsErrFactor = 1e-5;
-            s = approx.selection.TimeSelector;
-            s.MaxSize = 10000;
+            a = approx.KernelApprox;
+            a.TimeKernel = kernels.NoKernel;
+            a.Kernel = kernels.GaussKernel(1);
+            a.ParamKernel = kernels.GaussKernel(1);
+            
+            s = approx.selection.LinspaceSelector;
+            s.Size = 10000;
             a.TrainDataSelector = s;
+            
+            aa = approx.algorithms.AdaptiveCompWiseKernelApprox;
+            aa.MaxExpansionSize = 164;
+            aa.MaxRelErr = 1e-5;
+            aa.MaxAbsErrFactor = 1e-5;
+            a.Algorithm = aa; 
+
+            this.Approx = a;
+            
             %a.ScalarSVR = general.regression.ScalarNuSVR;
             %a.ScalarSVR.nu = .6;
-            a.TimeKernel = kernels.NoKernel;
-            a.Kernel = kernels.GaussKernel;
-            a.ParamKernel = kernels.GaussKernel;
             
-%             a = approx.algorithms.DefaultCompWiseKernelApprox;
-%             a.CoeffComp = general.regression.ScalarEpsSVR;
-%             a.TimeKernel = kernels.GaussKernel;
-%             a.Kernel = kernels.GaussKernel(2);
-%             a.ParamKernel = kernels.LinearKernel;
-%             a.eps = .05;
-%             a.C = 100;
-            this.Approx = a;
         end
         
         function plot(this, t, y)

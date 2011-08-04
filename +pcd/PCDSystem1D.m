@@ -39,6 +39,26 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             % Add input param (is getting inserted after the BasePCDSystem
             % condtructor params, so number 9!)
             this.addParam('U', [0.001, 0.1], 12);
+            
+            %% Initial value
+            m = this.dim;
+            x0 = zeros(4*m,1);
+            
+            % Initial 
+            %x0(1:15) = 2e-8;
+            %x0(m+(1:15)) = 2e-8;
+            
+            %x0(2*m+(16:m)) = 2e-8;
+            %x0(3*m+(16:m)) = 2e-8;
+            
+            % Initial procasp-concentrations
+            %x0(2*m+1:end) = sin(2*pi*(1:2*m)/(2*m))*.01;
+            
+            %x0(2*m+1:end) = .3;
+            %[X,Y] = meshgrid(1:this.dim2,1:this.dim1);
+            %s = sin(X * pi/this.dim1) .* exp(-Y/4)*.5;
+            %x0(2*m+1:3*m) = s(:);
+            this.x0 = dscomponents.ConstInitialValue(x0);
 
             % Set core function
             this.f = models.pcd.CoreFun1D(this);
@@ -78,27 +98,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
         end
     end
     
-    methods(Access=protected)
-        function x0 = initialX(this, mu)%#ok
-            m = this.dim;
-            x0 = zeros(4*m,1);
-            
-            % Initial 
-            %x0(1:15) = 2e-8;
-            %x0(m+(1:15)) = 2e-8;
-            
-            %x0(2*m+(16:m)) = 2e-8;
-            %x0(3*m+(16:m)) = 2e-8;
-            
-            % Initial procasp-concentrations
-            %x0(2*m+1:end) = sin(2*pi*(1:2*m)/(2*m))*.01;
-            
-            %x0(2*m+1:end) = .3;
-            %[X,Y] = meshgrid(1:this.dim2,1:this.dim1);
-            %s = sin(X * pi/this.dim1) .* exp(-Y/4)*.5;
-            %x0(2*m+1:3*m) = s(:);
-        end
-        
+    methods(Access=protected)        
         function C = getC(this, t, mu)%#ok
             % Extracts the caspase-3 concentrations from the result
             m = this.dim;

@@ -103,8 +103,6 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
             this.D3 = m.d3/m.d1;
             this.D4 = m.d4/m.d1;
             
-            this.x0 = @(mu)this.initialX(mu);
-            
             % Set output conversion
             %this.C = dscomponents.PointerOutputConv(@(t,mu)this.getC(t,mu), false);
 
@@ -155,10 +153,7 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
     methods(Abstract, Access=protected)
         % Updates the spatial dimensions if a new h is set
         updateDims;
-        
-        % Returns the initial state
-        x0 = initialX(mu);
-        
+                
         % Returns the output conversion matrix
         C = getC(t,mu);
     end
