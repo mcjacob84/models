@@ -59,6 +59,12 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             %s = sin(X * pi/this.dim1) .* exp(-Y/4)*.5;
             %x0(2*m+1:3*m) = s(:);
             this.x0 = dscomponents.ConstInitialValue(x0);
+            
+            % Extracts the caspase-3 concentrations from the result
+            m = this.dim;
+            C = zeros(m,4*m);
+            C(:,m+1:2*m) = diag(ones(m,1));
+            %this.C = dscomponents.LinearInputConv(sparse(C));
 
             % Set core function
             this.f = models.pcd.CoreFun1D(this);
@@ -98,15 +104,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
         end
     end
     
-    methods(Access=protected)        
-        function C = getC(this, t, mu)%#ok
-            % Extracts the caspase-3 concentrations from the result
-            m = this.dim;
-            C = zeros(m,4*m);
-            C(:,m+1:2*m) = diag(ones(m,1));
-            C = sparse(C);
-        end
-        
+    methods(Access=protected)                
         function updateDims(this)
             % Should not matter which version as rescaling applies to all values
             %m = length(this.SRange(1):this.hs:this.SRange(2));

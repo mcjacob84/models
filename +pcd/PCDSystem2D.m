@@ -4,7 +4,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
     %
     % @change{0,3,sa,2011-05-11} Implemented property setter
     
-    properties
+    properties(Constant)
         % Spatial area
         Omega = [0 1; 0 1];
     end
@@ -23,45 +23,78 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             this.h = .1;
             
             % Add params
-            this.addParam('mu1', [0, 0.002], 5);
-            this.addParam('mu2', 0, 1);
-            this.addParam('mu3', [0, 0.002], 3);
-            this.addParam('mu4', 0, 1);
+            this.addParam('reac_rate_upper', [0, 0.002], 5);
+            this.addParam('reac_rate__right', 0, 1);
+            this.addParam('reac_rate_lower', [0, 0.002], 3);
+            this.addParam('reac_rate_left', 0, 1);
+            
+            m = this.dim1*this.dim2;
+            x0 = zeros(4*m,1);
+            %x0(2*m+1:end) = .3;
+            %[X,Y] = meshgrid(1:this.dim2,1:this.dim1);
+            %s = sin(X * pi/this.dim1) .* exp(-Y/4)*.5;
+            %x0(2*m+1:3*m) = s(:);
+            this.x0 = dscomponents.ConstInitialValue(x0);
+            
+            p = .1; % 10% of each dimensions span, centered in geometry.
+            d = this.dim1;
+            d1idx = find(abs((1:d) - d/2) <= d/2 * p);
+            d = this.dim2;
+            d2idx = find(abs((1:d) - d/2) <= d/2 * p);
+            [d1,d2] = meshgrid(d1idx,d2idx);
+            sel = reshape(sub2ind([this.dim1,this.dim2],d1,d2),1,[]);
+            C = zeros(1,4*m);
+            ca3 = m+1:2*m;
+            C(ca3(sel)) = 1/length(sel);
+            this.C = dscomponents.LinearOutputConv(C);
             
             % Set core function
             this.f = models.pcd.CoreFun2D(this);
         end
         
-        function set.Omega(this,value)
-            if ~isa(value, 'double')
-                error('Value must be a valid double matrix');
-            end
-            this.Omega = value;
-        end
+%         function set.Omega(this,value)
+%             if ~isa(value, 'double')
+%                 error('Value must be a valid double matrix');
+%             end
+%             this.Omega = value;
+%         end
         
-        function plot(this, model, t, y)
+        function plot(this, model, t, z)
             % Performs a plot for this model's results.
             %
-            figure;
+            fh = figure;
             %[X,Y] = meshgrid(1:d1,1:d2);
-            X = this.Omega(1,1):this.h:this.Omega(1,2);
-            Y = this.Omega(2,1):this.h:this.Omega(2,2);
+            x = this.Omega(1,1):this.h:this.Omega(1,2);
+            y = this.Omega(2,1):this.h:this.Omega(2,2);
             m = this.dim1*this.dim2;
-            for idx=1:length(t)
-                doplot(y(1:m,idx),'Caspase-8',1);
-                doplot(y(m+1:2*m,idx),'Caspase-3',2);
-                doplot(y(2*m+1:3*m,idx),'Pro-Caspase-8',3);
-                doplot(y(3*m+1:end,idx),'Pro-Caspase-3',4);
+            step = round(length(t)/20);
+            for idx=1:step:length(t)
+                doplot(z(1:m,idx),'Caspase-8',1);
+                doplot(z(m+1:2*m,idx),'Caspase-3',2);
+                doplot(z(2*m+1:3*m,idx),'Pro-Caspase-8',3);
+                doplot(z(3*m+1:end,idx),'Pro-Caspase-3',4);
+                set(fh,'name',sprintf('Plot at t=%f',t(idx)));
                 pause;
             end
             
-            function doplot(y,thetitle,pnr)
+            function doplot(zd,thetitle,pnr)
                 subplot(2,2,pnr);
-                Z = reshape(y,this.dim1,[]);
-                surf(X,Y,Z,'EdgeColor','none');
+%                 ma = max(zd(:));
+%                 if ma ~= 0
+%                     zd = zd/ma;
+%                 end 
+                Z = reshape(zd,this.dim1,[]);
+                if pnr == 4
+                    Z
+                    figure(5);
+                    imagesc(Z);
+                    figure(fh);
+                end
+                [X,Y] = meshgrid(x,y);
+                mesh(X,Y,Z); % 'EdgeColor','none' 
                 xlabel(sprintf('%f to %f',this.Omega(1,1),this.Omega(1,2)));
                 ylabel(sprintf('%f to %f',this.Omega(2,1),this.Omega(2,2)));
-                grid off;
+                %grid off;
                 axis tight;
                 title(sprintf('Model "%s", %s concentrations', model.Name, thetitle));
             end
@@ -69,15 +102,6 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
     end
     
     methods(Access=protected)
-        function x0 = initialX(this, mu)%#ok
-            % Boo2.
-            m = this.dim1*this.dim2;
-            x0 = zeros(4*m,1);
-            %x0(2*m+1:end) = .3;
-            %[X,Y] = meshgrid(1:this.dim2,1:this.dim1);
-            %s = sin(X * pi/this.dim1) .* exp(-Y/4)*.5;
-            %x0(2*m+1:3*m) = s(:);
-        end
         
         function C = getC(this, t, mu)%#ok
             % Extracts the caspase-3 concentrations from the result
