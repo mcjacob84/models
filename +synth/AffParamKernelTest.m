@@ -62,7 +62,7 @@ classdef AffParamKernelTest < models.BaseFullModel
         end
         
         function set.dim(this,value)
-            if ~isposintscalar(value)
+            if round(value) ~= value || ~isscalar(value) || value <= 0
                 error('Value must be a positive integer scalar');
             end
             this.dim = value;
