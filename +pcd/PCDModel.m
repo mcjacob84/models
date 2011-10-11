@@ -30,7 +30,7 @@ classdef PCDModel < models.BaseFullModel
                 dim=1;
             end
             
-            this.T = 6; %[s]
+            this.T = 1; %[s]
             this.dt = .001; %[s]
             % time scaling
             this.tau = this.L^2/this.d1;
@@ -42,15 +42,18 @@ classdef PCDModel < models.BaseFullModel
             %this.Sampler = s;
             this.Sampler = sampling.GridSampler;
             
-            %this.ODESolver = solvers.ode.MLWrapper(@ode23);
-            %this.ODESolver = solvers.ode.ExplEuler;
-            o = solvers.ode.MLode15i;
-            o.AbsTol = 1e-5;
-            o.RelTol = 1e-5;
-            o.MaxStep = this.dt;
-            this.ODESolver = o;
+%             this.ODESolver = solvers.ode.MLWrapper(@ode23);
+            this.ODESolver = solvers.ode.ExplEuler(this.dt);
+%             o = solvers.ode.MLode15i;
+%             o.AbsTol = 1e-5;
+%             o.RelTol = 1e-5;
+%             o.MaxStep = this.dt;
+%             this.ODESolver = o;
             
             switch dim
+                case 3
+                    s = models.pcd.PCDSystem3D(this);
+                    this.Name = 'Programmed Cell Death 3D';
                 case 2 
                     s = models.pcd.PCDSystem2D(this);
                     this.Name = 'Programmed Cell Death 2D';
@@ -59,7 +62,6 @@ classdef PCDModel < models.BaseFullModel
                     this.Name = 'Programmed Cell Death 1D';
             end
             s.MaxTimestep = this.dt;
-            s.prepareConstants;
             this.System = s;
             
             % Space reduction setup
@@ -76,7 +78,7 @@ classdef PCDModel < models.BaseFullModel
 %             a.lambda = 2;
 
             a = approx.KernelApprox;
-            a.TimeKernel = kernels.NoKernel;
+            a.TimeKernel = kernels.GaussKernel(1);
             a.Kernel = kernels.GaussKernel(1);
             a.ParamKernel = kernels.GaussKernel(1);
             
@@ -105,13 +107,14 @@ classdef PCDModel < models.BaseFullModel
     end
     
 %     methods (Static, Access=protected)
-%         function obj = loadobj(s)
+%         function obj = loadobj(obj)
 %             % Loads the properties for the PCDModel part of this
 %             % class.
 %             %
 %             % See also: ALoadable BaseFullModel.loadobj
-%             obj = models.pcd.PCDModel;
-%             obj = loadobj@models.BaseFullModel(s, obj);
+%             %
+%             %obj = models.pcd.PCDModel;
+%             %obj = loadobj@models.BaseFullModel(s, obj);
 %         end
 %     end
     

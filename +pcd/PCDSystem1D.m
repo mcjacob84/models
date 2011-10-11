@@ -43,6 +43,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             %% Initial value
             m = this.dim;
             x0 = zeros(4*m,1);
+            x0(m) = this.h;
             
             % Initial 
             %x0(1:15) = 2e-8;

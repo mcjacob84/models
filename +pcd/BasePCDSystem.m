@@ -1,4 +1,4 @@
-classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
+classdef BasePCDSystem < models.BaseDynSystem
     %PCDSYSTEM The 2D dynamical system of the Programmed Cell Death Model
     %by Markus Daub.
     %
@@ -103,38 +103,53 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
             this.D3 = m.d3/m.d1;
             this.D4 = m.d4/m.d1;
             
-            % Set output conversion
-            %this.C = dscomponents.PointerOutputConv(@(t,mu)this.getC(t,mu), false);
-
-            this.prepareConstants;
-            
             this.registerProps('h');
+            
+            this.setReactionParams;
         end
         
-        function checkCFL(this)
+        function [res, maxdt] = checkCFL(this, hvalue)
+            res = true;
             m = this.Model;
+            maxdt = m.dt;
             if ~isa(m.ODESolver,'solvers.ode.MLode15i')
                 mi = max([m.d1 m.d2 m.d3 m.d4]);
-                if mi*m.dt > .95*this.h^2
-                    m.dt = .95*this.h^2/mi;
-                    fprintf('Attention. CFL condition violated, setting model dt=%5.3e\n',m.dt);
+                if mi*m.dt > .95*hvalue^2
+                    maxdt = .95*hvalue^2/mi;             
+                    res = false;
                 end
             end
         end
         
         function set.h(this, value)
             % Set and check CFL
-            this.fh = value;
-            this.checkCFL;
-            this.hs = value / this.Model.L;
-            this.updateDims;
+            [r,mdt] = this.checkCFL(value);           
+            if r
+                this.fh = value;
+                this.hs = value / this.Model.L;
+                this.updateDims;
+            else
+                error('CFL condition violated, not changing h. Suggested model dt for h=%5.3e is %5.3e\n', value, mdt);
+            end
         end
         
         function h = get.h(this)
             h = this.fh;
         end
         
-        function prepareConstants(this)
+        function prepareConstants(this, mu, inputidx)
+            if ~this.checkCFL(this.fh);
+                error('CFL condition violated. Check first.');
+            end
+            
+            prepareConstants@models.BaseDynSystem(this, mu, inputidx);
+            
+            this.setReactionParams;
+        end
+    end
+    
+    methods(Access=private)
+        function setReactionParams(this)
             t = this.Model.tau;
             this.setParam('Kc1', this.Kc1_real * t, 1); % *this.ya0
             this.setParam('Kc2', this.Kc2_real * t, 1); % *this.xa0^this.n
@@ -144,10 +159,7 @@ classdef BasePCDSystem < models.BaseDynSystem & ISimConstants
             this.setParam('Kd4', this.Kd4_real * t, 1);
             this.setParam('Kp1', this.Kp1_real * t, 1); %/this.xi0
             this.setParam('Kp2', this.Kp2_real * t, 1); %/this.yi0
-            
-            this.checkCFL;
         end
-        
     end
     
     methods(Abstract, Access=protected)

@@ -49,7 +49,7 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
             
             m = this.sys.dim;
             
-            % Multidimensional case
+            % Non-Multidimensional case
             if size(x,2) == 1
                 % Extract single functions
                 xa = x(1:m);
@@ -60,10 +60,12 @@ classdef CoreFun1D < dscomponents.ACoreFun & ISimConstants
 
                 % Boundary conditions
                 rb = zeros(m,1);
-                if xi(end) ~= 0
-                    %keyboard;
-                end
+%                 if xi(end) ~= 0
+%                    keyboard;
+%                 end
                 rb(end) = - (xi(end)*mu(9))/this.sys.hs;
+                %rb(end) = -1/this.sys.hs;
+                %rb(end) = 1;
 
                 fx(1:m) = mu(1)*xi.*ya - mu(3)*xa + this.A*xa - rb;
                 fx(m+1:2*m) = mu(2)*yi.*xan - mu(4)*ya + this.sys.D2*this.A*ya;
