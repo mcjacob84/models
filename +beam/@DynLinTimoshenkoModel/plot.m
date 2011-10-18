@@ -1,5 +1,5 @@
 function plot(model, t, u)
-% plot: 
+% plot: Plots the current displacements and heat (u = 4 x numNodes x timesteps matrix)
 %
 %
 %

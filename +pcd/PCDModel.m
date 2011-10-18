@@ -30,16 +30,16 @@ classdef PCDModel < models.BaseFullModel
                 dim=1;
             end
             
-            this.T = 1; %[s]
+            this.T = 30; %[s]
             this.dt = .001; %[s]
             % time scaling
             this.tau = this.L^2/this.d1;
             
             this.Data = data.FileModelData(this);
             
-            %s = sampling.RandomSampler;
-            %s.Samples = 10;
-            %this.Sampler = s;
+%             s = sampling.RandomSampler;
+%             s.Samples = 10;
+%             this.Sampler = s;
             this.Sampler = sampling.GridSampler;
             
 %             this.ODESolver = solvers.ode.MLWrapper(@ode23);
@@ -65,8 +65,8 @@ classdef PCDModel < models.BaseFullModel
             this.System = s;
             
             % Space reduction setup
-            sr = spacereduction.TrajectoryGreedy;
-            sr.Eps = 1e-6;
+            sr = spacereduction.PODGreedy;
+            sr.Eps = 1e-10;
             this.SpaceReducer = sr;
             
             % Core Approximation
@@ -79,30 +79,32 @@ classdef PCDModel < models.BaseFullModel
 
             a = approx.KernelApprox;
             a.TimeKernel = kernels.GaussKernel(1);
+            a.TimeKernel.G = 1;
             a.Kernel = kernels.GaussKernel(1);
+            a.Kernel.G = 1;
             a.ParamKernel = kernels.GaussKernel(1);
+            a.ParamKernel.G = 1;
             
             s = approx.selection.LinspaceSelector;
             s.Size = 10000;
             a.TrainDataSelector = s;
             
             aa = approx.algorithms.AdaptiveCompWiseKernelApprox;
+            aa.ValidationPercent = 0.001;
             aa.MaxExpansionSize = 164;
             aa.MaxRelErr = 1e-5;
             aa.MaxAbsErrFactor = 1e-5;
             a.Algorithm = aa; 
-
             this.Approx = a;
             
             %a.ScalarSVR = general.regression.ScalarNuSVR;
             %a.ScalarSVR.nu = .6;
-            
         end
         
         function plot(this, t, y)
             % Overrides standard method and forwards to the system's plot
             % function. (they are 1D and 2D)
-            this.System.plot(this,t,y);
+            this.System.plot(this, t, y);
         end
     end
     

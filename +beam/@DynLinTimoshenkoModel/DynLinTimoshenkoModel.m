@@ -126,6 +126,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         end
         
         function exportGeometry(this, f)
+            % To be done
             
         end
     end

@@ -10,6 +10,12 @@ classdef BasePCDSystem < models.BaseDynSystem
     %
     % @author Daniel Wirtz @date 15.03.2010
     %
+    % @change{0,5,dw,2011-10-10} Generalized and restructured the models.pcd models and
+    % systems as far as possible. Removed the ISimConstants interfaces and
+    % added protected, custom models.pcd.BasePCDSystem.newSysDimension methods to propagate changes
+    % in geometry (models.pcd.BasePCDSystem.Omega or
+    % models.pcd.BasePCDSystem.h) to the systems and core functions.
+    %
     % @new{0,3,dw,2011-04-21} Integrated this class to the property default value changed
     % supervision system @ref propclasses. This class now inherits from KerMorObject and has an
     % extended constructor registering any user-relevant properties using
@@ -73,24 +79,27 @@ classdef BasePCDSystem < models.BaseDynSystem
         %
         % @propclass{critical} Determines the spatial resolution of the model.
         h; % is set in subclasses
+        
+        % The spatial width/area/region
+        %
+        % @propclass{data} The area for the model.
+        Omega;
     end
     
     properties(Access=private)
         fh = [];
+        fOmega = [];
     end
     
     properties(SetAccess=private)
-        % Relative diffusion coefficient (d2/d1)
-        D2;
-        
-        % Relative diffusion coefficient (d3/d1)
-        D3;
-        
-        % Relative diffusion coefficient (d4/d1)
-        D4;
+        % Relative diffusion coefficients ([d2/d1, d3/d1, d4/d1])
+        Diff;
         
         % scaled spatial stepwidth
         hs;
+        
+        % The system's dimensions
+        Dims;
     end
     
     methods
@@ -99,11 +108,9 @@ classdef BasePCDSystem < models.BaseDynSystem
             
             % Scale diffusion coefficients
             m = this.Model;
-            this.D2 = m.d2/m.d1;
-            this.D3 = m.d3/m.d1;
-            this.D4 = m.d4/m.d1;
+            this.Diff = [m.d2/m.d1 m.d3/m.d1 m.d4/m.d1];
             
-            this.registerProps('h');
+            this.registerProps('h','Omega');
             
             this.setReactionParams;
         end
@@ -121,6 +128,10 @@ classdef BasePCDSystem < models.BaseDynSystem
             end
         end
         
+        function h = get.h(this)
+            h = this.fh;
+        end
+        
         function set.h(this, value)
             % Set and check CFL
             [r,mdt] = this.checkCFL(value);           
@@ -133,16 +144,26 @@ classdef BasePCDSystem < models.BaseDynSystem
             end
         end
         
-        function h = get.h(this)
-            h = this.fh;
+        function v = get.Omega(this)
+            v = this.fOmega;
         end
         
-        function prepareConstants(this, mu, inputidx)
+        function set.Omega(this, value)
+            if size(value,2) ~= 2
+                error('Omega needs to be a dim x 2 matrix with the spatial extend for each dimension in a row.');
+            end
+            this.fOmega = value;
+            
+            % Update the dimensions
+            this.updateDims;
+        end
+        
+        function setConfig(this, mu, inputidx)
             if ~this.checkCFL(this.fh);
                 error('CFL condition violated. Check first.');
             end
             
-            prepareConstants@models.BaseDynSystem(this, mu, inputidx);
+            setConfig@models.BaseDynSystem(this, mu, inputidx);
             
             this.setReactionParams;
         end
@@ -160,11 +181,36 @@ classdef BasePCDSystem < models.BaseDynSystem
             this.setParam('Kp1', this.Kp1_real * t, 1); %/this.xi0
             this.setParam('Kp2', this.Kp2_real * t, 1); %/this.yi0
         end
+        
+        function updateDims(this)
+            if ~isempty(this.fh) && ~isempty(this.fOmega)
+                nd = size(this.fOmega,1);
+                this.Dims = zeros(1,nd);
+                for d=1:nd
+                    this.Dims(d) = length(this.fOmega(d,1):this.h:this.fOmega(d,2));
+                end
+                m = prod(this.Dims);
+                % Set state scaling
+                ss = zeros(4*m,1);
+                ss(1:m) = this.xa0;
+                ss(m+1:2*m) = this.ya0;
+                ss(2*m+1:3*m) = this.xi0;
+                ss(3*m+1:end) = this.yi0;
+                this.StateScaling = ss;
+                
+                % Set new initial values and output in 1D-3D systems
+                this.newSysDimension;
+                
+                % Call template method for custom actions in the core
+                % functions (diffusion matrix comp)
+                this.f.newSysDimension;
+            end
+        end
     end
     
     methods(Abstract, Access=protected)
-        % Updates the spatial dimensions if a new h is set
-        updateDims;
+        % Custom updates for new system dimension
+        newSysDimension;
     end
 
 end

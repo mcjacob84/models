@@ -11,26 +11,15 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
 % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
 % - \c License @ref licensing
     
-    properties(Constant)
-        % Spatial area
-        Omega = [0 1; 0 1; 0 1];
-    end
-    
-    properties(SetAccess=private)
-        % System's dimension 1 along x
-        dim1;
-        
-        % System's dimension 2 along y
-        dim2;
-        
-        % System's dimension 3 along z
-        dim3;
-    end
-    
     methods
         function this = PCDSystem3D(model)
             this = this@models.pcd.BasePCDSystem(model);
             
+            % Set core function
+            this.f = models.pcd.CoreFun3D(this);
+            
+            % Spatial area [X, Y, Z]
+            this.Omega = [0 1; 0 1; 0 1];    
             this.h = .1;
             
             % Add params
@@ -49,81 +38,131 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             this.addParam('rate_right', [0, rate_max], 1);
             this.addParam('rate_top', [0, rate_max], 4);
             this.addParam('rate_bottom', [0, rate_max], 1);
-            
-            m = this.dim1*this.dim2*this.dim3;
-            x0 = zeros(4*m,1);
-            this.x0 = dscomponents.ConstInitialValue(x0);
-            
-            p = .1; % 10% of each dimensions span, centered in geometry.
-            d = this.dim1;
-            d1idx = find(abs((1:d) - d/2) <= d/2 * p);
-            d = this.dim2;
-            d2idx = find(abs((1:d) - d/2) <= d/2 * p);
-            d = this.dim3;
-            d3idx = find(abs((1:d) - d/2) <= d/2 * p);
-            [d1,d2,d3] = meshgrid(d1idx,d2idx,d3idx);
-            sel = reshape(sub2ind([this.dim1,this.dim2,this.dim3],d1,d2,d3),1,[]);
-            C = zeros(1,4*m);
-            ca3 = m+1:2*m;
-            C(ca3(sel)) = 1/length(sel);
-            this.C = dscomponents.LinearOutputConv(C);
-            
-            % Set core function
-            this.f = models.pcd.CoreFun3D(this);
         end
       
         function plot(this, model, t, v)
             % Performs a plot for this model's results.
-            %
-            fh = figure;
-            %[X,Y] = meshgrid(1:d1,1:d2);
-            x = this.Omega(1,1):this.h:this.Omega(1,2);
-            y = this.Omega(2,1):this.h:this.Omega(2,2);
-            z = this.Omega(3,1):this.h:this.Omega(3,2);
+            
+            autocols = true;
+            plotback = false;
+            
             m = this.dim1*this.dim2*this.dim3;
-            step = round(length(t)/20);
-            for idx=1:step:length(t)
-                doplot(v(1:m,idx),'Caspase-8',1);
-                doplot(v(m+1:2*m,idx),'Caspase-3',2);
-                doplot(v(2*m+1:3*m,idx),'Pro-Caspase-8',3);
-                doplot(v(3*m+1:end,idx),'Pro-Caspase-3',4);
-                set(fh,'name',sprintf('Plot at t=%f',t(idx)));
-                pause;
+            xa = v(1:m,:);
+            ya = v(m+1:2*m,:);
+            xi = v(2*m+1:3*m,:);
+            yi = v(3*m+1:end,:);
+            b = [min(xa(:)) max(xa(:)); min(ya(:)) max(ya(:));...
+                 min(xi(:)) max(xi(:)); min(yi(:)) max(yi(:))];
+            %% Prepare figures
+            f1 = figure(1); rotate3d on;
+            f2 = figure(2); rotate3d on;
+            hlpf = figure('Visible','off','MenuBar','none','ToolBar','none');
+            hlpax = newplot(hlpf);
+            ax = [];
+            caps = {'Caspase-8','Caspase-3','Pro-Caspase-8','Pro-Caspase-3'};
+            for p = 1:4
+                figure(f1);
+                a = subplot(2,2,p);
+                cla(a);
+                set(a,'Box','on','GridLineStyle','none');
+                if ~autocols
+                    set(a,'CLimMode','manual','CLim',b(p,:));
+                end
+                view(a,-22,31);
+                axis ij;
+                axis(a,reshape(this.Omega',1,[]));
+                xlabel(a,'Left to right');
+                ylabel(a,'Top to bottom');
+                zlabel(a,'Front to back');
+                title(a,sprintf('Model "%s", %s concentrations', model.Name, caps{p}));
+                colorbar('peer',a);
+                ax(end+1) = a;%#ok
+                
+                figure(f2);
+                a = subplot(2,2,p);
+                set(a,'Box','on','GridLineStyle','none');
+                if ~autocols
+                    set(a,'CLimMode','manual','CLim',b(p,:));
+                end
+                view(a,-22,31);
+                axis ij;
+                axis(a,reshape(this.Omega',1,[]));
+                xlabel(a,'Left to right');
+                ylabel(a,'Top to bottom');
+                zlabel(a,'Front to back');
+                title(a,sprintf('Model "%s", %s concentrations', model.Name, caps{p}));
+                colorbar('peer',a);
+                ax(end+1) = a;%#ok
             end
             
-            function doplot(zd,thetitle,pnr)
-                subplot(2,2,pnr); cla;
-%                 ma = max(zd(:));
-%                 if ma ~= 0
-%                     zd = zd/ma;
-%                 end 
+            %% Plot timesteps
+            a = this.Omega;
+            x = a(1,1):this.h:a(1,2);
+            y = a(2,1):this.h:a(2,2);
+            z = a(3,1):this.h:a(3,2);
+            [X,Y,Z] = meshgrid(x,y,z);
+            
+            step = round(length(t)/40);
+            for idx=1:step:length(t)
+                h1 = doplot(xa(:,idx),ax(1:2));
+                h2 = doplot(ya(:,idx),ax(3:4));
+                h3 = doplot(xi(:,idx),ax(5:6));
+                h4 = doplot(yi(:,idx),ax(7:8));
+                set(f1,'Name',sprintf('Plot at t=%f',t(idx)));
+                set(f2,'Name',sprintf('Plot at t=%f',t(idx)));
+                if idx ~= length(t)
+                    pause;
+                    delete([h1; h2; h3; h4]);
+                end
+            end
+            
+            close(hlpf);
+            
+            function h = doplot(zd, ax)                
                 V = reshape(zd,this.dim1,this.dim2,[]);
-                [X,Y,Z] = meshgrid(x,y,z);
-                contourslice(X,Y,Z,V,[],0:.2:1,[]); % 'EdgeColor','none' 
-                xlabel(sprintf('%f to %f',this.Omega(1,1),this.Omega(1,2)));
-                ylabel(sprintf('%f to %f',this.Omega(2,1),this.Omega(2,2)));
-                zlabel(sprintf('%f to %f',this.Omega(3,1),this.Omega(3,2)));
-                %grid off;
-                axis tight;
-                title(sprintf('Model "%s", %s concentrations', model.Name, thetitle));
+                %permute(V,[1 3 2]);
+                
+                hc = contourslice(ax(1),X,Y,Z,V,[],0:.2:1,[]); % 'EdgeColor','none' 
+                
+                % bugfix: constant nonzero values cause slice to crash when
+                % setting the clim property.
+                if V(1) ~= 0 && all(V(1) == V(:))
+                    V(1) = 1.0001*V(1);
+                end
+                hs = slice(hlpax,X,Y,Z,V,.5,.5,.5);
+                set(hs,'Parent',ax(2),'FaceColor','interp','EdgeColor','none');
+                if plotback
+                    hs2 = slice(hlpax,X,Y,Z,V,a(1,2),a(2,1),a(3,1));
+                    set(hs2,'Parent',ax(2),'FaceColor','interp','EdgeColor','none');
+                    hs = [hs; hs2];
+                end
+                h = [hc; hs];
             end
         end
     end
     
     methods(Access=protected)        
-        function updateDims(this)
-            this.dim1 = length(this.Omega(1,1):this.h:this.Omega(1,2));
-            this.dim2 = length(this.Omega(2,1):this.h:this.Omega(2,2));
-            this.dim3 = length(this.Omega(3,1):this.h:this.Omega(3,2));
-            m = this.dim1*this.dim2*this.dim3;
-            ss = zeros(4*m,1);
-            ss(1:m) = this.xa0;
-            ss(m+1:2*m) = this.ya0;
-            ss(2*m+1:3*m) = this.xi0;
-            ss(3*m+1:end) = this.yi0;
-            this.StateScaling = ss;
+        function newSysDimension(this)
+            m = prod(this.Dims);
+            x0 = zeros(4*m,1);
+            x0(1:2*m) = 1e-16;
+            x0(2*m+1:end) = 1e-9;
+            this.x0 = dscomponents.ConstInitialValue(x0);
+            
+%             p = .1; % 10% of each dimensions span, centered in geometry.
+%             d = this.dim1;
+%             d1idx = find(abs((1:d) - d/2) <= d/2 * p);
+%             d = this.dim2;
+%             d2idx = find(abs((1:d) - d/2) <= d/2 * p);
+%             d = this.dim3;
+%             d3idx = find(abs((1:d) - d/2) <= d/2 * p);
+%             [d1,d2,d3] = meshgrid(d1idx,d2idx,d3idx);
+%             sel = reshape(sub2ind([this.dim1,this.dim2,this.dim3],d1,d2,d3),1,[]);
+%             C = zeros(1,4*m);
+%             ca3 = m+1:2*m;
+%             C(ca3(sel)) = 1/length(sel);
+%             this.C = dscomponents.LinearOutputConv(C);
         end
-    end
-    
+    end  
 end
 
