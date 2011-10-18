@@ -2,6 +2,10 @@ function plotSingle(model, t, u)
 % plot_single: Plots a single beam configuration for given time and field
 % data.
 %
+% Parameters:
+% t: The times `t` @type double
+% u: The displacement and heat values at `t` @type colvec
+%
 % @author Daniel Wirtz @date 2011-09-28
 %
 % @new{0,5,dw,2011-09-28} Added this function.

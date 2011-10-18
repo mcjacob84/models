@@ -42,6 +42,11 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
       
         function plot(this, model, t, v)
             % Performs a plot for this model's results.
+            %
+            % Parameters:
+            % t: The times `t_0,\ldots,t_N` as row vector @type rowvec
+            % v: The system's caspase concentrations (with no output
+            % projection!) @type matrix
             
             autocols = true;
             plotback = false;

@@ -1,7 +1,10 @@
 function plot(model, t, u)
 % plot: Plots the current displacements and heat (u = 4 x numNodes x timesteps matrix)
 %
-%
+% Parameters:
+% t: The times `t_i` @type rowvec
+% u: The displacement and heat value matrix, with entry `u_i` in column `i`
+% of `u`. @type matrix
 %
 % @author Daniel Wirtz @date 2011-09-28
 %

@@ -18,16 +18,21 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         %
         % @propclass{optional} Scales the displacement
         %
+        % @type double @default 20
         PlotFactor = 20;
         
         % The beam line width for plotting
         %
         % @propclass{optional} Visualization setting
+        %
+        % @type double @default 3
         BeamLineWidth = 3;
         
         % Number of colors for plotting
         %
         % @propclass{optional}
+        %
+        % @type integer @default 128
         %
         % @see ColorMap
         NumColors = 128;
@@ -35,9 +40,13 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
     
     properties(SetAccess=private)
         % The system's full dimension
+        %
+        % @type integer
         dim;
         
         % 3D coordinates of the beam end points
+        %
+        % @type matrix
         Points;
         
         % Struct for each beam with several fields.
@@ -45,11 +54,15 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         % Fields:
         % p: The index of the start and end point of the beam, defined in
         % property Points.
+        %
+        % @type struct
         Beams;
     end
     
     properties(Dependent, SetAccess=private)
         % The color map to use. Value is hardcoded so far.
+        %
+        % @type matrix
         ColorMap;
     end
     
@@ -126,12 +139,21 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         end
         
         function exportGeometry(this, f)
+            % Exports the model geometry to JKerMor
+            %
             % To be done
-            
+            %
+            % Parameters:
+            % f: A file handle to write the model xml @type handle
         end
+        
+        plot(model, t, u);
+
+        plotSingle(model, t, u);
     end
     
     methods(Access=private)
+        % Reads the config file
         [Points, RO_raw, KR, FH, mat, lager, lasten] = read_file(this, file);
     end
     
