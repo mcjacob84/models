@@ -1,4 +1,4 @@
-classdef DynLinTimoshenkoCoreFun < dscomponents.LinearCoreFun & ISimConstants
+classdef DynLinTimoshenkoCoreFun < dscomponents.LinearCoreFun
 % DynLinTimoshenkoCoreFun: 
 %
 %

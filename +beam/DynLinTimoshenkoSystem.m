@@ -1,4 +1,4 @@
-classdef DynLinTimoshenkoSystem < models.BaseDynSystem & ISimConstants
+classdef DynLinTimoshenkoSystem < models.BaseDynSystem
 % DynLinTimoshenkoSystem: 
 %
 %

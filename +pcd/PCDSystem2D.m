@@ -13,24 +13,28 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             % Set core function
             this.f = models.pcd.CoreFun2D(this);
             
-            % Spatial area
-            this.Omega = [0 2; 0 1];
-            this.h = .2;
-            model.dt = model.dt*5;
+            % Spatial area (unscaled!)
+            this.Omega = [0 1.5; 0 1] * this.Model.L;
+            % Scaled!
+            this.h = .5 * this.Model.L;
+            %model.dt = model.dt*5;
             
             % Add params
-            rate_min = 1e-4;
-            rate_max = 1e-1;
-            % Param indices 9-12
-            this.addParam('area_top', [0, .9], 3);
-            this.addParam('area_bottom', [0, 0], 1);
-            this.addParam('area_left', [0, .9], 3);
-            this.addParam('area_right', [0, 0], 1);
-            % Param indices 13-16
-            this.addParam('rate_top', [rate_min, rate_max], 3);
-            this.addParam('rate_bottom', [.005, .005], 1);
-            this.addParam('rate_left', [rate_min, rate_max], 3);
-            this.addParam('rate_right', [rate_min, rate_max], 1); 
+            % Simpler version: homogeneous area & rate
+            this.addParam('area', [0, 1], 10);
+            this.addParam('rate', [1e-5, 1e-1], 15);
+%             rate_min = 1e-4;
+%             rate_max = 1e-1;
+%             % Param indices 9-12
+%             this.addParam('area_top', [0, .9], 3);
+%             this.addParam('area_bottom', [0, 0], 1);
+%             this.addParam('area_left', [0, .9], 3);
+%             this.addParam('area_right', [0, 0], 1);
+%             % Param indices 13-16
+%             this.addParam('rate_top', [rate_min, rate_max], 3);
+%             this.addParam('rate_bottom', [.005, .005], 1);
+%             this.addParam('rate_left', [rate_min, rate_max], 3);
+%             this.addParam('rate_right', [rate_min, rate_max], 1); 
         end        
 
         function plot(this, model, t, v)
@@ -54,6 +58,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             f1 = figure(1); rotate3d on;
             hlpf = figure('Visible','off','MenuBar','none','ToolBar','none');
             hlpax = newplot(hlpf);
+            axis tight;
             ax = [];
             caps = {'Caspase-8','Caspase-3','Pro-Caspase-8','Pro-Caspase-3'};
             for p = 1:4
@@ -62,6 +67,8 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
                 cla(a);
                 %axis tight;
                 axis(a,[reshape(this.Omega',1,[]) b(p,:)]);
+                ar = get(gca,'DataAspectRatio');
+                set(gca,'DataAspectRatio',[ar(1)/2 ar(2:3)]);
                 %axis(a fill;
                 set(a,'Box','on','GridLineStyle','none');
                 if ~autocols
@@ -105,6 +112,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
 %                 if V(1) ~= 0 && all(V(1) == V(:))
 %                     V(1) = 1.0001*V(1);
 %                 end
+                %hs = mesh(hlpax,X,Y,V);
                 hs = surf(hlpax,X,Y,V);
                 set(hs,'Parent',ax);
                 set(hs,'FaceColor','interp','EdgeColor','none');

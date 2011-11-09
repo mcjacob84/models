@@ -10,6 +10,14 @@ classdef BasePCDSystem < models.BaseDynSystem
     %
     % @author Daniel Wirtz @date 15.03.2010
     %
+    % @new{0,5,dw,2011-11-02} 
+    % - New property ReacCoeff. The coefficients have been removed (commented out) of the
+    % system's Params and are inserted manually into the mu parameters in the CoreFunctions in
+    % order not to have to change much code. This way, they can be easily reintroduced as true
+    % system parameters.
+    % - Removed checkCFL method and placed it into the set.h method (directly sets the
+    % MaxTimestep property according to CFL conditions)
+    %
     % @change{0,5,dw,2011-10-10} Generalized and restructured the models.pcd models and
     % systems as far as possible. Removed the ISimConstants interfaces and
     % added protected, custom models.pcd.BasePCDSystem.newSysDimension methods to propagate changes
@@ -75,14 +83,18 @@ classdef BasePCDSystem < models.BaseDynSystem
     end
     
     properties(SetObservable, Dependent)
-        % Spatial stepwidth
+        % Spatial stepwidth (in unscaled size units!)
         %
         % @propclass{critical} Determines the spatial resolution of the model.
+        %
+        % See also: L
         h; % is set in subclasses
         
-        % The spatial width/area/region
+        % The spatial width/area/region (in unscaled size units!)
         %
         % @propclass{data} The area for the model.
+        %
+        % See also: L
         Omega;
     end
     
@@ -100,6 +112,9 @@ classdef BasePCDSystem < models.BaseDynSystem
         
         % The system's dimensions
         Dims;
+        
+        % The reaction coefficients
+        ReacCoeff;
     end
     
     methods
@@ -112,20 +127,11 @@ classdef BasePCDSystem < models.BaseDynSystem
             
             this.registerProps('h','Omega');
             
-            this.setReactionParams;
-        end
-        
-        function [res, maxdt] = checkCFL(this, hvalue)
-            res = true;
-            m = this.Model;
-            maxdt = m.dt;
-            if ~isa(m.ODESolver,'solvers.ode.MLode15i')
-                mi = max([m.d1 m.d2 m.d3 m.d4]);
-                if mi*m.dt > .95*hvalue^2
-                    maxdt = .95*hvalue^2/mi;             
-                    res = false;
-                end
-            end
+            % Uncomment if reaction parameters become real parameters again
+            %this.setReactionParams;
+            this.ReacCoeff = [this.Kc1_real this.Kc2_real this.Kd1_real ...
+                              this.Kd2_real this.Kd3_real this.Kd4_real ...
+                              this.Kp1_real this.Kp2_real]' * this.Model.tau;
         end
         
         function h = get.h(this)
@@ -133,14 +139,28 @@ classdef BasePCDSystem < models.BaseDynSystem
         end
         
         function set.h(this, value)
-            % Set and check CFL
-            [r,mdt] = this.checkCFL(value);           
-            if r
-                this.fh = value;
-                this.hs = value / this.Model.L;
-                this.updateDims;
-            else
-                error('CFL condition violated, not changing h. Suggested model dt for h=%5.3e is %5.3e\n', value, mdt);
+            if any(value >= this.fOmega(:,2))
+                error('Cannot choose a step size h=%e value larger or equal to the geometry [%s].',value,num2str(this.fOmega));
+            end
+            this.fh = value;
+            this.hs = value / this.Model.L;
+            this.updateDims;
+            
+            m = this.Model;
+            this.MaxTimestep = [];
+            if ~isa(m.ODESolver,'solvers.ode.BaseImplSolver')
+                maxdt = .95*(value^2/max([m.d1 m.d2 m.d3 m.d4]));
+                maxdtsc = .95*(this.hs^2/max([1 this.Diff]));
+                
+                if (maxdtsc - maxdt/this.Model.tau) /  maxdtsc > 1e-15
+                    error('Inconsistent scaling. Please check.');
+                end
+                % Set max timestep value (scaled!)
+                this.MaxTimestep = maxdtsc;
+                
+                if maxdt < m.dt
+                    warning('models:pcd:CFL','CFL condition violated with h=%e and current dt=%e.\nSetting System.MaxTimestep=%e (scaled, effective value %e)\n', value, m.dt, maxdtsc, maxdt);
+                end
             end
         end
         
@@ -159,28 +179,28 @@ classdef BasePCDSystem < models.BaseDynSystem
         end
         
         function setConfig(this, mu, inputidx)
-            if ~this.checkCFL(this.fh);
-                error('CFL condition violated. Check first.');
-            end
-            
             setConfig@models.BaseDynSystem(this, mu, inputidx);
             
-            this.setReactionParams;
+            %this.setReactionParams;
+            this.ReacCoeff = [this.Kc1_real this.Kc2_real this.Kd1_real ...
+                              this.Kd2_real this.Kd3_real this.Kd4_real ...
+                              this.Kp1_real this.Kp2_real]' * this.Model.tau;
         end
     end
     
     methods(Access=private)
-        function setReactionParams(this)
-            t = this.Model.tau;
-            this.setParam('Kc1', this.Kc1_real * t, 1); % *this.ya0
-            this.setParam('Kc2', this.Kc2_real * t, 1); % *this.xa0^this.n
-            this.setParam('Kd1', this.Kd1_real * t, 1);
-            this.setParam('Kd2', this.Kd2_real * t, 1);
-            this.setParam('Kd3', this.Kd3_real * t, 1);
-            this.setParam('Kd4', this.Kd4_real * t, 1);
-            this.setParam('Kp1', this.Kp1_real * t, 1); %/this.xi0
-            this.setParam('Kp2', this.Kp2_real * t, 1); %/this.yi0
-        end
+%         function setReactionParams(this)
+%             t = this.Model.tau;
+%             this.setParam('Kc1', this.Kc1_real * t, 1); % *this.ya0
+%             this.setParam('Kc2', this.Kc2_real * t, 1); % *this.xa0^this.n
+%             this.setParam('Kd1', this.Kd1_real * t, 1);
+%             this.setParam('Kd2', this.Kd2_real * t, 1);
+%             this.setParam('Kd3', this.Kd3_real * t, 1);
+%             this.setParam('Kd4', this.Kd4_real * t, 1);
+%             this.setParam('Kp1', this.Kp1_real * t, 1); %/this.xi0
+%             this.setParam('Kp2', this.Kp2_real * t, 1); %/this.yi0
+%             
+%         end
         
         function updateDims(this)
             if ~isempty(this.fh) && ~isempty(this.fOmega)

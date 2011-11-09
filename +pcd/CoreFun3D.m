@@ -3,6 +3,10 @@ classdef CoreFun3D < dscomponents.ACoreFun
 %
 % @author Daniel Wirtz @date 2011-10-05
 %
+% @change{0,5,dw,2011-11-02} Augmenting the mu parameters by the base system's
+% models.pcd.BasePCDSystem.ReacCoeff vector. This removes the reaction coefficients from
+% the system as true parameters but allows to quickly revert the process if needed.
+%
 % @new{0,5,dw,2011-10-05} Added this class.
 %
 % This class is part of the framework
@@ -63,6 +67,9 @@ classdef CoreFun3D < dscomponents.ACoreFun
             m = this.nodes;
             n = this.sys.n;
             D = this.sys.Diff;
+            
+            % Uncomment if reaction coeffs become real params again
+            mu = [this.sys.ReacCoeff; mu];
             
 %             if size(x,2) == 1
                 % Extract single functions

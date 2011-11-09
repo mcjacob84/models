@@ -17,19 +17,25 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             % Set core function
             this.f = models.pcd.CoreFun1D(this);
             
-            % Spatial resolution
-            elems = 25;
-            this.Omega = [0 this.Model.L];
-            this.h = (this.Omega(2)-this.Omega(1))/(elems-1);
+            % Spatial resolution (in real sizes)
+            this.Omega = [0 1] * this.Model.L;
+            this.h = this.Model.L/24;
            
             % Add input param (is getting inserted after the BasePCDSystem
             % condtructor params, so number 9!)
-            this.addParam('U', [0.001, 0.1], 12);
+            this.addParam('U', [1e-5, 1e-2], 50);
         end
 
         function plot(this, model, t, y)
             % Performs a plot for this model's results.
             %
+            
+            if length(t) > 700
+                idx = round(linspace(1,length(t),700));
+                t = t(idx);
+                y = y(:,idx);
+            end
+            
             figure;
             X = t;
             Y = this.Omega(1):this.h:this.Omega(2);
@@ -41,19 +47,24 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             
             function doplot(y,thetitle,pnr)
                 subplot(2,2,pnr);
-                %mesh(X,Y,y);
-                surf(X,Y,y,'EdgeColor','none');
+                mesh(X,Y,y);
+                %surf(X,Y,y,'EdgeColor','none');
                 xlabel('Time [s]');
-                ylabel(sprintf('%f to %f: Cell core to hull [m]',this.Omega(1),this.Omega(2)));
+                ylabel(sprintf('%.2e to %.2e: Cell core to hull [m]',this.Omega(1),this.Omega(2)));
                 grid off;
-                axis tight;
+                mi = min(y(:));
+                Ma = max(y(:));
+                if abs((mi-Ma) / mi) < 1e-14
+                    mi = .999*mi; Ma=1.001*Ma;
+                end
+                axis([0 this.Model.T this.Omega mi Ma]);
                 title(sprintf('Model "%s"\n%s concentrations', model.Name, thetitle));
             end
         end
     end
     
     methods(Access=protected)
-        function dimsUpdated(this)
+        function newSysDimension(this)
             % Assign fitting initial value
             m = prod(this.Dims);
             
