@@ -1,5 +1,5 @@
-classdef BaseRBMatlabWrapper < models.BaseFullModel
-    %BASERBMATLABMODEL Base class for all rbmatlab model wrappers
+classdef RBMatlabModel < models.BaseFullModel
+    %RBMatlabModel: Base class for all rbmatlab models in KerMor
     %
     % Subclassing instances MUST explicitly call this classes constructor
     % in order to ensure that KerMor is connected to rbmatlab.
@@ -27,10 +27,11 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
     end
     
     methods
-        function this = BaseRBMatlabWrapper
+        function this = RBMatlabModel
             if ~KerMor.App.Hasrbmatlab
                 error('rbmatlab is not registered with KerMor. Set KerMor.App.rbmatlabDirectory to fix.');
             end
+            this = this@models.BaseFullModel;
         end
         
         function set.RBMModel(this, value)
@@ -45,7 +46,7 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
             this.RBMDataCont = value;
         end
         
-        function [t,y,sec,x] = simulate(this, mu, inputidx)
+        function [t,y,sec,x] = simulate(this, varargin)
             % Simulates the RBMatlab model for given parameter and
             % inputindex.
             % 
@@ -56,10 +57,10 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
             if ~KerMor.App.Hasrbmatlab
                 error('rbmatlab is not registered with KerMor. Set KerMor.App.rbmatlabDirectory to fix.');
             end
-            [t,y,sec,x] = simulate@BaseModel(this, mu, inputidx);
+            [t,y,sec,x] = simulate@models.BaseModel(this, varargin{:});
         end
         
-        function [t,x] = computeTrajectory(this, mu, inputidx)
+        function [t,x] = computeTrajectory(this, varargin)
             % Computes a trajectory of the RBMatlab model for given
             % parameter and inputindex.
             % 
@@ -70,7 +71,7 @@ classdef BaseRBMatlabWrapper < models.BaseFullModel
             if ~KerMor.App.Hasrbmatlab
                 error('rbmatlab is not registered with KerMor. Set KerMor.App.rbmatlabDirectory to fix.');
             end
-            [t,x] = computeTrajectory@BaseModel(this, mu, inputidx);
+            [t,x] = computeTrajectory@models.BaseModel(this, varargin{:});
         end
     end
     

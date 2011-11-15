@@ -360,7 +360,7 @@ classdef PCDModel < models.BaseFullModel
             save nonzerox0_12s_largeAA_subsp m K times factors;
         end
         
-        function MinMaxAdaptiveACWKATest
+        function MinMaxAdaptiveCWKATest
             % Configuration to try and find the good old approximation with
             % little approximation error
             m = models.pcd.PCDModel(1);
@@ -414,7 +414,7 @@ classdef PCDModel < models.BaseFullModel
             t4 = m.off4_genApproximationTrainData;
             
             %factors = general.Utils.createCombinations([5 10 15 20], [1 2 3 4 5],[.1 .01 .001]);
-            factors = general.Utils.createCombinations(20, 10, 2);
+            factors = general.Utils.createCombinations(4, 10, 2);
             n = size(factors,2);
             K = approx.KernelApprox.empty;
             t5 = zeros(1,n);
@@ -428,7 +428,7 @@ classdef PCDModel < models.BaseFullModel
             end
             times = [t1 t2 t3 t4 t5];
             
-            save MinMaxAdaptiveACWKATest m K times factors;
+            save MinMaxAdaptiveCWKATest m K times factors;
         end
         
         function m = testConfigOneTraj

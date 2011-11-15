@@ -1,32 +1,37 @@
-classdef RiemannBurgers < models.rbmatlab.BaseRBMatlabWrapper & models.BaseDynSystem & dscomponents.ACoreFun
+classdef RiemannBurgers < models.rbmatlab.RBMatlabModel
     %RIEMANNBURGERS Summary of this class goes here
     %   Detailed explanation goes here
             
     methods
         function this = RiemannBurgers(xnum, ynum, T)
             % Call superconstructor
-            this = this@models.rbmatlab.BaseRBMatlabWrapper;            
+            this = this@models.rbmatlab.RBMatlabModel;
             
             % Setup rbmatlab param struct
-            params.ynumintervals = 20;
-            params.xnumintervals = 100;
-            if nargin > 0
-                params.xnumintervals = xnum;
-                if nargin > 1
-                    params.ynumintervals = ynum;
-                    if nargin == 2
-                        T = 0.5;
+            params = struct;
+            if nargin < 3
+                T = .5;
+                if nargin < 2
+                    if nargin < 1
+                         xnum = 100;    
                     end
+                    ynum = 20;
                 end
             end
+            params.xnumintervals = xnum;
+            params.ynumintervals = ynum;
             
             % Get rbmatlab model
             m = riemann_burgers_model(params);
             m.newton_regularisation = 0;
             m.T = T;
             m.nt = 100;
+            % for a detailed simulation we do not need the affine parameter
+            % decomposition
+            m.decomp_mode = 0;
+            this.RBMModel = m;
             
-            d = models.rbmatlab.RBMDataContainer(gen_model_data(m));
+            this.RBMDataCont = models.rbmatlab.RBMDataContainer(gen_model_data(m));
             
             %this.ComputeParallel = false;
             
@@ -34,29 +39,23 @@ classdef RiemannBurgers < models.rbmatlab.BaseRBMatlabWrapper & models.BaseDynSy
             this.T = m.T;
             this.dt = m.T / m.nt;
             
+            % System setup
+            this.System = models.rbmatlab.RiemBurgSys_Fun(this);
+            
             % Solver
             this.ODESolver = solvers.ode.ExplEuler(this.dt);
             
             % Sampling
             this.Sampler = sampling.GridSampler;
             
-            % Approximation: Use same kernels
-            if false
-                a = approx.algorithms.DefaultCompWiseKernelApprox;
-                svr = general.regression.ScalarNuSVR;
-                svr.nu = .6;
-                qp = solvers.qp.qpOASES;
-                svr.QPSolver = qp;
-                a.CoeffComp = svr;
-            else
-                a = approx.algorithms.DefaultCompWiseKernelApprox;
-            end
+            aa = approx.algorithms.DefaultCompWiseKernelApprox;
+            aa.ComputeParallel = false;
+            a = approx.KernelApprox;
+            a.Algorithm = aa;
             a.Kernel = kernels.GaussKernel(60);
             a.TimeKernel = kernels.GaussKernel(10*m.T/m.nt);
             a.ParamKernel = kernels.NoKernel;
-            a.ComputeParallel = false;
             this.Approx = a;
-            this.ApproxExpansionSize = 300;
             this.preApproximationTrainingCallback = @this.preApproxCallback;
             this.postApproximationTrainingCallback = @this.postApproxCallback;
             
@@ -65,56 +64,17 @@ classdef RiemannBurgers < models.rbmatlab.BaseRBMatlabWrapper & models.BaseDynSy
             V = repmat(eye(params.xnumintervals),...
                 params.ynumintervals,1)*sqrt(1/params.ynumintervals);
             this.SpaceReducer = spacereduction.ManualReduction(V,V);
-            
-            %% System setup
-            this.System = this;
-            
-            % for a detailed simulation we do not need the affine parameter
-            % decomposition
-            m.decomp_mode = 0;
-            this.x0 = @(mu)this.getx0(mu);
-            
-            % DS-Components
-            this.f = this;
-            this.B = [];
-            this.Inputs = {};
-            
-            % Parameters
-            this.addParam('ULeft', [.3, .3], 1);
-            this.addParam('URight', [.1, 1], 30);
-            this.addParam('xFlux', [-.5, -.5], 1);
-            
-            this.RBMModel = m;
-            this.RBMDataCont = d;
-            
-            % Output conversion
-            %c = zeros(1, params.xnumintervals*params.ynumintervals);
-            %c(round(.75*params.xnumintervals)) = 1;
-            %this.C = dscomponents.PointerOutputConv(@(t,mu)c,false);
         end
         
-        function y = evaluateCoreFun(this, x, t, mu)
-            this.RBMModel = this.RBMModel.set_mu(this.RBMModel,mu);
-            this.RBMModel = this.RBMModel.set_time(this.RBMModel,t);
-            y = -this.RBMModel.L_E_local_ptr(this.RBMModel, this.RBMDataCont.RBMData, x, []);
-        end        
-        
-        function plot(this, t, y)
+        function plot(this, t, y)%#ok
             sd.U = y;
             ppar.no_lines = 1;
             plot_sim_data(this.RBMModel, this.RBMDataCont.RBMData, sd, ppar);
         end
         
-       
     end
     
     methods(Access=private)
-        function x0 = getx0(this, mu)
-            this.RBMModel = this.RBMModel.set_mu(this.RBMModel,mu);
-            % initial values by midpoint evaluation
-            x0 = this.RBMModel.init_values_algorithm(this.RBMModel,this.RBMDataCont.RBMData);
-        end
-        
         function preApproxCallback(this)
             xnum = this.RBMModel.xnumintervals;
             %this.Data.ApproxTrainData = this.Data.ApproxTrainData(1:xnum+3,:);
