@@ -388,7 +388,7 @@ classdef PCDModel < models.BaseFullModel
             s.Size = 10000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.MinMaxAdaptiveCWKA;
-            aa.MaxExpansionSize = 300;
+            aa.MaxExpansionSize = 180;
             aa.MaxRelErr = 1e-5;
             aa.MaxAbsErrFactor = 1e-5;
             aa.CheckMaxErrorPercent = .1;
@@ -414,7 +414,7 @@ classdef PCDModel < models.BaseFullModel
             t4 = m.off4_genApproximationTrainData;
             
             %factors = general.Utils.createCombinations([5 10 15 20], [1 2 3 4 5],[.1 .01 .001]);
-            factors = general.Utils.createCombinations(4, 10, 2);
+            factors = general.Utils.createCombinations(3, 10, 2);
             n = size(factors,2);
             K = approx.KernelApprox.empty;
             t5 = zeros(1,n);
