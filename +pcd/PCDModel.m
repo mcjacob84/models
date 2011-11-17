@@ -388,7 +388,7 @@ classdef PCDModel < models.BaseFullModel
             s.Size = 10000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.MinMaxAdaptiveCWKA;
-            aa.MaxExpansionSize = 180;
+            aa.MaxExpansionSize = 80;
             aa.MaxRelErr = 1e-5;
             aa.MaxAbsErrFactor = 1e-5;
             aa.CheckMaxErrorPercent = .1;
@@ -429,6 +429,77 @@ classdef PCDModel < models.BaseFullModel
             times = [t1 t2 t3 t4 t5];
             
             save MinMaxAdaptiveCWKATest m K times factors;
+        end
+        
+        function MinMaxAdaptiveCWKA_LongTime
+            % Configuration to try and find the good old approximation with
+            % little approximation error
+            m = models.pcd.PCDModel(1);
+            
+            m.T = 400; %[s]
+            m.dt = .1; %[s]
+            m.System.h = m.L/24;
+            o = solvers.ode.MLode15i;
+            o.AbsTol = 1e-6;
+            o.RelTol = 1e-5;
+            o.MaxStep = [];
+            m.ODESolver = o;
+            
+            m.System.Params(1).Range = [1e-3 .1];
+            m.System.Params(1).Desired = 12;
+            
+            s = sampling.GridSampler;
+            s.Spacing = 'lin';
+            m.Sampler = s;
+            
+            a = m.Approx;
+%             s = approx.selection.DefaultSelector;
+            %s = approx.selection.LinspaceSelector;
+            s = approx.selection.TimeSelector;
+            s.Size = 20000;
+            a.TrainDataSelector = s;
+            aa = approx.algorithms.MinMaxAdaptiveCWKA;
+            aa.MaxExpansionSize = 80;
+            aa.MaxRelErr = 1e-5;
+            aa.MaxAbsErrFactor = 1e-5;
+            aa.CheckMaxErrorPercent = .05;
+            aa.InitialCenter = 't0';
+            a.Algorithm = aa;
+            
+            m.Data = data.MemoryModelData;
+            
+            % Zero initial conditions
+            %dim = size(m.System.x0.evaluate([]),1);
+            %m.System.x0 = dscomponents.ConstInitialValue(zeros(dim,1));
+            
+            m.SpaceReducer = [];
+%             m.SpaceReducer = spacereduction.PODGreedy;
+%             m.SpaceReducer.Eps = 1e-9;
+            
+            a = KerMor.App;
+            a.Verbose = 2;
+
+            t1 = m.off1_createParamSamples;
+            t2 = m.off2_genTrainingData;
+            t3 = m.off3_computeReducedSpace;
+            t4 = m.off4_genApproximationTrainData;
+            
+            %factors = general.Utils.createCombinations([5 10 15 20], [1 2 3 4 5],[.1 .01 .001]);
+            factors = general.Utils.createCombinations(3, 10, 2);
+            n = size(factors,2);
+            K = approx.KernelApprox.empty;
+            t5 = zeros(1,n);
+            for i = 1:n
+                fprintf('Starting approximation run %d of %d..\n',i,n);
+                aa.NumGammas = factors(1,i);
+                aa.MaxGFactor = factors(2,i);
+                aa.MinGFactor = factors(3,i);
+                t5(i) = m.off5_computeApproximation;
+                K(i) = m.Approx.clone;
+            end
+            times = [t1 t2 t3 t4 t5];
+            
+            save MinMaxAdaptiveCWKA_LongTime m K times factors;
         end
         
         function m = testConfigOneTraj
