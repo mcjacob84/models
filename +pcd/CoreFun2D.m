@@ -64,6 +64,13 @@ classdef CoreFun2D < dscomponents.ACoreFun
             this.hlp.d1 = s.Dims(1);
             this.hlp.d2 = s.Dims(2);
             
+            % Get sparsity pattern of f
+            n = size(this.A,1);
+            [i,j] = find(this.A);
+            i = [i; i+n; i+2*n; i+3*n];
+            j = [j; j+n; j+2*n; j+3*n];
+            this.JSparsityPattern = sparse(i,j,ones(length(i),1),4*n,4*n);
+            
             % Can use the unscaled h and original Omega for computation of
             % ranges & distances from middle
             this.hlp.hs = s.hs;

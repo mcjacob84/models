@@ -28,6 +28,8 @@ classdef CoreFun3D < dscomponents.ACoreFun
         A;
         
         nodes;
+        
+        g;
     end
     
     methods
@@ -55,9 +57,15 @@ classdef CoreFun3D < dscomponents.ACoreFun
             
             % Create diffusion matrix
             d = this.sys.Dims;
-            g = general.geometry.RectGrid3D(d(1),d(2),d(3));
-            this.A = general.MatUtils.laplacemat3D(this.sys.h, g);
-            this.nodes = g.Points;
+            ge = general.geometry.RectGrid3D(d(1),d(2),d(3));
+            this.A = general.MatUtils.laplacemat3D(this.sys.h, ge);
+            n = size(this.A,1);
+            [i,j] = find(this.A);
+            i = [i; i+n; i+2*n; i+3*n];
+            j = [j; j+n; j+2*n; j+3*n];
+            this.JSparsityPattern = sparse(i,j,ones(length(i),1),4*n,4*n);
+            this.nodes = ge.Points;
+            this.g = ge;
         end
         
         function fx = evaluateCoreFun(this, x, t, mu)
@@ -67,6 +75,7 @@ classdef CoreFun3D < dscomponents.ACoreFun
             m = this.nodes;
             n = this.sys.n;
             D = this.sys.Diff;
+            g = this.g;
             
             % Uncomment if reaction coeffs become real params again
             mu = [this.sys.ReacCoeff; mu];
@@ -92,7 +101,7 @@ classdef CoreFun3D < dscomponents.ACoreFun
                 ud = (t < this.tDecaySecs) + (t >= this.tDecaySecs)*max(0,2-.5*t);
 
                 %% Front & back (only x/y coords relevant)
-                [i,j] = ind2sub(g.Dims,g.F);
+                [i,j] = ind2sub(g.Dims,g.F); %#ok<*PROP>
                 xd = abs((i-1)*h-.5*xr);
                 yd = abs((j-1)*h-.5*yr);
                 rbp = xd < xr*mu(9)/2 & yd < yr*mu(9)/2;
@@ -103,7 +112,7 @@ classdef CoreFun3D < dscomponents.ACoreFun
                 rb(rbBa) = rb(rbBa) + (xi(rbBa)*mu(16)*ud)/h;
 
                 %% Left & Right (only x/z coords relevant)
-                [i,j,k] = ind2sub(g.Dims,g.L);
+                [i,~,k] = ind2sub(g.Dims,g.L);
                 xd = abs((i-1)*h-.5*xr);
                 zd = abs((k-1)*h-.5*zr);
                 rbp = xd < xr*mu(11)/2 & zd < zr*mu(11)/2;

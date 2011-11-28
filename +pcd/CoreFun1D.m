@@ -3,6 +3,8 @@ classdef CoreFun1D < dscomponents.ACoreFun
 %
 % @author Daniel Wirtz @date 2010-03-16
 %
+% @new{0,6,dw,2011-11-26} Computing the JSparsityPattern
+%
 % @change{0,5,dw,2011-11-02} Augmenting the mu parameters by the base system's
 % models.pcd.BasePCDSystem.ReacCoeff vector. This removes the reaction coefficients from
 % the system as true parameters but allows to quickly revert the process if needed.
@@ -55,6 +57,11 @@ classdef CoreFun1D < dscomponents.ACoreFun
             this.A = spdiags([e -2*e e],-1:1,d,d)/this.sys.hs^2;
             this.A(1,2) = 2/this.sys.hs^2;
             this.A(end,end-1) = 2/this.sys.hs^2;
+            n = size(this.A,1);
+            [i,j] = find(this.A);
+            i = [i; i+n; i+2*n; i+3*n];
+            j = [j; j+n; j+2*n; j+3*n];
+            this.JSparsityPattern = sparse(i,j,ones(length(i),1),4*n,4*n);
             this.nodes = this.sys.Dims(1);
         end
         

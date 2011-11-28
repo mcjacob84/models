@@ -19,8 +19,8 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             this.f = models.pcd.CoreFun3D(this);
             
             % Spatial area [X, Y, Z]
-            this.Omega = [0 1; 0 1; 0 1];    
-            this.h = .1;
+            this.Omega = [0 1; 0 1; 0 1] * this.Model.L;
+            this.h = this.Model.L/6;
             
             % Add params
             rate_max = 1e-4;
@@ -51,7 +51,7 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             autocols = true;
             plotback = false;
             
-            m = this.dim1*this.dim2*this.dim3;
+            m = prod(this.Dims);
             xa = v(1:m,:);
             ya = v(m+1:2*m,:);
             xi = v(2*m+1:3*m,:);
@@ -116,15 +116,15 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
                 set(f1,'Name',sprintf('Plot at t=%f',t(idx)));
                 set(f2,'Name',sprintf('Plot at t=%f',t(idx)));
                 if idx ~= length(t)
-                    pause;
+                    pause(1);
                     delete([h1; h2; h3; h4]);
                 end
             end
             
             close(hlpf);
             
-            function h = doplot(zd, ax)                
-                V = reshape(zd,this.dim1,this.dim2,[]);
+            function h = doplot(zd, ax)        
+                V = reshape(zd,this.Dims(1),this.Dims(2),[]);
                 %permute(V,[1 3 2]);
                 
                 hc = contourslice(ax(1),X,Y,Z,V,[],0:.2:1,[]); % 'EdgeColor','none' 
@@ -168,6 +168,84 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
 %             C(ca3(sel)) = 1/length(sel);
 %             this.C = dscomponents.LinearOutputConv(C);
         end
-    end  
+    end
+    
+    methods(Static)
+        function pcd3d_MMACWKA_20logPar_SR(T, dt)
+            % Configuration to try and find the good old approximation with
+            % little approximation error
+            m = models.pcd.PCDModel(3);
+            
+            if nargin == 1
+                dt = T/2000;
+            elseif nargin == 0
+                T = 8000;
+                dt = 1.5;
+            end
+            m.T = T; %[s]
+            m.dt = dt; %[s]
+            m.System.h = m.L/6;
+            o = solvers.ode.MLode15i;
+            o.AbsTol = 1e-6;
+            o.RelTol = 1e-5;
+            o.MaxStep = [];
+            m.ODESolver = o;
+            
+            s = sampling.GridSampler;
+            s.Spacing = 'log';
+            m.Sampler = s;
+            
+            a = m.Approx;
+%             s = approx.selection.DefaultSelector;
+            %s = approx.selection.LinspaceSelector;
+            s = approx.selection.TimeSelector;
+            s.Size = 25000;
+            a.TrainDataSelector = s;
+            aa = approx.algorithms.MinMaxAdaptiveCWKA;
+            aa.MaxExpansionSize = 80;
+            aa.MaxRelErr = 1e-5;
+            aa.MaxAbsErrFactor = 1e-5;
+            aa.CheckMaxErrorPercent = .07;
+            aa.InitialCenter = 't0';
+            a.Algorithm = aa;
+            
+            m.Data = data.FileModelData(m);
+            
+            % Zero initial conditions
+            %dim = size(m.System.x0.evaluate([]),1);
+            %m.System.x0 = dscomponents.ConstInitialValue(zeros(dim,1));
+            
+%            m.SpaceReducer = [];
+            m.SpaceReducer = spacereduction.PODGreedy;
+            m.SpaceReducer.Eps = 1e-9;
+            
+            a = KerMor.App;
+            a.Verbose = 2;
+
+            t1 = m.off1_createParamSamples;
+            t2 = m.off2_genTrainingData;
+            t3 = m.off3_computeReducedSpace;
+            t4 = m.off4_genApproximationTrainData;
+            
+            %factors = general.Utils.createCombinations([5 10 15 20], [1 2 3 4 5],[.1 .01 .001]);
+            factors = general.Utils.createCombinations(3, 10, 2);
+            n = size(factors,2);
+            K = approx.KernelApprox.empty;
+            t5 = zeros(1,n);
+            for i = 1:n
+                fprintf('Starting approximation run %d of %d..\n',i,n);
+                aa.NumGammas = factors(1,i);
+                aa.MaxGFactor = factors(2,i);
+                aa.MinGFactor = factors(3,i);
+                t5(i) = m.off5_computeApproximation;
+                K(i) = m.Approx.clone;
+            end
+            times = [t1 t2 t3 t4 t5];%#ok
+            
+            file = sprintf('pcd3d_MMACWKA_20logPar_SR_T%d_dt%s', T, strrep(sprintf('%f',dt),'.','_'));
+            conf = object2str(m);
+            save(file, 'm', 'K', 'times', 'factors', 'conf');
+        end
+    end
 end
 

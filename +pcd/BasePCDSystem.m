@@ -8,7 +8,12 @@ classdef BasePCDSystem < models.BaseDynSystem
     %
     % See also: models.pcd.CoreFun
     %
-    % @author Daniel Wirtz @date 15.03.2010
+    % @author Daniel Wirtz @date 2010-03-15
+    %
+    % @new{0,6,dw,2011-11-27} New property BasePCDSystem.SteadyStates that includes the
+    % linearized system's steady states for life and death (From "M. Daub: Death wins against
+    % life in a spatially extended apoptosis model"). This property is used in the plot methods
+    % for the different models.
     %
     % @new{0,5,dw,2011-11-02} 
     % - New property ReacCoeff. The coefficients have been removed (commented out) of the
@@ -80,6 +85,15 @@ classdef BasePCDSystem < models.BaseDynSystem
         
         % Typical Procaspase-3 concentration
         yi0 = 1e-7; %[M]
+        
+        % Steady state configurations
+        % First row: life state
+        % Second row: unstable state
+        % Third row: death state
+        SteadyStates = [[0; 9.8153e-4; 0.1930]*models.pcd.BasePCDSystem.xa0...
+                        [0; 3.0824e-5; 0.1713]*models.pcd.BasePCDSystem.ya0...
+                        [.2; 0.1990; 0.0070]*models.pcd.BasePCDSystem.xi0...
+                        [.2; 0.2; 0.0287]*models.pcd.BasePCDSystem.yi0];
     end
     
     properties(SetObservable, Dependent)
@@ -230,7 +244,7 @@ classdef BasePCDSystem < models.BaseDynSystem
     
     methods(Abstract, Access=protected)
         % Custom updates for new system dimension
-        newSysDimension;
+        newSysDimension(this);
     end
 
 end
