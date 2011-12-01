@@ -41,6 +41,7 @@ classdef MathMODSystem < models.BaseDynSystem & dscomponents.ParamTimeKernelCore
             %gamma = -((kernelsupport*d)^2)/log(kerneleps) preprint
             gamma = -((kernelsupport*d))/log(kerneleps);
             this.Kernel = kernels.GaussKernel(gamma);
+            this.Kernel.G = 1;
             %this.SystemKernel = kernels.GaussKernel(1);
             this.TimeKernel = kernels.NoKernel;
             this.ParamKernel = kernels.NoKernel;

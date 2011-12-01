@@ -85,7 +85,7 @@ classdef MathMODExperiment < models.BaseFullModel
         
         function [d, r, m] = CreatePlots(dim)
             
-            m = ICIAMExperiment(dim);
+            m = models.mathmod2012.MathMODExperiment(dim);
             s = m.SpaceReducer;
             
             d = EstimatorDemo;
@@ -108,21 +108,22 @@ classdef MathMODExperiment < models.BaseFullModel
                 a = gca(f);
                 axis(a,[0 m.T md.MinErr*.9 min(1e4,absmax)]);
                 set(legend(a),'Location','NorthEast');
-                general.Utils.saveFigure(f,sprintf('ICIAM_mu1_%d_deg%f_errors', mu1, s.Degree),'fig');
+                fi = fullfile(KerMor.App.DataStoreDirectory,'MathMOD',sprintf('MathMOD_mu1_%d_deg%f_', mu1, s.Degree));
+                general.Utils.saveFigure(f,[fi 'errors'],'fig');
                 title(a,'');
-                general.Utils.saveFigure(f,sprintf('ICIAM_mu1_%d_deg%f_errors', mu1, s.Degree));
+                general.Utils.saveFigure(f,[fi 'errors']);
 
                 f = d.Figures{2}; a = gca(f);
                 axis(a,[0 m.T md.MinRelErr*.9 min(1,relmax)]);
                 set(legend(a),'Location','NorthEast');
-                general.Utils.saveFigure(f,sprintf('ICIAM_mu1_%d_deg%f_relerr', mu1, s.Degree),'fig');
+                general.Utils.saveFigure(f,[fi 'relerr'],'fig');
                 title(a,'');
-                general.Utils.saveFigure(f,sprintf('ICIAM_mu1_%d_deg%f_relerr', mu1, s.Degree));
+                general.Utils.saveFigure(f,[fi 'relerr']);
 
                 f = d.Figures{3}; a = gca(f);
-                general.Utils.saveFigure(f,sprintf('ICIAM_mu1_%d_deg%f_ctimes', mu1, s.Degree),'fig');
+                general.Utils.saveFigure(f,[fi 'ctimes'],'fig');
                 title(a,'');
-                general.Utils.saveFigure(f,sprintf('ICIAM_mu1_%d_deg%f_ctimes', mu1, s.Degree));
+                general.Utils.saveFigure(f,[fi 'ctimes']);
             
             end
             
