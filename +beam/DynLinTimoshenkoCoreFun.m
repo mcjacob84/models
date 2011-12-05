@@ -24,6 +24,7 @@ classdef DynLinTimoshenkoCoreFun < dscomponents.LinearCoreFun
         end
         
         function prepareConstants(mu, inputidx)
+            % Preprocess
             % do constant preps, i.e. assign A
         end
     end
