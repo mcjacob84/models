@@ -31,7 +31,7 @@ classdef DynLinTimoshenkoCoreFun < dscomponents.ACoreFun & dscomponents.IJacobia
             this = this@dscomponents.ACoreFun;
             this.sys = sys;
         end
-        
+       
         function fx = evaluateCoreFun(this, x, ~, ~)
             fx = zeros(size(x));
             fx(this.free_uv) = this.A*(this.f_big - this.B*x(this.free_uv));
