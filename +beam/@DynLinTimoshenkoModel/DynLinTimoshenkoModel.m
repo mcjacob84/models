@@ -38,6 +38,12 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         NumColors = 128;
     end
     
+    properties(SetObservable, Dependent)
+        BeamRefinementFactor;
+        
+        CurvedBeamRefinementFactor;
+    end
+    
     properties(SetAccess=private)
         % The system's full dimension
         %
@@ -57,6 +63,16 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         %
         % @type struct
         Beams;
+        
+        Supports;
+        
+        Loads;
+        
+        RO;
+        KR;
+        FH;
+        
+        data;
     end
     
     properties(Dependent, SetAccess=private)
@@ -75,36 +91,50 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         
         % ColorBar handle
         cbh;
+        
+        RO_raw;
+        
+        KR_raw;
+        
+        FH_raw;
+        
+        RO_factor_global = 5;
+        
+        KR_factor_global = 5;
+        
+        mat;
     end
     
     methods
-        function this = DynLinTimoshenkoModel
+        function this = DynLinTimoshenkoModel(cfgfile)
+            if nargin == 0
+                error('no config file given');
+            end
+            
             this = this@models.BaseFullModel;
             this.Name = 'DynLin Timoschenko Beam';
             this.JavaExportPackage = 'models.beam.dynlintimo';
             
             %% Load geometry from config file
             path = fileparts(mfilename('fullpath'));
-            cfile = fullfile(path,'Config.txt');
-            [this.Points, RO_raw, KR, FH, mat, lager, lasten] = this.read_file(cfile);%#ok
-            nBeams = size(RO_raw, 1);
-            this.Beams = struct('p',{});
-            for i = 1:nBeams
-                this.Beams(i).p = [RO_raw(i,2) RO_raw(i,3)];
-            end
+            cfile = fullfile(path,cfgfile);
+            [this.Points, this.RO_raw, this.KR_raw, this.FH_raw, this.mat, this.Supports, this.Loads] = this.read_file(cfile);
+            this.split_RO;
+            this.split_KR;
+            this.preprocess_data;
             
             %% Model specifics
             this.T = 5;
             this.dt = .05;
             % Dimensions: 1..3 spatial (x,y,z), 4..6 velocity (x,y,z) 7
             % temperature
-            this.dim = 7*size(this.Points,1);
+            this.dim = 14*size(this.Points,1);
             
             %% Internal setup
             this.System = models.beam.DynLinTimoshenkoSystem(this);
             
             % Subspace reduction
-            s = spacereduction.TrajectoryGreedy;
+            s = spacereduction.PODGreedy;
             s.Eps = 1e-7;
             this.SpaceReducer = s;
             
@@ -123,7 +153,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             this.ODESolver = o;
             
             % Train with all inputs
-            this.TrainingInputs = [1 2 3];
+%             this.TrainingInputs = [1 2 3];
         end
         
         function m = get.ColorMap(this)
@@ -150,11 +180,53 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         plot(model, t, u);
 
         plotSingle(model, t, u);
+        
+        N = circle_shape_functions(this, R, s, B);
+    end
+    
+    %% Getter & Setters
+    methods
+        function set.BeamRefinementFactor(this, value)
+            this.RO_factor_global = value;
+            this.split_RO;
+            this.preprocess_data;
+        end
+        
+        function value = get.BeamRefinementFactor(this)
+            value = this.RO_factor_global;
+        end
+
+        % Todo: für KR!
+        function set.CurvedBeamRefinementFactor(this, value)
+            this.KR_factor_global = value;
+            this.split_KR;
+            this.preprocess_data;
+        end
+        
+        function value = get.CurvedBeamRefinementFactor(this)
+            value = this.KR_factor_global;
+        end
     end
     
     methods(Access=private)
         % Reads the config file
         [Points, RO_raw, KR, FH, mat, lager, lasten] = read_file(this, file);
+        
+        [data, RO, KR, FH, p] = preprocess_data(p, RO_raw, KR_raw, FH_raw, c, supports, loads, gravity, RO_factor_global, KR_factor_global);
+        
+        split_RO(this);
+        
+        split_KR(this);
+        
+        plot_beam(this, split, T, c, p1, p2, u1, u2, col1, col2, plot_options);
+        
+        plot_circle(this, N, T, T1, T2, T_Fren, R, angle, B, pc, u1, u2, col1, col2, plot_options);
+        
+        N = beam_shape_functions_derivative(this, s, L, c);
+        
+        N = beam_shape_functions(this, s, L, c);
+        
+        B = circle_connect_matrix(this, R, L);
     end
     
 end
