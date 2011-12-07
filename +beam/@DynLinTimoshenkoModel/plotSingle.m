@@ -57,7 +57,7 @@ function plotSingle(this, t, u)
 % hold off;
 
     % Plot Options
-    plot_options.multiplier = 1;                % Vergrößerung der Verschiebungen
+    plot_options.multiplier = 100;                % Vergrößerung der Verschiebungen
     plot_options.figure = 11;                    % Nummer der Figure, in der geplottet wird
     plot_options.colorbar = 'Normalkraft';       % Titel der Colorbar und gleichzeitig zu visualisierende Größe
                                                 % Temperatur, Normalkraft, Querkraft y, Querkraft z, Torsionsmoment, 

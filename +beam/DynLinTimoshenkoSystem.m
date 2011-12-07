@@ -53,7 +53,13 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
         end
         
         function prepareConstants(this, mu)
-            % Hier KnotenIndex (== knoten_index) zuweisen (oder muss in TimoFun passieren?)
+            % @todo assemble Mass matrix here (currently done in CoreFun
+            % due to mingled code)
+            
+            %% Assemble mass matrix
+            
+            
+            %% Prepare constant values in CoreFu
             this.f.prepareConstants(mu);
         end
     end

@@ -34,18 +34,18 @@ classdef DynLinTimoshenkoCoreFun < dscomponents.ACoreFun & dscomponents.IJacobia
        
         function fx = evaluateCoreFun(this, x, ~, ~)
             fx = zeros(size(x));
-            fx(this.free_uv) = this.A*(this.f_big - this.B*x(this.free_uv));
+            fx(this.free_uv) = this.f_big - this.B*x(this.free_uv);
         end
         
-        function J = getStateJacobian(this, x, t, mu)
+        function J = getStateJacobian(this, ~, ~, ~)
             J = this.J;
         end
         
-        function pr = project(this, V, W)
+        function pr = project(this, V, W)%#ok
             
         end
         
-        function copy = clone(this)
+        function copy = clone(this)%#ok
             
         end
         
@@ -87,7 +87,7 @@ classdef DynLinTimoshenkoCoreFun < dscomponents.ACoreFun & dscomponents.IJacobia
                 index_glob = [index_0_glob index_l_glob];
                 index_lok = [index_0_lok index_l_lok];
 
-                M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok(index_lok, index_lok);
+                M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok(index_lok, index_lok); %#ok<*SPRIX>
                 K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok(index_lok, index_lok);
                 f(index_glob) = f(index_glob) + f_lok(index_lok);
 
@@ -217,7 +217,7 @@ classdef DynLinTimoshenkoCoreFun < dscomponents.ACoreFun & dscomponents.IJacobia
             end
 
             nodes = 1: 7 * data.num_knots;
-            nodes_T = 7 * [1:data.num_knots];
+            nodes_T = 7 * 1:data.num_knots;
             nodes_u = setdiff(nodes, nodes_T);
 
             % Aufbau des vollen Dirichlet-Vektors
@@ -229,7 +229,7 @@ classdef DynLinTimoshenkoCoreFun < dscomponents.ACoreFun & dscomponents.IJacobia
             for i = 1:length(data.dirichlet)
                 % Lokale Liste der Komponenten dieses Knotens, die Dirichlet sind
                 dir_knoten_lok = [1:7] .* data.dir_data(i,8:14);
-                dir_knoten_lok = setdiff(dir_knoten_lok, [0]);
+                dir_knoten_lok = setdiff(dir_knoten_lok, 0);
 
                 % Wenn der Knoten in der Struktur nicht verwendet wird, auslassen
                 if (data.knot_index(data.dirichlet(i)) == 0)
@@ -239,7 +239,7 @@ classdef DynLinTimoshenkoCoreFun < dscomponents.ACoreFun & dscomponents.IJacobia
                 % Globale Liste der Komponenten dieses Knotens, die Dirichlet sind
                 dir_knoten = 7*data.knot_index(data.dirichlet(i))-6 : 7*data.knot_index(data.dirichlet(i));
                 dir_knoten = dir_knoten .* data.dir_data(i,8:14);
-                dir_knoten = setdiff(dir_knoten, [0]);
+                dir_knoten = setdiff(dir_knoten, 0);
 
                 % Dirichlet-Werte in Lösungsvektor eintragen und Liste der Freiheitsgrade verkleinern
                 u(dir_knoten) = data.dir_data(i, dir_knoten_lok)';
@@ -261,20 +261,25 @@ classdef DynLinTimoshenkoCoreFun < dscomponents.ACoreFun & dscomponents.IJacobia
             this.C = (d1*M + d2*K);
             
             f_eff = f - K*u;% + M_T*u;
-            this.A = inv(blkdiag(eye(length(free_u), length(free_u)), M(free_u, free_u)));
             this.B = [zeros(length(free_u), length(free_u)), -eye(length(free_u), length(free_u)); K(free_u, free_u), this.C(free_u, free_u)];
             this.f_big = [zeros(length(free_u),1); f_eff(free_u)];
             this.K = K;
             this.M = M;
             this.f = f;
             
+            % Mass matrix for system
+            Ma = blkdiag(eye(size(M)), M);
+            %this.sys.M = dscomponents.ConstMassMatrix(Ma);
+            
             this.free_uv = [free_u free_u + 7 * data.num_knots];
             
             %% Jacobian matrix
-            s = 14 * size(data.knot_index,2);
-            J = zeros(s,s);
-            J(this.free_uv, this.free_uv) = -this.A*this.B;
+            s = 14 * data.num_knots;
+            J = sparse(s,s);
+            J(this.free_uv, this.free_uv) = -this.B;
             this.J = J;
+            [i,j] = find(J);
+            this.JSparsityPattern = sparse(i,j,ones(size(i)));
         end
     end
     

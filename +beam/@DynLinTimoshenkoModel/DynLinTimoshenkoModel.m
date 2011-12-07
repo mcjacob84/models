@@ -128,7 +128,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             this.dt = .05;
             % Dimensions: 1..3 spatial (x,y,z), 4..6 velocity (x,y,z) 7
             % temperature
-            this.dim = 14*size(this.Points,1);
+            this.dim = 14*this.data.num_knots;
             
             %% Internal setup
             this.System = models.beam.DynLinTimoshenkoSystem(this);
