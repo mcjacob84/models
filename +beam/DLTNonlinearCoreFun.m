@@ -80,18 +80,13 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
             end
         end
         
-        function [F, J] = weak_form(this, data, RO, KR, FH, u)
+        function [R, K] = weak_form(this, data, RO, KR, FH, u)
             % Nichtlineare Funktion (Schwache Form, R-f_s) und ihre Ableitung (nach den Freiheitsgraden) (tangentielle Steifigkeitsmatrix, K)
 
             % Steifigkeitsmatrix für u und T
             K = sparse(7 * data.num_knots, 7 * data.num_knots);
             % Residuumsvektor
             R = sparse(7 * data.num_knots, 1);
-
-%             u = zeros(7 * data.num_knots, 1);
-
-%             u(free_u) = u_free;
-%             u(dir_u) = u_d;
 
             % Tangentiale Steifigkeitsmatrix aufstellen und schwache Form mit der aktuellen Verschiebung auswerten
             for i = 1:data.num_elem_RO
@@ -135,14 +130,6 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
                 K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
                 R(index_glob) = R(index_glob) + R_lok;
             end
-
-
-            F = R;
-            J = K;
-
-%             F = F(free_u);
-%             J = J(free_u, free_u);
-            % full(J);    
         end
         
         function [K, R, U_pot] = beam_loc_matrix_tangential(this, u, L, T_block, c)
@@ -187,8 +174,8 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
             u_lok  = T' * u;
 
             % Stoff-Matrizen aufsetzen
-            D = blkdiag(c(13)*L, c(3)/L, c(3)/L);
-            E = blkdiag(c(14)*L, c(1), c(1));
+            D = diag([c(13)*L, c(3)/L, c(3)/L]);
+            E = diag([c(14)*L, c(1), c(1)]);
 
 
             %% Stützstellen und Gewichte für Gaußquadratur

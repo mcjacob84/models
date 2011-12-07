@@ -12,23 +12,10 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
 % - \c Homepage http://www.agh.ians.uni-stuttgart.de/research/software/kermor.html
 % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
 % - \c License @ref licensing
-    
-    properties(SetAccess=private)
-        % Mapping of effectively used points in output plotting (yet to be
-        % moved elsewhere)
-        KnotenIndex;
-    end
-    
+        
     methods
         function this = DynLinTimoshenkoSystem(model)
             this = this@models.BaseDynSystem(model);
-            
-%             %% Init core fun for default setting
-%             if model.NonlinearModel
-%                 this.f = models.beam.DLTNonlinearCoreFun(this);
-%             else
-%                 this.f = models.beam.DLTLinearCoreFun(this);
-%             end
             
             this.MaxTimestep = [];
             

@@ -234,15 +234,17 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             if nonlin
                 s.f = models.beam.DLTNonlinearCoreFun(s);
                 % ODE Solver -> Use Matlab ode15i
-                %o = solvers.ode.MLode15i;
-                o = solvers.ode.MLWrapper(@ode45);
-                %o.RelTol = 1e-3;
-                %o.AbsTol = 1e-3;
-                o.MaxStep = this.dt;
+                o = solvers.ode.MLode15i;
+                o.RelTol = 1e-3;
+                o.AbsTol = 1e-3;
+                
+                %o = solvers.ode.MLWrapper(@ode45);
+                %o.MaxStep = this.dt;
+                
                 this.ODESolver = o;
             else
-                this.ODESolver = solvers.ode.LinearImplEuler(this);
                 s.f = models.beam.DLTLinearCoreFun(s);
+                this.ODESolver = solvers.ode.LinearImplEuler(this);
             end
         end
         

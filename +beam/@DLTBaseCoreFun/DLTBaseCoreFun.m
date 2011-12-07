@@ -189,6 +189,13 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
             % method can use them for assemblation of B_big matrices
             this.B_big = this.getB_big(K,C);
             
+            %% Jacobian matrix sparsity pattern
+            % Create a fake B_big here as the nonlinear getB_big returns
+            % only the constant part of B_big. However, this does not
+            % affect the sparsity pattern, so create it here.
+            [i,j] = find([zeros(size(K)), -eye(size(K)); K, C]);
+            this.JSparsityPattern = sparse(i,j,ones(size(i)));
+            
 %             this.free_uv = [free_u free_u + 7 * data.num_knots];
 %             this.free_u = free_u;
         end
