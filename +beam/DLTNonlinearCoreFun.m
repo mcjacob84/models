@@ -42,13 +42,13 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
             
         end
         
-        function prepareConstants(this, ~)
-            prepareConstants@models.beam.DLTBaseCoreFun(this);
-            
-            % Assemble constant part of B_big matrix (varying K for
-            % nonlinear case is added in evaluate)
-            
-        end
+%         function prepareConstants(this, ~)
+%             prepareConstants@models.beam.DLTBaseCoreFun(this);
+%             
+%             % Assemble constant part of B_big matrix (varying K for
+%             % nonlinear case is added in evaluate)
+%             
+%         end
     end
     
     methods(Access=protected)
