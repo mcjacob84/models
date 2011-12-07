@@ -22,14 +22,9 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
     methods
         function this = DynLinTimoshenkoSystem(model)
             this = this@models.BaseDynSystem(model);
-            dim = model.dim;
             this.f = models.beam.DynLinTimoshenkoCoreFun(this);
             
             this.MaxTimestep = [];
-            
-            %% Initial values
-            x0 = 0*ones(dim,1);
-            this.x0 = dscomponents.ConstInitialValue(x0);
             
             %% Input
 %             B = ones(dim,3);
@@ -58,9 +53,12 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             
             %% Assemble mass matrix
             
-            
             %% Prepare constant values in CoreFu
             this.f.prepareConstants(mu);
+            
+            %% Initial values
+            x0 = zeros(2*length(this.f.free),1);
+            this.x0 = dscomponents.ConstInitialValue(x0);
         end
     end
     

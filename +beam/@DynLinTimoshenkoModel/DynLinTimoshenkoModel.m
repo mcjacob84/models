@@ -36,6 +36,9 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         %
         % @see ColorMap
         NumColors = 128;
+        
+        %switch linear - nonlinear
+        isLinear = true;
     end
     
     properties(SetObservable, Dependent)
@@ -48,7 +51,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         % The system's full dimension
         %
         % @type integer
-        dim;
+%         dim;
         
         % 3D coordinates of the beam end points
         %
@@ -126,9 +129,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             %% Model specifics
             this.T = 5;
             this.dt = .05;
-            % Dimensions: 1..3 spatial (x,y,z), 4..6 velocity (x,y,z) 7
-            % temperature
-            this.dim = 14*this.data.num_knots;
             
             %% Internal setup
             this.System = models.beam.DynLinTimoshenkoSystem(this);
@@ -146,11 +146,12 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             %this.Sampler.Samples = 20;
             
             % ODE Solver -> Use Matlab ode15i
-            o = solvers.ode.MLode15i;
-            o.RelTol = 1e-4;
-            o.AbsTol = 1e-5;
-            o.MaxStep = [];
-            this.ODESolver = o;
+%             o = solvers.ode.MLode15i;
+%             o.RelTol = 1e-4;
+%             o.AbsTol = 1e-5;
+%             o.MaxStep = [];
+%             this.ODESolver = o;
+            this.ODESolver = solvers.ode.LinearImplEuler(this);
             
             % Train with all inputs
 %             this.TrainingInputs = [1 2 3];
@@ -181,7 +182,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
 
         plotSingle(model, t, u);
         
-        N = circle_shape_functions(this, R, s, B);
     end
     
     %% Getter & Setters
@@ -206,6 +206,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         function value = get.CurvedBeamRefinementFactor(this)
             value = this.KR_factor_global;
         end
+        
     end
     
     methods(Access=private)
@@ -227,6 +228,9 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         N = beam_shape_functions(this, s, L, c);
         
         B = circle_connect_matrix(this, R, L);
+        
+        N = circle_shape_functions(this, R, s, B);
+        
     end
     
 end

@@ -57,7 +57,7 @@ function plotSingle(this, t, u)
 % hold off;
 
     % Plot Options
-    plot_options.multiplier = 100;                % Vergrößerung der Verschiebungen
+    plot_options.multiplier = 1;                % Vergrößerung der Verschiebungen
     plot_options.figure = 11;                    % Nummer der Figure, in der geplottet wird
     plot_options.colorbar = 'Normalkraft';       % Titel der Colorbar und gleichzeitig zu visualisierende Größe
                                                 % Temperatur, Normalkraft, Querkraft y, Querkraft z, Torsionsmoment, 
@@ -86,6 +86,12 @@ function plotSingle(this, t, u)
     p = this.Points;
     video = false;
     knoten_index = this.data.knot_index;
+    
+    f = this.System.f;
+    hlp = zeros(7*this.data.num_knots,1);
+    hlp(f.free) = u(1:length(f.free));
+    hlp(f.dir_u) = f.u_dir;
+    u = hlp;
 
     % split_factor_KR = 15;  % Wie oft wird ein Viertelkreis zerlegt
     split_factor_FH = 5;
