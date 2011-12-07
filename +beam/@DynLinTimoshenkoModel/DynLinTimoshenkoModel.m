@@ -36,6 +36,9 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         %
         % @see ColorMap
         NumColors = 128;
+        
+        %switch linear - nonlinear
+        isLinear = true;
     end
     
     properties(SetObservable, Dependent)
@@ -181,7 +184,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
 
         plotSingle(model, t, u);
         
-        N = circle_shape_functions(this, R, s, B);
     end
     
     %% Getter & Setters
@@ -206,6 +208,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         function value = get.CurvedBeamRefinementFactor(this)
             value = this.KR_factor_global;
         end
+        
     end
     
     methods(Access=private)
@@ -227,6 +230,9 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         N = beam_shape_functions(this, s, L, c);
         
         B = circle_connect_matrix(this, R, L);
+        
+        N = circle_shape_functions(this, R, s, B);
+        
     end
     
 end
