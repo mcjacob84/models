@@ -37,14 +37,19 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         % @see ColorMap
         NumColors = 128;
         
-        %switch linear - nonlinear
-        isLinear = true;
     end
     
     properties(SetObservable, Dependent)
         BeamRefinementFactor;
         
         CurvedBeamRefinementFactor;
+        
+        % Flag that determines if the nonlinear model should be used.
+        %
+        % @propclass{optional} Switches between model types
+        %
+        % @default false @type logical
+        NonlinearModel;
     end
     
     properties(SetAccess=private)
@@ -106,6 +111,8 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         KR_factor_global = 5;
         
         mat;
+        
+        fNonlin = false;
     end
     
     methods
@@ -145,13 +152,8 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             this.Sampler = [];%sampling.RandomSampler;
             %this.Sampler.Samples = 20;
             
-            % ODE Solver -> Use Matlab ode15i
-%             o = solvers.ode.MLode15i;
-%             o.RelTol = 1e-4;
-%             o.AbsTol = 1e-5;
-%             o.MaxStep = [];
-%             this.ODESolver = o;
-            this.ODESolver = solvers.ode.LinearImplEuler(this);
+            %% Call update of model type (sets the system's f function and chooses an ODE solver)
+            this.updateModelType(this.NonlinearModel);
             
             % Train with all inputs
 %             this.TrainingInputs = [1 2 3];
@@ -207,9 +209,43 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             value = this.KR_factor_global;
         end
         
+        function v = get.NonlinearModel(this)
+            v = this.fNonlin;
+        end
+        
+        function set.NonlinearModel(this, v)
+            if ~islogical(v) || ~isscalar(v)
+                error('NonlinearModel must be a scalar logical');
+            end
+            if (this.fNonlin ~= v)
+               this.updateModelType(v);
+            end
+            this.fNonlin = v;
+        end
     end
     
     methods(Access=private)
+        function updateModelType(this, nonlin)
+            % Updates the model type (switch for nonlinear/linear)
+            %
+            % Automatically chooses the correct CoreFun and a suitable ODE
+            % solver.
+            s = this.System;
+            if nonlin
+                s.f = models.beam.DLTNonlinearCoreFun(s);
+                % ODE Solver -> Use Matlab ode15i
+                %o = solvers.ode.MLode15i;
+                o = solvers.ode.MLWrapper(@ode45);
+                %o.RelTol = 1e-3;
+                %o.AbsTol = 1e-3;
+                o.MaxStep = this.dt;
+                this.ODESolver = o;
+            else
+                this.ODESolver = solvers.ode.LinearImplEuler(this);
+                s.f = models.beam.DLTLinearCoreFun(s);
+            end
+        end
+        
         % Reads the config file
         [Points, RO_raw, KR, FH, mat, lager, lasten] = read_file(this, file);
         
@@ -223,14 +259,9 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         
         plot_circle(this, N, T, T1, T2, T_Fren, R, angle, B, pc, u1, u2, col1, col2, plot_options);
         
-        N = beam_shape_functions_derivative(this, s, L, c);
-        
-        N = beam_shape_functions(this, s, L, c);
-        
         B = circle_connect_matrix(this, R, L);
         
         N = circle_shape_functions(this, R, s, B);
-        
     end
     
 end

@@ -290,8 +290,8 @@ function plotSingle(this, t, u)
         u2_lok = [RO(i).T' * u([indices(2)-6:indices(2)-4]); RO(i).T' * u([indices(2)-3:indices(2)-1])];
 
          % Ableitungen der Basisfunktionen
-        N_prime_1 = this.beam_shape_functions_derivative(0, RO(i).l, RO(i).c);
-        N_prime_2 = this.beam_shape_functions_derivative(RO(i).l, RO(i).l, RO(i).c);
+        N_prime_1 = models.beam.StraightBeam.beam_shape_functions_derivative(0, RO(i).l, RO(i).c);
+        N_prime_2 = models.beam.StraightBeam.beam_shape_functions_derivative(RO(i).l, RO(i).l, RO(i).c);
         % Ableitungen der Variablen berechnen
         u1_prime_lok = N_prime_1 * [u1_lok; u2_lok];
         u2_prime_lok = N_prime_2 * [u1_lok; u2_lok];   

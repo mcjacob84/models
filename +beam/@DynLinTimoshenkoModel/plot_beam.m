@@ -24,7 +24,7 @@ u_lok(:,split+2) = u2;
 
 
 for i = 2:split+1
-    N_U = this.beam_shape_functions(x(i), L, c);
+    N_U = models.beam.StraightBeam.beam_shape_functions(x(i), L, c);
     u_lok(:,i) = N_U * u_nodes;
 end
 

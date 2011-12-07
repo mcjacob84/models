@@ -1,4 +1,4 @@
-classdef StructureElement < 
+classdef StructureElement < handle
 % StructureElement: 
 %
 %

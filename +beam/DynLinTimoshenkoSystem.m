@@ -22,7 +22,13 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
     methods
         function this = DynLinTimoshenkoSystem(model)
             this = this@models.BaseDynSystem(model);
-            this.f = models.beam.DynLinTimoshenkoCoreFun(this);
+            
+%             %% Init core fun for default setting
+%             if model.NonlinearModel
+%                 this.f = models.beam.DLTNonlinearCoreFun(this);
+%             else
+%                 this.f = models.beam.DLTLinearCoreFun(this);
+%             end
             
             this.MaxTimestep = [];
             
