@@ -77,11 +77,15 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
             
             KR = m.KR;
             for i = 1:data.num_elem_KR
-                [M_lok, K_lok] = this.loc_matrix_circle_special(KR(i).R, KR(i).T_block1, KR(i).T_block2, KR(i).B, KR(i).angle, KR(i).c);
-                f_lok = this.loc_matrix_circle_special_force(KR(i).R, KR(i).Fren, KR(i).T_block1, KR(i).T_block2, KR(i).B, KR(i).angle, KR(i).q_lok);
-
-                index_0_glob = 7*data.knot_index(KR(i).p(1))-6 : 7*data.knot_index(KR(i).p(1))-1;
-                index_l_glob = 7*data.knot_index(KR(i).p(2))-6 : 7*data.knot_index(KR(i).p(2))-1;
+                M_lok = KR(i).getLocalMassMatrix;
+                K_lok = KR(i).getLocalStiffnessMatrix;
+                f_lok = KR(i).getLocalForce(m.Gravity);
+                
+                %[M_lok, K_lok] = this.loc_matrix_circle_special(KR(i).R, KR(i).T_block1, KR(i).T_block2, KR(i).B, KR(i).angle, KR(i).c);
+                %f_lok = this.loc_matrix_circle_special_force(KR(i).R, KR(i).Fren, KR(i).T_block1, KR(i).T_block2, KR(i).B, KR(i).angle, KR(i).q_lok);
+                p = KR(i).PointsIdx;
+                index_0_glob = 7*data.knot_index(p(1))-6 : 7*data.knot_index(p(1))-1;
+                index_l_glob = 7*data.knot_index(p(2))-6 : 7*data.knot_index(p(2))-1;
 
                 index_glob = [index_0_glob index_l_glob];
 
@@ -214,116 +218,7 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
     end
     
     methods(Access=private)
-        function [M, K] = loc_matrix_circle_special(this, R, T_block1, T_block2, B, angle, c)
-
-            % Berechnet lokale Steifigkeits- und Massenmatrix eines gekrümmten
-            % Timoshenko-Balkens (Viertelkreis) (numerisch mit speziell gewonnenen Ansatzfunktionen)
-
-            % c1 = E*I
-            % c2 = G*It
-            % c3 = E*A
-            % c4 = G*As
-            % c5 = rho*A
-            % c6 = rho*I
-            % c7 = rho*It
-
-            % Transformationsmatrix für lokale in globale Größen
-            % T_block = [e_x e_y e_z];
-            % Transformationsmatrix für Größen am Anfangspunkt (Frenet_Basis in globale
-            % Koordinaten umgerechnet
-            % T_block1 = T_block * T_Fren(0);
-            % Transformationsmatrix für Größen am Endpunkt
-            % T_block2 = T_block * T_Fren(angle);
-
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Sortierung der Variablen: 
-            % u0, v0, w0, phi0, psi0, theta0, u1, v1, w1, phi1, psi1, theta1
-            %  1   2   3     4     5       6   7   8   9    10    11      12                        
-
-            T = zeros(12);
-            T([1 2 3], [1 2 3]) = T_block1;         % Verschiebung Anfangsknoten
-            T([7 8 9], [7 8 9]) = T_block2;         % Verschiebung Endknoten
-            T([4 5 6], [4 5 6]) = T_block1;         % Winkel Anfangsknoten
-            T([10 11 12], [10 11 12]) = T_block2;   % Winkel Endknoten
-
-
-            % Ansatzfunktionen N und Verbindungsmatrix für einen Viertelkreis holen
-
-            % Matrizen aufsetzen
-            D = blkdiag(c(3), c(4), c(4));
-            E = blkdiag(c(2), c(1), c(1));
-            rhoJ = blkdiag(c(7), c(6), c(6));
-
-            M = zeros(12);
-
-            L = R*angle;
-            % Stützstellen für Gaußquadratur
-            s = 0.5*L * [ (1-sqrt(3/5)), 1, (1+sqrt(3/5)) ];
-            % Gewichte für Gaußquadratur
-            w = 0.5*L * 1/9 * [5 8 5];
-
-            for i=1:3
-                N = models.beam.CurvedBeam.circle_shape_functions(R, s(i), B);
-                N1 = N(1:3,:);
-                N2 = N(4:6,:);    
-                M = M + w(i) * ( c(5)*N1'*N1 + N2'*rhoJ*N2 );
-            end
-
-            B3 = B(7:9,:);
-            B4 = B(10:12,:);
-
-            K = L * (B4' * E * B4 + B3' * D * B3);
-
-            M = T * M * T';
-            K = T * K * T';
-        end
-        
-        function f = loc_matrix_circle_special_force(this, R, T_Fren, T_block1, T_block2, B, angle, q_lok)
-
-            % Berechnet lokale Steifigkeits- und Massenmatrix eines gekrümmten
-            % Timoshenko-Balkens (Viertelkreis) (numerisch mit speziell gewonnenen Ansatzfunktionen)
-
-            % c1 = E*I
-            % c2 = G*It
-            % c3 = E*A
-            % c4 = G*As
-            % c5 = rho*A
-            % c6 = rho*I
-            % c7 = rho*It
-
-            % Transformationsmatrix für lokale in globale Größen
-            % T_block = [e_x e_y e_z];
-            % Transformationsmatrix für Größen am Anfangspunkt (Frenet_Basis in globale
-            % Koordinaten umgerechnet
-            % T_block1 = T_block * T_Fren(0);
-            % Transformationsmatrix für Größen am Endpunkt
-            % T_block2 = T_block * T_Fren(angle);
-
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Sortierung der Variablen: 
-            % u0, v0, w0, phi0, psi0, theta0, u1, v1, w1, phi1, psi1, theta1
-            %  1   2   3     4     5       6   7   8   9    10    11      12                        
-
-            T = zeros(12);
-            T([1 2 3], [1 2 3]) = T_block1;         % Verschiebung Anfangsknoten
-            T([7 8 9], [7 8 9]) = T_block2;         % Verschiebung Endknoten
-            T([4 5 6], [4 5 6]) = T_block1;         % Winkel Anfangsknoten
-            T([10 11 12], [10 11 12]) = T_block2;   % Winkel Endknoten
-
-            f = zeros(12,1);
-
-            L = R*angle;
-            % Stützstellen für Gaußquadratur
-            s = 0.5*L * [ (1-sqrt(3/5)), 1, (1+sqrt(3/5)) ];
-            % Gewichte für Gaußquadratur
-            w = 0.5*L * 1/9 * [5 8 5];
-            for i=1:3
-                N = models.beam.CurvedBeam.circle_shape_functions(R, s(i), B);
-                f = f + w(i) * N(1:3,:)'*(T_Fren(s(i)/R)'*q_lok);
-            end
-
-            f = T * f;
-        end
+       
         
         function [M, K] = loc_matrix_truss(this, T_block, c)
             % Berechnet lokale Steifigkeits- und Massenmatrix eines Stabes

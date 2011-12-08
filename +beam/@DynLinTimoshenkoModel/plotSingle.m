@@ -224,7 +224,7 @@ function plotSingle(this, t, u)
     end
 
     for i = 1:num_elem_KR
-        indices = 7*knoten_index(KR(i).p(:));       
+        indices = 7*knoten_index(KR(i).PointsIdx(:));       
         % Temperatur der der Anfangs- u Endpunkte
         u_elem = u(indices);
 
@@ -362,7 +362,7 @@ function plotSingle(this, t, u)
     for i = 1:num_elem_KR
         % (End)Indizes der Anfangs- und Endpunkte des Elements im globalen
         % Verschiebungsvektor
-        indices = 7*knoten_index(KR(i).p(:));
+        indices = 7*knoten_index(KR(i).PointsIdx(:));
 
         % Verschiebung der der Anfangs- u Endpunkte
         u_elem = [u(indices-6) u(indices-5) u(indices-4) u(indices-3) u(indices-2) u(indices-1)];
@@ -390,8 +390,8 @@ function plotSingle(this, t, u)
 
         if ( strcmpi(plot_options.colorbar, 'Temperatur') )
             % Temperatur
-            val1 = u(7*knoten_index(KR(i).p(1)));
-            val2 = u(7*knoten_index(KR(i).p(2)));
+            val1 = u(7*knoten_index(KR(i).PointsIdx(1)));
+            val2 = u(7*knoten_index(KR(i).PointsIdx(2)));
         % Schnittgrößen über Element konstant!
         elseif ( strcmpi(plot_options.colorbar, 'Normalkraft') )
             % Normalenkraft
@@ -449,7 +449,9 @@ function plotSingle(this, t, u)
         cols(cols < 1) = 1;
         u1 = plot_options.multiplier * u1;
         u2 = plot_options.multiplier * u2;
-        this.plot_circle(KR(i).split, KR(i).T, KR(i).T_block1, KR(i).T_block2, KR(i).Fren, KR(i).R, KR(i).angle, KR(i).B, p(KR(i).pc,:), u1, u2, cols(1), cols(2), plot_options)
+        
+        KR(i).plot(p, u1, u2, cols(1), cols(2), plot_options);
+        %this.plot_circle(KR(i).split, KR(i).T, KR(i).T_block1, KR(i).T_block2, KR(i).Fren, KR(i).R, KR(i).angle, KR(i).B, p(KR(i).pc,:), u1, u2, cols(1), cols(2), plot_options)
 
     %     x = [u0_lok; t0_lok; uL_lok; tL_lok];
     %     x_lok = zeros(6, length(s));
@@ -466,7 +468,7 @@ function plotSingle(this, t, u)
     %         u_p(:,k) = plot_factor * KR(i).T * KR(i).Fren(s(k)) * u_lok(:,k);       
     %     end
     %     plot3( p(KR(i).pc, 1) + COR(1,:) + u_p(1,:), p(KR(i).pc, 2) + COR(2,:) + u_p(2,:), p(KR(i).pc, 3) + COR(3,:) + u_p(3,:), 'LineWidth', 3, 'Color', col(col_index(offset + i),:) );
-    %     plot3( p(KR(i).p(:),1) + u_p(1,[1 length(s)])', p(KR(i).p(:),2) +  + u_p(2,[1 length(s)])', p(KR(i).p(:),3) + u_p(3,[1 length(s)])', '+', 'LineWidth', 3, 'Color', col(col_index(offset + i),:) );
+    %     plot3( p(KR(i).PointsIdx(:),1) + u_p(1,[1 length(s)])', p(KR(i).PointsIdx(:),2) +  + u_p(2,[1 length(s)])', p(KR(i).PointsIdx(:),3) + u_p(3,[1 length(s)])', '+', 'LineWidth', 3, 'Color', col(col_index(offset + i),:) );
     % %     plot3( p(KR(i).pc, 1) + COR(1,:) + u_p(1,:), p(KR(i).pc, 2) + COR(2,:) + u_p(2,:), p(KR(i).pc, 3) + COR(3,:) + u_p(3,:), 'LineWidth', 3);
 
     end

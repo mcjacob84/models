@@ -82,8 +82,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         
         data;
         
-        ROHR_q_plus;
-        
         Gravity = [0; 0; -9.81];
     end
     
@@ -260,14 +258,8 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         split_RO(this);
         
         split_KR(this);
-        
-        plot_beam(this, split, T, c, p1, p2, u1, u2, col1, col2, plot_options);
-        
+                
         plot_circle(this, N, T, T1, T2, T_Fren, R, angle, B, pc, u1, u2, col1, col2, plot_options);
-        
-        B = circle_connect_matrix(this, R, L);
-        
-        N = circle_shape_functions(this, R, s, B);
     end
     
 end

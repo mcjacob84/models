@@ -43,6 +43,11 @@ classdef StructureElement < handle
         alphaA = [];
     end
     
+    properties(Access=protected)
+        % The global transformation matrix (?)
+        TG;
+    end
+    
     methods
         function this = StructureElement(model, material, pointsidx)
             this.Model = model;

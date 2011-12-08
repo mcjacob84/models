@@ -14,6 +14,7 @@ classdef StraightBeam < models.beam.Beam
 % - \c License @ref licensing
     
     methods
+        
         function this = StraightBeam(model, material, pointsidx)
             this = this@models.beam.Beam(model, material, pointsidx);
             this.initialize;
@@ -166,7 +167,7 @@ classdef StraightBeam < models.beam.Beam
         
         function f = getLocalForce(this, gravity)
             l = this.Length;
-            q_lok = (this.c(9) + this.Model.ROHR_q_plus) * (this.T' * gravity);
+            q_lok = (this.c(9) + this.ROHR_q_plus) * (this.T' * gravity);
             
             f_u = q_lok(1) * 0.5 * l * [1; 1; 0; 0];
             f_v = q_lok(2) * l/12 * [6; l; 6; -l];
