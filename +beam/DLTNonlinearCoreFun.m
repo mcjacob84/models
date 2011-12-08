@@ -398,7 +398,7 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
 
             for i=1:length(s)
                 % Auswerten der Ansatzfunktionen
-                N = this.sys.Model.circle_shape_functions(radius, s(i), B);
+                N = models.beam.CurvedBeam.circle_shape_functions(radius, s(i), B);
             %     N1 = N(1:3,:);          % Verschiebungsansätze
                 N2 = N(4:6,:);          % Verdrehungsansätze
 
