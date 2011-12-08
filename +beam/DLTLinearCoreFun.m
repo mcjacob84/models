@@ -24,10 +24,6 @@ classdef DLTLinearCoreFun < models.beam.DLTBaseCoreFun & dscomponents.LinearCore
             this.A = -this.B_big;
             % Assign offset
             this.b = this.f_big;
-            
-            %% Jacobian matrix sparsity pattern
-            [i,j] = find(this.A);
-            this.JSparsityPattern = sparse(i,j,ones(size(i)));
         end
     end
     

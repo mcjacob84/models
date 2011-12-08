@@ -88,7 +88,7 @@ classdef ICIAMExperiment < models.BaseFullModel
             m = ICIAMExperiment(dim);
             s = m.SpaceReducer;
             
-            d = EstimatorDemo;
+            d = tools.EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
             d.SingleFigures = true;

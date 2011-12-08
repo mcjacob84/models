@@ -15,6 +15,9 @@ classdef MathMODExperiment < models.BaseFullModel
         function this = MathMODExperiment(dims)
             this.registerProps('dim');
             
+            if nargin == 0
+                dims = 100;
+            end
             this.dim = dims;
             
             this.Sampler = [];%sampling.GridSampler;
@@ -88,7 +91,7 @@ classdef MathMODExperiment < models.BaseFullModel
             m = models.mathmod2012.MathMODExperiment(dim);
             s = m.SpaceReducer;
             
-            d = EstimatorDemo;
+            d = tools.EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
             d.SingleFigures = true;
