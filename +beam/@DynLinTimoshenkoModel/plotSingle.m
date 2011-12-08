@@ -131,7 +131,7 @@ function plotSingle(this, t, u)
     %% Ausgangslage
     if (plot_options.ref_config)
         for i = 1:num_elem_RO
-            plot3( p(RO(i).p(:),1), p(RO(i).p(:),2), p(RO(i).p(:),3), 'k:', 'LineWidth', 1 );
+            plot3( p(RO(i).PointsIdx(:),1), p(RO(i).PointsIdx(:),2), p(RO(i).PointsIdx(:),3), 'k:', 'LineWidth', 1 );
         end
         for i = 1:num_elem_KR
         %     split = max(fix(split_factor_KR / (0.5*pi/KR(i).angle)), 1);
@@ -216,8 +216,8 @@ function plotSingle(this, t, u)
     offset = 0;
     for i = 1:num_elem_RO
         % Temperatur der der Anfangs- u Endpunkte
-        T1 = u(7*knoten_index(RO(i).p(1)));
-        T2 = u(7*knoten_index(RO(i).p(2))); 
+        T1 = u(7*knoten_index(RO(i).PointsIdx(1)));
+        T2 = u(7*knoten_index(RO(i).PointsIdx(2))); 
         N(i) = 0.5 * (T1 + T2);
 
         offset = offset + 1;
@@ -279,7 +279,7 @@ function plotSingle(this, t, u)
     for i = 1:num_elem_RO
         % (End)Indizes der Anfangs- und Endpunkte des Elements im globalen
         % Verschiebungsvektor
-        indices = 7*knoten_index(RO(i).p(:));
+        indices = 7*knoten_index(RO(i).PointsIdx(:));
         % (Verstärkte) Verschiebung der der Anfangs- u Endpunkte
     %     u_p = plot_options.multiplier * [u(indices-6) u(indices-5) u(indices-4)];
 
@@ -290,8 +290,8 @@ function plotSingle(this, t, u)
         u2_lok = [RO(i).T' * u([indices(2)-6:indices(2)-4]); RO(i).T' * u([indices(2)-3:indices(2)-1])];
 
          % Ableitungen der Basisfunktionen
-        N_prime_1 = models.beam.StraightBeam.beam_shape_functions_derivative(0, RO(i).l, RO(i).c);
-        N_prime_2 = models.beam.StraightBeam.beam_shape_functions_derivative(RO(i).l, RO(i).l, RO(i).c);
+        N_prime_1 = RO(i).beam_shape_functions_derivative(0);
+        N_prime_2 = RO(i).beam_shape_functions_derivative(RO(i).Length);
         % Ableitungen der Variablen berechnen
         u1_prime_lok = N_prime_1 * [u1_lok; u2_lok];
         u2_prime_lok = N_prime_2 * [u1_lok; u2_lok];   
@@ -302,24 +302,24 @@ function plotSingle(this, t, u)
             val2 = u(7*knoten_index(RO(i).p(2)));
         elseif ( strcmpi(plot_options.colorbar, 'Normalkraft') )
             % Normalenkraft
-            val1 = RO(i).c(13) * RO(i).l * u1_prime_lok(1);
-            val2 = RO(i).c(13) * RO(i).l * u2_prime_lok(1);
+            val1 = RO(i).c(13) * RO(i).Length * u1_prime_lok(1);
+            val2 = RO(i).c(13) * RO(i).Length * u2_prime_lok(1);
         elseif ( strcmpi(plot_options.colorbar, 'Querkraft y') )
             % Querkraft y
-            val1 = RO(i).c(3) / RO(i).l * (u1_prime_lok(2) - u1_lok(6));
-            val2 = RO(i).c(3) / RO(i).l * (u2_prime_lok(2) - u2_lok(6));
+            val1 = RO(i).c(3) / RO(i).Length * (u1_prime_lok(2) - u1_lok(6));
+            val2 = RO(i).c(3) / RO(i).Length * (u2_prime_lok(2) - u2_lok(6));
         elseif ( strcmpi(plot_options.colorbar, 'Querkraft z') )
             % Querkraft z
-            val1 = RO(i).c(3) / RO(i).l * (u1_prime_lok(3) - u1_lok(5));
-            val2 = RO(i).c(3) / RO(i).l * (u2_prime_lok(3) - u2_lok(5));
+            val1 = RO(i).c(3) / RO(i).Length * (u1_prime_lok(3) - u1_lok(5));
+            val2 = RO(i).c(3) / RO(i).Length * (u2_prime_lok(3) - u2_lok(5));
         elseif ( strcmpi(plot_options.colorbar, 'Gesamtquerkraft') )
             % Gesamtquerkraft
-            val1 = RO(i).c(3) / RO(i).l * sqrt((u1_prime_lok(2) - u1_lok(6))^2 + (u1_prime_lok(3) - u1_lok(5))^2);
-            val2 = RO(i).c(3) / RO(i).l * sqrt((u2_prime_lok(2) - u2_lok(6))^2 + (u2_prime_lok(3) - u2_lok(5))^2);
+            val1 = RO(i).c(3) / RO(i).Length * sqrt((u1_prime_lok(2) - u1_lok(6))^2 + (u1_prime_lok(3) - u1_lok(5))^2);
+            val2 = RO(i).c(3) / RO(i).Length * sqrt((u2_prime_lok(2) - u2_lok(6))^2 + (u2_prime_lok(3) - u2_lok(5))^2);
         elseif ( strcmpi(plot_options.colorbar, 'Torsionsmoment') )
             % Torsionsmoment
-            val1 = RO(i).c(14) * RO(i).l * abs(u1_prime_lok(4));
-            val2 = RO(i).c(14) * RO(i).l * abs(u2_prime_lok(4));
+            val1 = RO(i).c(14) * RO(i).Length * abs(u1_prime_lok(4));
+            val2 = RO(i).c(14) * RO(i).Length * abs(u2_prime_lok(4));
         elseif ( strcmpi(plot_options.colorbar, 'Biegemoment y') )    
             % Biegemoment y
             val1 = RO(i).c(1) * u1_prime_lok(5);
@@ -355,7 +355,8 @@ function plotSingle(this, t, u)
         cols = fix( ([val1 val2] - N_min) / (N_max - N_min) * (size(col,1)-1)) + 1;
         cols(cols > num_col) = num_col;
         cols(cols < 1) = 1;
-        this.plot_beam(RO(i).split, RO(i).T, RO(i).c, p(RO(i).p(1),:), p(RO(i).p(2),:), plot_options.multiplier*u1_lok, plot_options.multiplier*u2_lok, cols(1), cols(2), plot_options)
+        %this.plot_beam(RO(i).split, RO(i).T, RO(i).c, p(RO(i).PointsIdx(1),:), p(RO(i).PointsIdx(2),:), plot_options.multiplier*u1_lok, plot_options.multiplier*u2_lok, cols(1), cols(2), plot_options)
+        RO(i).plot(p, plot_options.multiplier*u1_lok, plot_options.multiplier*u2_lok, cols(1), cols(2), plot_options)
     end
 
     for i = 1:num_elem_KR

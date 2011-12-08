@@ -4,8 +4,6 @@ function preprocess_data(this)
 % @todo RO_raw mit helper-variable speichern -> sonst wirkt sukzessiver
 % aufruf multiplikativ
 
-gravity = [0; 0; -9.81];
-
 % Beams
 nBeams = size(this.RO_raw, 1);
 this.Beams = struct('p',{});
@@ -55,7 +53,8 @@ m_tmp = ROHR_r_i / ROHR_r_a;
 ROHR_k = 6*(1+ROHR_ny)*(1+m_tmp^2)^2 / ( (7+6*ROHR_ny)*(1+m_tmp^2)^2 + (20+12*ROHR_ny)*m_tmp^2);
 
 % Berechnung der durch Medium und Dämmung verursachten zusätzlichen Steckenlast
-ROHR_q_plus = pi * ( ROHR_r_i^2 * ROHR_rho_med + ( (ROHR_r_a + ROHR_iso)^2 - ROHR_r_a^2 ) * ROHR_rho_iso + ( (ROHR_r_a + ROHR_iso + ROHR_mantel)^2 - (ROHR_r_a + ROHR_iso)^2) * ROHR_rho_mantel );
+this.ROHR_q_plus = pi * ( ROHR_r_i^2 * ROHR_rho_med + ( (ROHR_r_a + ROHR_iso)^2 - ROHR_r_a^2 ) * ROHR_rho_iso + ( (ROHR_r_a + ROHR_iso + ROHR_mantel)^2 - (ROHR_r_a + ROHR_iso)^2) * ROHR_rho_mantel );
+
 % ROHR_q_plus =  107.6937961 + 2.23255711 + 31.02416993;
 % ROHR_GAs = ROHR_k * ROHR_G * ROHR_A
 % ROHR_EI = ROHR_E * ROHR_Iy
@@ -124,60 +123,65 @@ else
 end
 
 %% Verarbeitung der geraden Rohrleitungen RO_raw
-% RO = struct([]);
+RO = models.beam.StraightBeam.empty;
 gesamtlaenge = 0;
 for i = 1:num_elem_RO
-    % Materialsatz
-    RO(i).Mat = this.RO_raw(i,1);
     
-    % Anfangs- und Endpunkt
-    RO(i).p = [this.RO_raw(i,2) this.RO_raw(i,3)];
+    material = this.mat(this.RO_raw(i,1),:);
+    % constructor arguments: model instance, material, pointsindices
+    RO(i) = models.beam.StraightBeam(this, material, [this.RO_raw(i,2) this.RO_raw(i,3)]);
     
-    % Längenberechnung
-    dx = (this.Points(RO(i).p(2), 1) - this.Points(RO(i).p(1), 1));
-    dy = (this.Points(RO(i).p(2), 2) - this.Points(RO(i).p(1), 2)); 
-    dz = (this.Points(RO(i).p(2), 3) - this.Points(RO(i).p(1), 3)); 
-    RO(i).l = sqrt( dx^2 + dy^2 + dz^2 );
+%     % Materialsatz
+%     RO(i).Mat = this.RO_raw(i,1);
+%     
+%     % Anfangs- und Endpunkt
+%     RO(i).p = [this.RO_raw(i,2) this.RO_raw(i,3)];
     
-gesamtlaenge = gesamtlaenge + RO(i).l;
+%     % Längenberechnung
+%     dx = (this.Points(RO(i).p(2), 1) - this.Points(RO(i).p(1), 1));
+%     dy = (this.Points(RO(i).p(2), 2) - this.Points(RO(i).p(1), 2)); 
+%     dz = (this.Points(RO(i).p(2), 3) - this.Points(RO(i).p(1), 3)); 
+%     RO(i).l = sqrt( dx^2 + dy^2 + dz^2 );
     
-    % Lokales Koordinatensystem
-    e_x = [dx / RO(i).l; dy / RO(i).l; dz / RO(i).l];
-    e_y = [-e_x(2) e_x(1) 0]';
-    if norm(e_y) == 0
-        e_y = [0 e_x(3) -e_x(2)]';
-    end
-    e_z = [e_x(2)*e_y(3) - e_x(3)*e_y(2);
-           e_x(3)*e_y(1) - e_x(1)*e_y(3);
-           e_x(1)*e_y(2) - e_x(2)*e_y(1)];
-    e_y = e_y / norm(e_y);
-    e_z = e_z / norm(e_z);
-    RO(i).T = [e_x e_y e_z];
+    gesamtlaenge = gesamtlaenge + RO(i).Length;
+    
+%     % Lokales Koordinatensystem
+%     e_x = [dx / RO(i).l; dy / RO(i).l; dz / RO(i).l];
+%     e_y = [-e_x(2) e_x(1) 0]';
+%     if norm(e_y) == 0
+%         e_y = [0 e_x(3) -e_x(2)]';
+%     end
+%     e_z = [e_x(2)*e_y(3) - e_x(3)*e_y(2);
+%            e_x(3)*e_y(1) - e_x(1)*e_y(3);
+%            e_x(1)*e_y(2) - e_x(2)*e_y(1)];
+%     e_y = e_y / norm(e_y);
+%     e_z = e_z / norm(e_z);
+%     RO(i).T = [e_x e_y e_z];
     
     % Effektive Konstanten
 %   <rho>	<A>     <E>     <Iy/In>     <Iz/Ib>     <It>        <G>     <k>	<c_th>	<kappa>	<alpha>
 %   1       2       3       4           5           6           7       8   9       10      11
-    mat = RO(i).Mat;
-    RO(i).c(1) = this.mat(mat,3) * this.mat(mat,4);                           % c1            = E*I
-    RO(i).c(2) = RO(i).c(1)^2;                                  % c2 = c1^2     = (E*I)^2
-    RO(i).c(3) = this.mat(mat,8)*this.mat(mat,7)*this.mat(mat,2)*RO(i).l;            % c3            = G*As*L
-    RO(i).c(4) = RO(i).c(3)^2;                                  % c4 = c3^2     = (G*As*L)^2
-    RO(i).c(5) = RO(i).c(3) * RO(i).l;                          % c5 = c3*L     = G*As*L^2
-    RO(i).c(6) = RO(i).c(5)^2;                                  % c6 = c5^2     = (G*As*L^2)^2
-    RO(i).c(7) = RO(i).c(1) * RO(i).c(5);                       % c7 = c1*c5    = E*I*G*As*L^2
-    RO(i).c(8) = RO(i).c(1) * this.mat(mat,8)*this.mat(mat,7)*this.mat(mat,2);       % c8 = c1*G*As  = E*I*G*As
-    RO(i).c(9) = this.mat(mat,1) * this.mat(mat,2);                           % c9 = rho*A
-    RO(i).c(10) = this.mat(mat,1) * this.mat(mat,2) * 9.81;                   %  q = rho*A*Ortsfaktor
-    RO(i).c(11) = this.mat(mat,1) * this.mat(mat,4);                          % c11= rho*I
-    RO(i).c(12) = RO(i).c(9) * RO(i).l / 6;                     % c12= c9*L/6   = rho*A*L/6
-    RO(i).c(13) = this.mat(mat,3) * this.mat(mat,2) / RO(i).l;                % c13= E*A/L
-    RO(i).c(14) = this.mat(mat,7)*this.mat(mat,6) / RO(i).l;                  % c14= G*It/L
-    RO(i).c(15) = this.mat(mat,1)*this.mat(mat,6)*RO(i).l / 6;                % c15= rho*It*L/6
-    
-    RO(i).q_lok = (RO(i).c(9) + ROHR_q_plus) * (RO(i).T' * gravity);
-    RO(i).c_theta = this.mat(mat,9);
-    RO(i).kappa = this.mat(mat,10);
-    RO(i).alphaA = this.mat(mat,11) * this.mat(mat,2) * this.mat(mat,3);             % alpha*A*E
+%     mat = RO(i).Mat;
+%     RO(i).c(1) = this.mat(mat,3) * this.mat(mat,4);                           % c1            = E*I
+%     RO(i).c(2) = RO(i).c(1)^2;                                  % c2 = c1^2     = (E*I)^2
+%     RO(i).c(3) = this.mat(mat,8)*this.mat(mat,7)*this.mat(mat,2)*RO(i).l;            % c3            = G*As*L
+%     RO(i).c(4) = RO(i).c(3)^2;                                  % c4 = c3^2     = (G*As*L)^2
+%     RO(i).c(5) = RO(i).c(3) * RO(i).l;                          % c5 = c3*L     = G*As*L^2
+%     RO(i).c(6) = RO(i).c(5)^2;                                  % c6 = c5^2     = (G*As*L^2)^2
+%     RO(i).c(7) = RO(i).c(1) * RO(i).c(5);                       % c7 = c1*c5    = E*I*G*As*L^2
+%     RO(i).c(8) = RO(i).c(1) * this.mat(mat,8)*this.mat(mat,7)*this.mat(mat,2);       % c8 = c1*G*As  = E*I*G*As
+%     RO(i).c(9) = this.mat(mat,1) * this.mat(mat,2);                           % c9 = rho*A
+%     RO(i).c(10) = this.mat(mat,1) * this.mat(mat,2) * 9.81;                   %  q = rho*A*Ortsfaktor
+%     RO(i).c(11) = this.mat(mat,1) * this.mat(mat,4);                          % c11= rho*I
+%     RO(i).c(12) = RO(i).c(9) * RO(i).l / 6;                     % c12= c9*L/6   = rho*A*L/6
+%     RO(i).c(13) = this.mat(mat,3) * this.mat(mat,2) / RO(i).l;                % c13= E*A/L
+%     RO(i).c(14) = this.mat(mat,7)*this.mat(mat,6) / RO(i).l;                  % c14= G*It/L
+%     RO(i).c(15) = this.mat(mat,1)*this.mat(mat,6)*RO(i).l / 6;                % c15= rho*It*L/6
+%     
+%     RO(i).q_lok = (RO(i).c(9) + ROHR_q_plus) * (RO(i).T' * gravity);
+%     RO(i).c_theta = this.mat(mat,9);
+%     RO(i).kappa = this.mat(mat,10);
+%     RO(i).alphaA = this.mat(mat,11) * this.mat(mat,2) * this.mat(mat,3);             % alpha*A*E
 end
 
 %	KR	<Mat>	<P1>	<P2>	<PCenter>
@@ -218,7 +222,7 @@ gesamtlaenge = gesamtlaenge + KR(i).R*KR(i).angle;
     KR(i).T_block2 = KR(i).T * KR(i).Fren(KR(i).angle);
     
     % Für die Auswertung der Ansatzfunktionen und Umrechnung der Knotengrößen in Verzerrungen
-    B = this.circle_connect_matrix(KR(i).R, KR(i).R * KR(i).angle); 
+    B = models.beam.CurvedBeam.circle_connect_matrix(KR(i).R, KR(i).R * KR(i).angle); 
     KR(i).B = B;
     KR(i).B3 = B(7:9,:);
     KR(i).B4 = B(10:12,:);
@@ -245,7 +249,7 @@ gesamtlaenge = gesamtlaenge + KR(i).R*KR(i).angle;
     KR(i).c(8) = this.mat(mat,1);                                      % c8 = rho
     
 %     KR(i).q_lok = KR(i).c(5) * (KR(i).T' * gravity);
-    KR(i).q_lok = (KR(i).c(5) + ROHR_q_plus)* (KR(i).T' * gravity);
+    KR(i).q_lok = (KR(i).c(5) + ROHR_q_plus)* (KR(i).T' * this.Gravity);
     
     KR(i).c_theta = this.mat(mat,9);
     KR(i).kappa = this.mat(mat,10);
@@ -289,7 +293,7 @@ for i = 1:num_elem_FH
     FH(i).c(1) = this.mat(mat,3) * this.mat(mat,2) / FH(i).l;                           % c1 = E*A/L      (Federhärte)
     FH(i).c(2) = this.mat(mat,1) * this.mat(mat,2) * FH(i).l / 6;                       % c2 = rho*A*L/6
     
-    FH(i).q_lok = this.mat(mat,1) * this.mat(mat,2) * (FH(i).T' * gravity);
+    FH(i).q_lok = this.mat(mat,1) * this.mat(mat,2) * (FH(i).T' * this.Gravity);
     
     FH(i).c_theta = this.mat(mat,9);
     FH(i).kappa = this.mat(mat,10);
@@ -297,12 +301,11 @@ for i = 1:num_elem_FH
     
 end
 
-
 % Anteil der jeweiligen Elementen an der Gesamtsystemlänge speichern
 % Speichern, an wievielen Stellen das Element ausgewertet werden soll, wenn auf das Gesamtsystem M auswertungen kommen sollen
 M = 75;
 for i = 1:num_elem_RO
-    RO(i).split = round(M * RO(i).l / gesamtlaenge); %#ok<*AGROW>
+    RO(i).split = round(M * RO(i).Length / gesamtlaenge); %#ok<*AGROW>
 end
 for i = 1:num_elem_KR
     KR(i).split = round(M * KR(i).angle * KR(i).R / gesamtlaenge);

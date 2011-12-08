@@ -81,6 +81,10 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         FH;
         
         data;
+        
+        ROHR_q_plus;
+        
+        Gravity = [0; 0; -9.81];
     end
     
     properties(Dependent, SetAccess=private)

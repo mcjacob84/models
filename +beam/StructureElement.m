@@ -15,39 +15,46 @@ classdef StructureElement < handle
     
     properties(SetAccess = private)
         % Punkt-Index-Array
-        Points;
+        PointsIdx;
         
-        % Material
+        % Material vector
         Material;
     end
     
     properties(SetAccess = protected)
-    
         % Indizes (lokal pro Knoten) in die die lokalen Matrizen assembliert werden
         % Konvention: Freiheitsgrade pro Knoten (u1, u2, u3, phi1, phi2, phi3, T, [...])
-        MatrixDofIndices;
+%         MatrixDofIndices;
                 
         % Länge des Elements
         Length;
-    end
-    
-    properties(Access = protected)
-        % Effektive Stoffkonstanten
-        c;
+        
+        % The model that contains the structure element
+        Model;
         
         % Transformationsmatrix für das lokale Koordinatensystem
         T;
+        
+        % Effektive Stoffkonstanten
+        c;
+        
+        c_theta = [];
+        kappa = [];
+        alphaA = [];
     end
     
     methods
-        function this = StructureElement(material, points)
-            this.Points = points;
+        function this = StructureElement(model, material, pointsidx)
+            this.Model = model;
+            this.PointsIdx = pointsidx;
             this.Material = material;
         end
     end
     
     methods(Abstract)
-        [M, K, f] = getLocalMatrices(this);
+        M = getLocalMassMatrix(this);
+        K = getLocalStiffnessMatrix(this);
+        f = getLocalForce(this, gravity);
     end
     
 end
