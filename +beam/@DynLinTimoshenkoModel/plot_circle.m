@@ -29,7 +29,7 @@ u_lok(:,1) = u1;
 u_lok(:,N+2) = u2;
 
 for i = 2:N+1
-    N_U = circle_shape_functions(R, x(i), B);
+    N_U = models.beam.CurvedBeam.circle_shape_functions(R, x(i), B);
     u_lok(:,i) = N_U * u_nodes;
     T_i = T_Fren(x(i)/R);
     u_glob(:,i) = [T * T_i * u_lok(1:3,i); T * T_i * u_lok(4:6,i)];

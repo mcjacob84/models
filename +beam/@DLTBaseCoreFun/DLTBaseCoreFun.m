@@ -385,7 +385,7 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
             w = 0.5*L * 1/9 * [5 8 5];
 
             for i=1:3
-                N = this.sys.Model.circle_shape_functions(R, s(i), B);
+                N = models.beam.CurvedBeam.circle_shape_functions(R, s(i), B);
                 N1 = N(1:3,:);
                 N2 = N(4:6,:);    
                 M = M + w(i) * ( c(5)*N1'*N1 + N2'*rhoJ*N2 );

@@ -4,7 +4,7 @@ function preprocess_data(this)
 % @todo RO_raw mit helper-variable speichern -> sonst wirkt sukzessiver
 % aufruf multiplikativ
 
-gravity = [0; 0; -9.81];
+gravity = 9.81 * [0; -1; 0];
 
 % Beams
 nBeams = size(this.RO_raw, 1);
@@ -218,7 +218,7 @@ gesamtlaenge = gesamtlaenge + KR(i).R*KR(i).angle;
     KR(i).T_block2 = KR(i).T * KR(i).Fren(KR(i).angle);
     
     % Für die Auswertung der Ansatzfunktionen und Umrechnung der Knotengrößen in Verzerrungen
-    B = this.circle_connect_matrix(KR(i).R, KR(i).R * KR(i).angle); 
+    B = models.beam.CurvedBeam.circle_connect_matrix(KR(i).R, KR(i).R * KR(i).angle); 
     KR(i).B = B;
     KR(i).B3 = B(7:9,:);
     KR(i).B4 = B(10:12,:);

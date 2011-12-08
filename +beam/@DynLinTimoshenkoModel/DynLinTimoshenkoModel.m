@@ -106,9 +106,9 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         
         FH_raw;
         
-        RO_factor_global = 5;
+        RO_factor_global = 2;
         
-        KR_factor_global = 5;
+        KR_factor_global = 2;
         
         mat;
         
