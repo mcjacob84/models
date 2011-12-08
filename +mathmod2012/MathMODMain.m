@@ -13,7 +13,7 @@ function [m, r, d] = MathMODMain(dim)
     m.offlineGenerations;
     r = m.buildReducedModel;
     
-    d = EstimatorDemo;
+    d = tools.EstimatorAnalyzer;
     d.EstimatorIterations = [1 2];
     d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
     %d.SingleFigures = true;

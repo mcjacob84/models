@@ -69,7 +69,7 @@ classdef WH10Experiment < models.BaseFullModel
             s.Dims = 100;
             m.SpaceReducer = s;
             
-            d = EstimatorDemo;
+            d = tools.EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
             d.SingleFigures = true;
@@ -169,7 +169,7 @@ classdef WH10Experiment < models.BaseFullModel
             m.Name = 'Sinus input, mean output mapping, larger error';
             m.System.C = dscomponents.LinearOutputConv(ones(1,m.dim)/m.dim);
             
-            d = EstimatorDemo;
+            d = tools.EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 0 0 1 0 0 1 1];
             d.SingleFigures = true;
@@ -231,7 +231,7 @@ classdef WH10Experiment < models.BaseFullModel
             s.UseSVDS = dim > 10000;
             m.SpaceReducer = s;
             
-            d = EstimatorDemo;
+            d = tools.EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
             d.SingleFigures = true;
@@ -305,7 +305,7 @@ classdef WH10Experiment < models.BaseFullModel
             m.Name = 'Sinus input, mean output mapping, larger error';
             m.System.C = dscomponents.LinearOutputConv(ones(1,m.dim)/m.dim);
             
-            d = EstimatorDemo;
+            d = tools.EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 0 0 1 0 0 1 1];
             d.SingleFigures = true;
