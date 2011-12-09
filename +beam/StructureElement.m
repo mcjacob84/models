@@ -60,6 +60,7 @@ classdef StructureElement < handle
         M = getLocalMassMatrix(this);
         K = getLocalStiffnessMatrix(this);
         f = getLocalForce(this, gravity);
+        [K, R, U_pot] = getLocalTangentials(this, u);
     end
     
 end

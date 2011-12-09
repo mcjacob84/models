@@ -91,6 +91,44 @@ classdef Truss < models.beam.StructureElement
             f = T * f;
         end
         
+        function [K, R] = getLocalTangentials(this, u)
+            % Berechnet lokale tangentiale Steifigkeits- und Massenmatrix eines Stabes
+            % c kodiert Stoffparameter:
+            % c1 = E*A/L      (Federh‰rte)
+            % c2 = rho*A*L/6
+            
+            L = this.Length;
+            T_block = this.T;
+            c = this.c;
+
+            % Transformationsmatrix: nat¸rliche Koords -> glob. Koords
+            % Sortierung der Variablen: 
+            % u0, v0, w0, u1, v1, w1
+            %  1   2   3   4   5   6                      
+
+            T = zeros(6);
+            T([1 2 3], [1 2 3]) = T_block;      % Verschiebung links
+            T([4 5 6], [4 5 6]) = T_block;      % Verschiebung rechts
+
+            % lokale Verschiebungen des Elements
+            u_lok  = T' * u;
+            % lokale Ableitungen
+            u_lok_prime = (u_lok(4:6) - u_lok(1:3)) / L;
+            % Lokales Spannungsmaﬂ
+            E_11 = u_lok_prime(1) + 0.5 * (u_lok_prime' * u_lok_prime);
+            S_x = L*c(1) * E_11;
+
+            R = S_x * [-u_lok_prime - [1;0;0]; u_lok_prime + [1;0;0]];
+
+            A1 = c(1) * (u_lok_prime + [1;0;0]) * (u_lok_prime + [1;0;0])';
+            A2 = S_x/L * eye(3);
+            B = A1 + A2;
+            K = [B -B; -B B];
+
+            K = T * K * T';
+            R = T * R;
+        end
+        
         function plot(this, p, u_elem, plot_options)            
             s = 0 : this.Length/(4*this.PlotSplitFactor) : this.Length;
             

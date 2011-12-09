@@ -81,7 +81,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         
         data;
         
-        Gravity = [0; -9.81; 0];
+        Gravity = [0; 0; -9.81];
     end
     
     properties(Dependent, SetAccess=private)
