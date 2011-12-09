@@ -23,6 +23,18 @@ classdef Truss < models.beam.StructureElement
             this.initialize;
         end
         
+        function globIdx = getGlobalIndices(this)
+            % Returns the global indices in the vector of DoFs for this
+            % element
+            %
+            % Identical for straight and curved beams.
+            data = this.Model.data;
+            p = this.PointsIdx;
+            index_0_glob = 7*data.knot_index(p(1))-6 : 7*data.knot_index(p(1))-4;
+            index_l_glob = 7*data.knot_index(p(2))-6 : 7*data.knot_index(p(2))-4;
+            globIdx = [index_0_glob index_l_glob];
+        end
+        
         function M = getLocalMassMatrix(this)
             % Berechnet lokale Steifigkeits- und Massenmatrix eines Stabes
             % c kodiert Stoffparameter:

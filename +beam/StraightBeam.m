@@ -271,8 +271,6 @@ classdef StraightBeam < models.beam.Beam
                 R = R + w(i) * ( dE' * F +  N2_prime' * M);
                 % Integrations-Update Steifigkeitsmatrix
                 K = K + w(i) * ( dE' * D * dE + N2_prime' * E * N2_prime + F(1)*E_1 + F(2)*E_2 + F(3)*E_3 );
-
-
             end
 
             % Transformation in globales Koordinatensystem (nicht nötig bei Skalaren)

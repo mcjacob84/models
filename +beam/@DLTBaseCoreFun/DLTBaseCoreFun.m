@@ -65,11 +65,12 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
                 index_0_lok = [1 5 9 3 10 6];
                 index_l_lok = [2 7 11 4 12 8];
 
-                p = RO(i).PointsIdx;
-                index_0_glob = 7*data.knot_index(p(1))-6 : 7*data.knot_index(p(1))-1;
-                index_l_glob = 7*data.knot_index(p(2))-6 : 7*data.knot_index(p(2))-1;
-
-                index_glob = [index_0_glob index_l_glob];
+%                 p = RO(i).PointsIdx;
+%                 index_0_glob = 7*data.knot_index(p(1))-6 : 7*data.knot_index(p(1))-1;
+%                 index_l_glob = 7*data.knot_index(p(2))-6 : 7*data.knot_index(p(2))-1;
+% 
+%                 index_glob = [index_0_glob index_l_glob];
+                index_glob = RO(i).getGlobalIndices;
                 index_lok = [index_0_lok index_l_lok];
 
                 M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok(index_lok, index_lok); %#ok<*SPRIX>
@@ -85,11 +86,12 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
                 
                 %[M_lok, K_lok] = this.loc_matrix_circle_special(KR(i).R, KR(i).T_block1, KR(i).T_block2, KR(i).B, KR(i).angle, KR(i).c);
                 %f_lok = this.loc_matrix_circle_special_force(KR(i).R, KR(i).Fren, KR(i).T_block1, KR(i).T_block2, KR(i).B, KR(i).angle, KR(i).q_lok);
-                p = KR(i).PointsIdx;
-                index_0_glob = 7*data.knot_index(p(1))-6 : 7*data.knot_index(p(1))-1;
-                index_l_glob = 7*data.knot_index(p(2))-6 : 7*data.knot_index(p(2))-1;
-
-                index_glob = [index_0_glob index_l_glob];
+%                 p = KR(i).PointsIdx;
+%                 index_0_glob = 7*data.knot_index(p(1))-6 : 7*data.knot_index(p(1))-1;
+%                 index_l_glob = 7*data.knot_index(p(2))-6 : 7*data.knot_index(p(2))-1;
+% 
+%                 index_glob = [index_0_glob index_l_glob];
+                index_glob = KR(i).getGlobalIndices;
                 M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok;
                 K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
                 f_const(index_glob) = f_const(index_glob) + f_lok;
@@ -101,10 +103,11 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
                 K_lok = FH(i).getLocalStiffnessMatrix;
                 f_lok = FH(i).getLocalForce(m.Gravity);
 
-                index_0_glob = 7*data.knot_index(FH(i).PointsIdx(1))-6 : 7*data.knot_index(FH(i).PointsIdx(1))-4;
-                index_l_glob = 7*data.knot_index(FH(i).PointsIdx(2))-6 : 7*data.knot_index(FH(i).PointsIdx(2))-4;
-                index_glob = [index_0_glob index_l_glob];
-
+%                 index_0_glob = 7*data.knot_index(FH(i).PointsIdx(1))-6 : 7*data.knot_index(FH(i).PointsIdx(1))-4;
+%                 index_l_glob = 7*data.knot_index(FH(i).PointsIdx(2))-6 : 7*data.knot_index(FH(i).PointsIdx(2))-4;
+%                 index_glob = [index_0_glob index_l_glob];
+                index_glob = FH(i).getGlobalIndices;
+                
                 M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok;
                 K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
                 f_const(index_glob) = f_const(index_glob) + f_lok;
