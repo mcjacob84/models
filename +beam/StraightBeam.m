@@ -39,19 +39,7 @@ classdef StraightBeam < models.beam.Beam
             % c14 = G*I_t/l
             
             c = this.c;
-            T_block = this.T;
             l = this.Length;
-
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Schubwinkel beta wird nicht transformiert (eye(4))
-            % Sortierung der Variablen: 
-            % u0, u1, phi0, phi1, v0, theta0, v1, theta1, w0, psi0, w1, psi1
-            %  1   2     3     4   5       6   7       8   9    10  11    12 
-            T = zeros(12);
-            T([1 5 9], [1 5 9]) = T_block;      % Verschiebung links
-            T([2 7 11], [2 7 11]) = T_block;    % Verschiebung rechts
-            T([3 10 6], [3 10 6]) = T_block;    % Winkel links
-            T([4 12 8], [4 12 8]) = T_block;    % Winkel rechts
 
             M_u_block = c(12) * [2 1; 1 2];
             M_phi_block = c(15) * [2 1; 1 2];
@@ -99,7 +87,7 @@ classdef StraightBeam < models.beam.Beam
                  zeros(4,2)     zeros(4,2)      M_v+M_theta zeros(4,4);
                  zeros(4,2)     zeros(4,2)      zeros(4,4)  M_w+M_psi];
 
-            M = T * M * T';
+            M = this.TG * M * this.TG';
         end
         
         function K = getLocalStiffnessMatrix(this)
@@ -122,19 +110,7 @@ classdef StraightBeam < models.beam.Beam
             % c14 = G*I_t/l
             
             c = this.c;
-            T_block = this.T;
             l = this.Length;
-
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Schubwinkel beta wird nicht transformiert (eye(4))
-            % Sortierung der Variablen: 
-            % u0, u1, phi0, phi1, v0, theta0, v1, theta1, w0, psi0, w1, psi1
-            %  1   2     3     4   5       6   7       8   9    10  11    12 
-            T = zeros(12);
-            T([1 5 9], [1 5 9]) = T_block;      % Verschiebung links
-            T([2 7 11], [2 7 11]) = T_block;    % Verschiebung rechts
-            T([3 10 6], [3 10 6]) = T_block;    % Winkel links
-            T([4 12 8], [4 12 8]) = T_block;    % Winkel rechts
 
             K_u_block = c(13) * [1 -1; -1 1];   % * E A/L
             K_phi_block = c(14)* [1 -1; -1 1];  % * G I_t/L
@@ -162,7 +138,7 @@ classdef StraightBeam < models.beam.Beam
                  zeros(4,2)     zeros(4,2)      K_v_block   zeros(4,4);
                  zeros(4,2)     zeros(4,2)      zeros(4,4)  K_w_block];
 
-            K = T * K * T';
+            K = this.TG * K * this.TG';
         end
         
         function f = getLocalForce(this, gravity)
@@ -173,14 +149,7 @@ classdef StraightBeam < models.beam.Beam
             f_v = q_lok(2) * l/12 * [6; l; 6; -l];
             f_w = q_lok(3) * l/12 * [6; -l; 6; l];
             
-            T_block = this.T;
-            T = zeros(12);
-            T([1 5 9], [1 5 9]) = T_block;      % Verschiebung links
-            T([2 7 11], [2 7 11]) = T_block;    % Verschiebung rechts
-            T([3 10 6], [3 10 6]) = T_block;    % Winkel links
-            T([4 12 8], [4 12 8]) = T_block;    % Winkel rechts
-            
-            f = T * [f_u; f_v; f_w];
+            f = this.TG * [f_u; f_v; f_w];
         end
         
         function [K, R, U_pot] = getLocalTangentials(this, u)
@@ -203,19 +172,7 @@ classdef StraightBeam < models.beam.Beam
             % c14 = G*I_t/l
             
             L = this.Length;
-            T_block = this.T;
             c = this.c;
-
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Sortierung der Variablen: 
-            % u0, v0, w0, phi0, psi0, theta0, u1, v1, w1, phi1, psi1, theta1
-            %  1   2   3     4     5       6   7   8   9    10    11      12                        
-
-            T = zeros(12);
-            T([1 2 3], [1 2 3]) = T_block;         % Verschiebung Anfangsknoten
-            T([7 8 9], [7 8 9]) = T_block;         % Verschiebung Endknoten
-            T([4 5 6], [4 5 6]) = T_block;         % Winkel Anfangsknoten
-            T([10 11 12], [10 11 12]) = T_block;   % Winkel Endknoten
 
             % Potenzielle Energie
             U_pot = 0;
@@ -225,7 +182,7 @@ classdef StraightBeam < models.beam.Beam
             K = zeros(12);
 
             % lokale Verschiebungen des Elements
-            u_lok  = T' * u;
+            u_lok  = this.TG' * u;
 
             % Stoff-Matrizen aufsetzen
             D = diag([c(13)*L, c(3)/L, c(3)/L]);
@@ -319,8 +276,8 @@ classdef StraightBeam < models.beam.Beam
             end
 
             % Transformation in globales Koordinatensystem (nicht nötig bei Skalaren)
-            K = T * K * T';
-            R = T * R;
+            K = this.TG * K * this.TG';
+            R = this.TG * R;
         end
         
         function N = beam_shape_functions_derivative(this, s)
@@ -527,6 +484,13 @@ classdef StraightBeam < models.beam.Beam
             e_y = e_y / norm(e_y);
             e_z = e_z / norm(e_z);
             this.T = [e_x e_y e_z];
+            
+            T = zeros(12);
+            T([1 5 9], [1 5 9]) = this.T;      % Verschiebung links
+            T([2 7 11], [2 7 11]) = this.T;    % Verschiebung rechts
+            T([3 10 6], [3 10 6]) = this.T;    % Winkel links
+            T([4 12 8], [4 12 8]) = this.T;    % Winkel rechts
+            this.TG = T;
 
             % Effektive Konstanten
             %   <rho>	<A>     <E>     <Iy/In>     <Iz/Ib>     <It>        <G>     <k>	<c_th>	<kappa>	<alpha>

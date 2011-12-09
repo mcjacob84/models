@@ -29,21 +29,10 @@ classdef Truss < models.beam.StructureElement
             % c1 = E*A/L      (Federhärte)
             % c2 = rho*A*L/6
             
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Sortierung der Variablen:
-            % u0, v0, w0, u1, v1, w1
-            %  1   2   3   4   5   6
-            
-            T_block = this.T;
-            
-            T = zeros(6);
-            T([1 2 3], [1 2 3]) = T_block;    % Verschiebung links
-            T([4 5 6], [4 5 6]) = T_block;    % Verschiebung rechts
-            
             M = zeros(6);
             M([1 4], [1 4]) = this.c(2) * [2 1; 1 2];
             
-            M = T * M * T';
+            M = this.TG * M * this.TG';
         end
         
         function K = getLocalStiffnessMatrix(this)
@@ -52,20 +41,10 @@ classdef Truss < models.beam.StructureElement
             % c1 = E*A/L      (Federhärte)
             % c2 = rho*A*L/6
             
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Sortierung der Variablen:
-            % u0, v0, w0, u1, v1, w1
-            %  1   2   3   4   5   6
-            T_block = this.T;
-            
-            T = zeros(6);
-            T([1 2 3], [1 2 3]) = T_block;      % Verschiebung links
-            T([4 5 6], [4 5 6]) = T_block;    % Verschiebung rechts
-            
             K = zeros(6);
             K([1 4], [1 4]) = this.c(1) * [1 -1; -1 1];
             
-            K = T * K * T';
+            K = this.TG * K * this.TG';
         end
         
         function f = getLocalForce(this, gravity)
@@ -79,16 +58,11 @@ classdef Truss < models.beam.StructureElement
             % u0, v0, w0, u1, v1, w1
             %  1   2   3   4   5   6
             
-            T_block = this.T;
-            T = zeros(6);
-            T([1 2 3], [1 2 3]) = T_block;    % Verschiebung links
-            T([4 5 6], [4 5 6]) = T_block;    % Verschiebung rechts
-            
             q_lok = this.Material(1) * this.Material(2) * (this.T' * gravity);
             f = zeros(6, 1);
             f([1 4]) = 0.5 * q_lok(1) * this.Length * [1; 1];
             
-            f = T * f;
+            f = this.TG * f;
         end
         
         function [K, R] = getLocalTangentials(this, u)
@@ -98,7 +72,6 @@ classdef Truss < models.beam.StructureElement
             % c2 = rho*A*L/6
             
             L = this.Length;
-            T_block = this.T;
             c = this.c;
 
             % Transformationsmatrix: natürliche Koords -> glob. Koords
@@ -106,12 +79,8 @@ classdef Truss < models.beam.StructureElement
             % u0, v0, w0, u1, v1, w1
             %  1   2   3   4   5   6                      
 
-            T = zeros(6);
-            T([1 2 3], [1 2 3]) = T_block;      % Verschiebung links
-            T([4 5 6], [4 5 6]) = T_block;      % Verschiebung rechts
-
             % lokale Verschiebungen des Elements
-            u_lok  = T' * u;
+            u_lok  = this.TG' * u;
             % lokale Ableitungen
             u_lok_prime = (u_lok(4:6) - u_lok(1:3)) / L;
             % Lokales Spannungsmaß
@@ -125,8 +94,8 @@ classdef Truss < models.beam.StructureElement
             B = A1 + A2;
             K = [B -B; -B B];
 
-            K = T * K * T';
-            R = T * R;
+            K = this.TG * K * this.TG';
+            R = this.TG * R;
         end
         
         function plot(this, p, u_elem, plot_options)            
@@ -166,6 +135,10 @@ classdef Truss < models.beam.StructureElement
             e_y = e_y / norm(e_y);
             e_z = e_z / norm(e_z);
             this.T = [e_x e_y e_z];
+            
+            this.TG = zeros(6);
+            this.TG([1 2 3], [1 2 3]) = this.T;      % Verschiebung links
+            this.TG([4 5 6], [4 5 6]) = this.T;    % Verschiebung rechts
             
             %     Effektive Konstanten
             %     <rho>	<A>     <E>

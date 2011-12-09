@@ -166,22 +166,8 @@ classdef CurvedBeam < models.beam.Beam
             % c6 = rho*I
             % c7 = rho*It
             
-            T_block1 = this.T_block1;
-            T_block2 = this.T_block2;
             c = this.c;
             B = this.B;
-
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Sortierung der Variablen: 
-            % u0, v0, w0, phi0, psi0, theta0, u1, v1, w1, phi1, psi1, theta1
-            %  1   2   3     4     5       6   7   8   9    10    11      12                        
-
-            T = zeros(12);
-            T([1 2 3], [1 2 3]) = T_block1;         % Verschiebung Anfangsknoten
-            T([7 8 9], [7 8 9]) = T_block2;         % Verschiebung Endknoten
-            T([4 5 6], [4 5 6]) = T_block1;         % Winkel Anfangsknoten
-            T([10 11 12], [10 11 12]) = T_block2;   % Winkel Endknoten
-
 
             % Potenzielle Energie
             U_pot = 0;
@@ -191,7 +177,7 @@ classdef CurvedBeam < models.beam.Beam
             K = zeros(12);
 
             % lokale Verschiebungen des Elements
-            u_lok  = T' * u;
+            u_lok  = this.TG' * u;
 
             % Stoff-Matrizen aufsetzen
             D = blkdiag(c(3), c(4), c(4));
@@ -283,8 +269,8 @@ classdef CurvedBeam < models.beam.Beam
             end
 
             % Transformation in globales Koordinatensystem (nicht nötig bei Skalaren)
-            K = T * K * T';
-            R = T * R;
+            K = this.TG * K * this.TG';
+            R = this.TG * R;
         end
         
         function B = circle_connect_matrix(this)
