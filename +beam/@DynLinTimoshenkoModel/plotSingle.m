@@ -56,13 +56,16 @@ function plotSingle(this, t, u)
 % end        
 % hold off;
 
-    % Plot Options
-    plot_options.multiplier = 1;                % Vergrößerung der Verschiebungen
-    plot_options.figure = 11;                    % Nummer der Figure, in der geplottet wird
-    plot_options.colorbar = 'Normalkraft';       % Titel der Colorbar und gleichzeitig zu visualisierende Größe
-                                                % Temperatur, Normalkraft, Querkraft y, Querkraft z, Torsionsmoment, 
-                                                % Biegemoment y, Biegemoment z,
-                                                % Gesamtquerkraft, Gesamtbiegemoment
+    %% Plot Options
+    % Vergrößerung der Verschiebungen
+    plot_options.multiplier = this.PlotFactor;
+    % Nummer der Figure, in der geplottet wird
+    plot_options.figure = 11;                    
+    % Titel der Colorbar und gleichzeitig zu visualisierende Größe
+    % Temperatur, Normalkraft, Querkraft y, Querkraft z, Torsionsmoment, 
+    % Biegemoment y, Biegemoment z,
+    % Gesamtquerkraft, Gesamtbiegemoment
+    plot_options.colorbar = 'Normalkraft';       
     plot_options.axis = 'auto';
     % Testszenario
     % plot_options.axis = [-17 17 -17 2 -2 17];   % Grenzen der Achsen des Plots
@@ -94,7 +97,6 @@ function plotSingle(this, t, u)
     u = hlp;
 
     % split_factor_KR = 15;  % Wie oft wird ein Viertelkreis zerlegt
-    split_factor_FH = 5;
 
     num_elem_RO = size(RO, 2);
     num_elem_KR = size(KR, 2);
@@ -145,9 +147,9 @@ function plotSingle(this, t, u)
             plot3( p(KR(i).pc, 1) + COR(1,:), p(KR(i).pc, 2) + COR(2,:), p(KR(i).pc, 3) + COR(3,:), 'k:' );
         end
     %     for i = 1:num_elem_FH
-    %         s = 0 : FH(i).l/(4*split_factor_FH) : FH(i).l;
+    %         s = 0 : FH(i).Length/(4*split_factor_FH) : FH(i).Length;
     %         % Parametrisierung des Viertelkreises in lokalen Koords
-    %         y = (FH(i).l/(2*split_factor_FH)) * sin( 2*pi*s / (FH(i).l/split_factor_FH) );
+    %         y = (FH(i).Length/(2*split_factor_FH)) * sin( 2*pi*s / (FH(i).Length/split_factor_FH) );
     %         x = s;
     %         z = 0*s;
     %         % Umrechnung in globale Koords und Verschiebung um globale Koords des
@@ -476,32 +478,35 @@ function plotSingle(this, t, u)
     for i = 1:num_elem_FH
 
         % Verschiebungsvektor
-        indices = 7*knoten_index(FH(i).p(:));
+        indices = 7*knoten_index(FH(i).PointsIdx(:));
 
         % Verschiebung der der Anfangs- u Endpunkte
         u_elem = [u(indices-6) u(indices-5) u(indices-4)];
 
         if (i==5)
-            plot3( p(FH(i).p(:), 1) + plot_options.multiplier *u_elem(:,1), p(FH(i).p(:), 2) + plot_options.multiplier *u_elem(:,2), p(FH(i).p(:), 3) + plot_options.multiplier *u_elem(:,3), 'k', 'LineWidth', 3 );
+            plot3( p(FH(i).PointsIdx(:), 1) + plot_options.multiplier *u_elem(:,1), p(FH(i).PointsIdx(:), 2) + plot_options.multiplier *u_elem(:,2), p(FH(i).PointsIdx(:), 3) + plot_options.multiplier *u_elem(:,3), 'k', 'LineWidth', 3 );
             continue;
         end
 
-    % 	u0_lok = FH(i).T' * u_elem(1,:)';   
-    %     uL_lok = FH(i).T' * u_elem(2,:)';
-    %     
-    %     u_lok = uL_lok * s/FH(i).l + u0_lok * (1 - s/FH(i).l);   
-
-        s = 0 : FH(i).l/(4*split_factor_FH) : FH(i).l;
-
-        u_p = plot_options.multiplier * (u_elem(2,:)' * s/FH(i).l + u_elem(1,:)' * (1 - s/FH(i).l));
-        % Parametrisierung des Viertelkreises in lokalen Koords
-        y = (FH(i).l/(2*split_factor_FH)) * sin( 2*pi*s / (FH(i).l/split_factor_FH) );
-        x = s;
-        z = 0*s;
-        % Umrechnung in globale Koords und Verschiebung um globale Koords des
-        % lokalen Ursprungs KR(i).pc
-        COR = FH(i).T * [x; y; z];
-        plot3( p(FH(i).p(1), 1) + COR(1,:) + u_p(1,:), p(FH(i).p(1), 2) + COR(2,:) + u_p(2,:), p(FH(i).p(1), 3) + COR(3,:) + u_p(3,:), 'k' );
+%     % 	u0_lok = FH(i).T' * u_elem(1,:)';   
+%     %     uL_lok = FH(i).T' * u_elem(2,:)';
+%     %     
+%     %     u_lok = uL_lok * s/FH(i).Length + u0_lok * (1 - s/FH(i).Length);   
+% 
+%         s = 0 : FH(i).Length/(4*split_factor_FH) : FH(i).Length;
+% 
+%         u_p = plot_options.multiplier * (u_elem(2,:)' * s/FH(i).Length + u_elem(1,:)' * (1 - s/FH(i).Length));
+%         % Parametrisierung des Viertelkreises in lokalen Koords
+%         y = (FH(i).Length/(2*split_factor_FH)) * sin( 2*pi*s / (FH(i).Length/split_factor_FH) );
+%         x = s;
+%         z = 0*s;
+%         % Umrechnung in globale Koords und Verschiebung um globale Koords des
+%         % lokalen Ursprungs KR(i).pc
+%         COR = FH(i).T * [x; y; z];
+%         plot3( p(FH(i).PointsIdx(1), 1) + COR(1,:) + u_p(1,:), ...
+%                p(FH(i).PointsIdx(1), 2) + COR(2,:) + u_p(2,:), ...
+%                p(FH(i).PointsIdx(1), 3) + COR(3,:) + u_p(3,:), 'k' );
+        FH(i).plot(p, u_elem, plot_options);
     end
 
     % Geschwindigkeitsvektoren plotten

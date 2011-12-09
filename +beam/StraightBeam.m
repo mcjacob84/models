@@ -21,7 +21,7 @@ classdef StraightBeam < models.beam.Beam
         end
         
         function M = getLocalMassMatrix(this)
-             % Berechnet lokale Steifigkeits- und Massenmatrix eines Timoshenko-Balkens
+            % Berechnet lokale Steifigkeits- und Massenmatrix eines Timoshenko-Balkens
             % c kodiert Stoffparameter:
             % c1            = E*I
             % c2 = c1^2     = (E*I)^2
@@ -296,14 +296,23 @@ classdef StraightBeam < models.beam.Beam
             % elseif (centerline == 2)
                 % Mehrfarbig, dick
                 for i=1:split+1
-                    plot3(p([i i+1],1) + u_glob(1,[i i+1])', p([i i+1],2) + u_glob(2,[i i+1])', p([i i+1],3) + u_glob(3,[i i+1])', 'LineWidth', plot_options.centerline, 'Color', 0.5 * (cmap(col(i),:)+cmap(col(i+1),:)) )
+                    plot3(p([i i+1],1) + u_glob(1,[i i+1])', ...
+                          p([i i+1],2) + u_glob(2,[i i+1])', ...
+                          p([i i+1],3) + u_glob(3,[i i+1])', ...
+                          'LineWidth', plot_options.centerline, ...
+                          'Color', 0.5 * (cmap(col(i),:)+cmap(col(i+1),:)) );
                 end
             end
 
             if (plot_options.endmarker)
                 % Elementgrenzenmarkierungen plotten
-                plot3(p(1,1) + u_glob(1,1)', p(1,2) + u_glob(2,1)', p(1,3) + u_glob(3,1)', '+', 'LineWidth', plot_options.endmarker, 'Color', cmap(col(1),:) )
-                plot3(p(split+2,1) + u_glob(1,split+2)', p(split+2,2) + u_glob(2,split+2)', p(split+2,3) + u_glob(3,split+2)', '+', 'LineWidth', plot_options.endmarker, 'Color', cmap(col(split+2),:) )
+                plot3(p(1,1) + u_glob(1,1)', p(1,2) + u_glob(2,1)', ...
+                      p(1,3) + u_glob(3,1)', '+', ...
+                      'LineWidth', plot_options.endmarker, 'Color', cmap(col(1),:) );
+                plot3(p(split+2,1) + u_glob(1,split+2)', ...
+                      p(split+2,2) + u_glob(2,split+2)', ...
+                      p(split+2,3) + u_glob(3,split+2)', '+', ...
+                      'LineWidth', plot_options.endmarker, 'Color', cmap(col(split+2),:) );
             end
 
             %% Querschnitte plotten

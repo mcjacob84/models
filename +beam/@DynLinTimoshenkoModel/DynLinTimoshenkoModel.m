@@ -18,8 +18,8 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         %
         % @propclass{optional} Scales the displacement
         %
-        % @type double @default 20
-        PlotFactor = 20;
+        % @type double @default 1
+        PlotFactor = 1;
         
         % The beam line width for plotting
         %
@@ -36,7 +36,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         %
         % @see ColorMap
         NumColors = 128;
-        
     end
     
     properties(SetObservable, Dependent)
@@ -82,7 +81,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         
         data;
         
-        Gravity = [0; 0; -9.81];
+        Gravity = [0; -9.81; 0];
     end
     
     properties(Dependent, SetAccess=private)

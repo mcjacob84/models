@@ -1,4 +1,4 @@
-function [points, RO, KR, FH, mat, lager, lasten] = read_file(this, file)
+function [points, RO, KR, FH, mat, lager, lasten] = read_file(~, file)
 
 %-----------------------------------------------------------
 %Read Geometry Data from file

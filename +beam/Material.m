@@ -39,13 +39,13 @@ classdef Material < handle
     end
     
     properties(SetAccess = protected)
-            A;
-            Iy;
-            Iz;
-            It;
-            G;
-            k;
-            q_plus;
+        A;
+        Iy;
+        Iz;
+        It;
+        G;
+        k;
+        q_plus;
     end
     
     methods

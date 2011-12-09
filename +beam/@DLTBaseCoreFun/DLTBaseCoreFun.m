@@ -16,7 +16,11 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
     properties(SetAccess=private)
         dir_u;
         dir_T;
+        
+        % The indices in the global state space vector of all points
+        % including dirichlet points (dim=7: 3location, 3velocity & heat) 
         free;
+        
         % Extracted Dirichlet values full u vector (using dir_u)
         u_dir;
     end
@@ -55,8 +59,6 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
             f_const = sparse(7 * data.num_knots, 1); 
 
             for i = 1:data.num_elem_RO
-%                 [M_lok, K_lok] = this.loc_matrix_beam(RO(i).l, RO(i).T, RO(i).c);
-%                 f_lok = this.loc_matrix_beam_force(RO(i).l, RO(i).T, RO(i).q_lok);
                 M_lok = RO(i).getLocalMassMatrix;
                 K_lok = RO(i).getLocalStiffnessMatrix;
                 f_lok = RO(i).getLocalForce(m.Gravity);
@@ -88,21 +90,19 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
                 index_l_glob = 7*data.knot_index(p(2))-6 : 7*data.knot_index(p(2))-1;
 
                 index_glob = [index_0_glob index_l_glob];
-
                 M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok;
                 K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
                 f_const(index_glob) = f_const(index_glob) + f_lok;
-
             end
 
             FH = m.FH;
             for i = 1:data.num_elem_FH
+                M_lok = FH(i).getLocalMassMatrix;
+                K_lok = FH(i).getLocalStiffnessMatrix;
+                f_lok = FH(i).getLocalForce(m.Gravity);
 
-                [M_lok, K_lok] = this.loc_matrix_truss(FH(i).T, FH(i).c);
-                f_lok = this.loc_matrix_truss_force(FH(i).l, FH(i).T, FH(i).q_lok);
-
-                index_0_glob = 7*data.knot_index(FH(i).p(1))-6 : 7*data.knot_index(FH(i).p(1))-4;
-                index_l_glob = 7*data.knot_index(FH(i).p(2))-6 : 7*data.knot_index(FH(i).p(2))-4;
+                index_0_glob = 7*data.knot_index(FH(i).PointsIdx(1))-6 : 7*data.knot_index(FH(i).PointsIdx(1))-4;
+                index_l_glob = 7*data.knot_index(FH(i).PointsIdx(2))-6 : 7*data.knot_index(FH(i).PointsIdx(2))-4;
                 index_glob = [index_0_glob index_l_glob];
 
                 M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok;
@@ -205,9 +205,6 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
             % affect the sparsity pattern, so create it here.
             [i,j] = find([zeros(size(K)), -eye(size(K)); K, C]);
             this.JSparsityPattern = sparse(i,j,ones(size(i)));
-            
-%             this.free_uv = [free_u free_u + 7 * data.num_knots];
-%             this.free_u = free_u;
         end
     end
     
@@ -215,55 +212,5 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
         f_eff = getf_eff(this, f, K, u);
         
         B = getB_big(this, K, C);
-    end
-    
-    methods(Access=private)
-       
-        
-        function [M, K] = loc_matrix_truss(this, T_block, c)
-            % Berechnet lokale Steifigkeits- und Massenmatrix eines Stabes
-            % c kodiert Stoffparameter:
-            % c1 = E*A/L      (Federhärte)
-            % c2 = rho*A*L/6
-
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Sortierung der Variablen: 
-            % u0, v0, w0, u1, v1, w1
-            %  1   2   3   4   5   6                      
-
-            T = zeros(6);
-            T([1 2 3], [1 2 3]) = T_block;      % Verschiebung links
-            T([4 5 6], [4 5 6]) = T_block;    % Verschiebung rechts
-
-            K = zeros(6);
-            K([1 4], [1 4]) = c(1) * [1 -1; -1 1];
-
-            M = zeros(6);
-            M([1 4], [1 4]) = c(2) * [2 1; 1 2];
-
-            M = T * M * T';
-            K = T * K * T';
-        end
-        
-        function f = loc_matrix_truss_force(this, l, T_block, q_lok)
-            % Berechnet lokale Steifigkeits- und Massenmatrix eines Stabes
-            % c kodiert Stoffparameter:
-            % c1 = E*A/L      (Federhärte)
-            % c2 = rho*A*L/6
-
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Sortierung der Variablen: 
-            % u0, v0, w0, u1, v1, w1
-            %  1   2   3   4   5   6                      
-
-            T = zeros(6);
-            T([1 2 3], [1 2 3]) = T_block;      % Verschiebung links
-            T([4 5 6], [4 5 6]) = T_block;    % Verschiebung rechts
-
-            f = zeros(6, 1);
-            f([1 4]) = 0.5 * q_lok(1) * l * [1; 1];
-
-            f = T * f;
-        end
     end
 end

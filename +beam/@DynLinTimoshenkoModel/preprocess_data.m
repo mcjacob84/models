@@ -21,7 +21,6 @@ function preprocess_data(this)
 % this.mat(1, 7) = ROHR_G;
 % this.mat(1, 8) = ROHR_k;
 
-FH = [];
 used_knots_KR = [];
 used_knots_RO = [];
 used_knots_FH = [];
@@ -75,63 +74,25 @@ end
 RO = models.beam.StraightBeam.empty;
 gesamtlaenge = 0;
 for i = 1:num_elem_RO
-    
     material = this.mat(this.RO_raw(i,1),:);
     % constructor arguments: model instance, material, pointsindices
     RO(i) = models.beam.StraightBeam(this, material, this.RO_raw(i,2:3));
-        
     gesamtlaenge = gesamtlaenge + RO(i).Length;
 end
 %% Verarbeitung der krummen Rohrleitungen KR_raw
 %	KR	<Mat>	<P1>	<P2>	<PCenter>
 KR = models.beam.CurvedBeam.empty;
 for i = 1:num_elem_KR
-    
     material = this.mat(this.KR_raw(i,1),:);
     KR(i) = models.beam.CurvedBeam(this, material, this.KR_raw(i,2:4));
-    
     gesamtlaenge = gesamtlaenge + KR(i).Length;
 end
-
 %	FH	<Mat>	<P1>	<P2>
+FH = models.beam.Truss.empty;
 for i = 1:num_elem_FH
-    % Materialsatz
-    FH(i).Mat = this.FH_raw(i,1);
-    
-    % Anfangs- und Endpunkt
-    FH(i).p = [this.FH_raw(i,2) this.FH_raw(i,3)];
-        
-   % Längenberechnung
-    dp = (this.Points(FH(i).p(2), :) - this.Points(FH(i).p(1), :));
-    
-    FH(i).l = norm( dp );    
-    
-    % Lokales Koordinatensystem
-    e_x = dp' / FH(i).l;
-    e_y = [-e_x(2) e_x(1) 0]';
-    if norm(e_y) == 0
-        e_y = [0 e_x(3) -e_x(2)]';
-    end
-    e_z = [e_x(2)*e_y(3) - e_x(3)*e_y(2);
-           e_x(3)*e_y(1) - e_x(1)*e_y(3);
-           e_x(1)*e_y(2) - e_x(2)*e_y(1)];
-    e_y = e_y / norm(e_y);
-    e_z = e_z / norm(e_z);
-    FH(i).T = [e_x e_y e_z];
-    
-%     Effektive Konstanten   
-%     <rho>	<A>     <E> 
-%       1    2       3
-    mat = FH(i).Mat;
-    FH(i).c(1) = this.mat(mat,3) * this.mat(mat,2) / FH(i).l;                           % c1 = E*A/L      (Federhärte)
-    FH(i).c(2) = this.mat(mat,1) * this.mat(mat,2) * FH(i).l / 6;                       % c2 = rho*A*L/6
-    
-    FH(i).q_lok = this.mat(mat,1) * this.mat(mat,2) * (FH(i).T' * this.Gravity);
-    
-    FH(i).c_theta = this.mat(mat,9);
-    FH(i).kappa = this.mat(mat,10);
-    FH(i).alpha = this.mat(mat,11);
-    
+    material = this.mat(this.FH_raw(i,1),:);
+    FH(i) = models.beam.Truss(this, material, this.FH_raw(i,2:3));
+    %gesamtlaenge = gesamtlaenge + FH(i).Length;
 end
 
 % Anteil der jeweiligen Elementen an der Gesamtsystemlänge speichern
@@ -144,9 +105,7 @@ for i = 1:num_elem_KR
     KR(i).split = round(M * KR(i).angle * KR(i).R / gesamtlaenge);
 end
 
-format short
-
-disp(gesamtlaenge);
+fprintf('Gesamtlänge: %f\n',gesamtlaenge);
 
 this.RO = RO;
 this.KR = KR;
