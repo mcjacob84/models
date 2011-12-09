@@ -52,24 +52,36 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
             % Mass matrix (M is actually the full M (including dirichlet
             % nodes), but is projected at the end of this method to the
             % size of actual DoFs)
-            M = sparse(7 * data.num_knots, 7 * data.num_knots);
-            % Steifigkeitsmatrix für u und T
-            K = sparse(7 * data.num_knots, 7 * data.num_knots);
-            % Kraftvektor und Wärmequellen 
-            f_const = sparse(7 * data.num_knots, 1);
+%             M = sparse(7 * data.num_knots, 7 * data.num_knots);
+%             % Steifigkeitsmatrix für u und T
+%             K = sparse(7 * data.num_knots, 7 * data.num_knots);
+%             % Kraftvektor und Wärmequellen 
+%             f_const = sparse(7 * data.num_knots, 1);
 
             %% Assemblieren der globalen matrizen
             e = this.sys.Model.Elements;
-            for i = 1:length(e)
-                M_lok = e{i}.getLocalMassMatrix;
-                K_lok = e{i}.getLocalStiffnessMatrix;
-                f_lok = e{i}.getLocalForce(m.Gravity);
-                index_glob = e{i}.getGlobalIndices;
+            i = []; j = []; fi = [];
+            M = []; K = []; f = [];
+            for k = 1:length(e)
+                M_lok = e{k}.getLocalMassMatrix;
+                K_lok = e{k}.getLocalStiffnessMatrix;
+                f_lok = e{k}.getLocalForce(m.Gravity);
+                index_glob = e{k}.getGlobalIndices;
 
-                M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok; %#ok<*SPRIX>
-                K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
-                f_const(index_glob) = f_const(index_glob) + f_lok;
+                [li,lj] = meshgrid(index_glob);
+                i = [i; li(:)];
+                j = [j; lj(:)];
+                M = [M; M_lok(:)];
+                K = [K; K_lok(:)];
+                fi = [fi; index_glob'];
+                f = [f; f_lok(:)];
+%                 M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok;
+%                 K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
+%                 f_const(index_glob) = f_const(index_glob) + f_lok;
             end
+            M = sparse(i,j,M,7*data.num_knots,7*data.num_knots);
+            K = sparse(i,j,K,7*data.num_knots,7*data.num_knots);
+            f_const = sparse(fi,ones(size(fi)),f,7*data.num_knots,1);
             
             %% Einbau der Randbedingungen
             % Balken

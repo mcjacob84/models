@@ -92,12 +92,28 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
 
             % Tangentiale Steifigkeitsmatrix aufstellen und schwache Form mit der aktuellen Verschiebung auswerten
             el = this.sys.Model.Elements;
-            for i=1:length(el)
-                index_glob = el{i}.getGlobalIndices;
-                [K_lok, R_lok] = el{i}.getLocalTangentials(u(index_glob));
+%             i = []; j = []; K = []; R = []; ir = [];
+            for k=1:length(el)
+                index_glob = el{k}.getGlobalIndices;
+                [K_lok, R_lok] = el{k}.getLocalTangentials(u(index_glob));
+                
+                % Unklar welche alternative schneller ist; muss man in
+                % späteren tests mal profilen. Idealerweise müssen die i,j
+                % etc vektoren auch vorinitialisiert werden..
+%                 [li,lj] = meshgrid(index_glob);
+%                 i = [i; li(:)];
+%                 j = [j; lj(:)];
+%                 K = [K; K_lok(:)];
+%                 
+%                 ir = [ir; index_glob'];
+%                 R = [R; R_lok];
                 K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
                 R(index_glob) = R(index_glob) + R_lok;
             end
+%             % Steifigkeitsmatrix für u und T
+%             K = sparse(i,j,K,7 * data.num_knots, 7 * data.num_knots);
+%             % Residuumsvektor
+%             R = sparse(ir,ones(size(ir)),R, 7 * data.num_knots, 1);
         end
     end
 end
