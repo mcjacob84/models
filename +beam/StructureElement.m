@@ -45,6 +45,8 @@ classdef StructureElement < handle
     
     properties(Access=protected)
         % The global transformation matrix (?)
+        %
+        % Is assigned in the subclasses' initialize method.
         TG;
     end
     

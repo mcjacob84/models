@@ -91,45 +91,10 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
             R = sparse(7 * data.num_knots, 1);
 
             % Tangentiale Steifigkeitsmatrix aufstellen und schwache Form mit der aktuellen Verschiebung auswerten
-            for i = 1:data.num_elem_RO
-%                 index_0_glob = 7*data.knot_index(m.RO(i).PointsIdx(1))-6 : 7*data.knot_index(m.RO(i).PointsIdx(1))-1;
-%                 index_L_glob = 7*data.knot_index(m.RO(i).PointsIdx(2))-6 : 7*data.knot_index(m.RO(i).PointsIdx(2))-1;
-%                 index_glob = [index_0_glob index_L_glob];
-                index_glob = m.RO(i).getGlobalIndices;
-
-                u_e = u(index_glob);
-
-                [K_lok, R_lok] = m.RO(i).getLocalTangentials(u_e);
-
-                K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
-                R(index_glob) = R(index_glob) + R_lok;
-            end
-
-            for i = 1:data.num_elem_KR
-%                 index_0_glob = 7*data.knot_index(m.KR(i).PointsIdx(1))-6 : 7*data.knot_index(m.KR(i).PointsIdx(1))-1;
-%                 index_L_glob = 7*data.knot_index(m.KR(i).PointsIdx(2))-6 : 7*data.knot_index(m.KR(i).PointsIdx(2))-1;
-%                 index_glob = [index_0_glob index_L_glob];
-                index_glob = m.KR(i).getGlobalIndices;
-
-                u_e = u(index_glob);
-
-                [K_lok, R_lok] = m.KR(i).getLocalTangentials(u_e);
-
-                K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
-                R(index_glob) = R(index_glob) + R_lok;
-            end
-
-            for i = 1:data.num_elem_FH
-%                 index_0_glob = 7*data.knot_index(m.FH(i).PointsIdx(1))-6 : 7*data.knot_index(m.FH(i).PointsIdx(1))-4;
-%                 index_L_glob = 7*data.knot_index(m.FH(i).PointsIdx(2))-6 : 7*data.knot_index(m.FH(i).PointsIdx(2))-4;
-%                 index_glob = [index_0_glob index_L_glob];
-                
-                index_glob = m.FH(i).getGlobalIndices;
-
-                u_e = u(index_glob);
-
-                [K_lok, R_lok] = m.FH(i).getLocalTangentials(u_e);
-
+            el = this.sys.Model.Elements;
+            for i=1:length(el)
+                index_glob = el{i}.getGlobalIndices;
+                [K_lok, R_lok] = el{i}.getLocalTangentials(u(index_glob));
                 K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
                 R(index_glob) = R(index_glob) + R_lok;
             end

@@ -83,9 +83,6 @@ function plotSingle(this, t, u)
     plot_options.crosssection = 0;              % Querschnitte (0: keine, 1: nach Theorie 1. Ordn, 2: Theorie 2. Ordn, sonst: exakt rotiert)
     plot_options.ref_config = 1;                % Plotten der Ausgangslage (0: nein, 1: ja)
 
-    RO = this.RO;
-    KR = this.KR;
-    FH = this.FH;
     p = this.Points;
     video = false;
     knoten_index = this.data.knot_index;
@@ -98,22 +95,9 @@ function plotSingle(this, t, u)
 
     % split_factor_KR = 15;  % Wie oft wird ein Viertelkreis zerlegt
 
-    num_elem_RO = size(RO, 2);
-    num_elem_KR = size(KR, 2);
-    num_elem_FH = size(FH, 2);
-
     h = figure(plot_options.figure);
     clf
     axis equal;
-    % grid on
-    % axis([0 11 -5.5 5.5]);
-    % Portal
-    % axis([0 22 0 1 -2 14 ])
-    % Rohrleitungen.txt
-    % axis([-2 2 -2 2 0 11])
-    % Spirale.txt
-    % axis([-5 5 -5 5 -5 1])
-    % Testszenario.txt
     axis(plot_options.axis)
     set(h, 'Color', 'White')
     if (video)
@@ -132,31 +116,35 @@ function plotSingle(this, t, u)
 
     %% Ausgangslage
     if (plot_options.ref_config)
-        for i = 1:num_elem_RO
-            plot3( p(RO(i).PointsIdx(:),1), p(RO(i).PointsIdx(:),2), p(RO(i).PointsIdx(:),3), 'k:', 'LineWidth', 1 );
+        el = this.Elements;
+        for i = 1:length(el)
+            e = el{i};
+            if isa(e,'models.beam.StraightBeam')
+                plot3( p(e.PointsIdx(:),1), p(e.PointsIdx(:),2), p(e.PointsIdx(:),3), 'k:', 'LineWidth', 1 );
+            elseif isa(e,'models.beam.CurvedBeam')
+%                 split = max(fix(split_factor_KR / (0.5*pi/KR(i).angle)), 1);
+                s = 0 : e.angle/(e.split+1) : e.angle;
+                % Parametrisierung des Viertelkreises in lokalen Koords
+                x = e.R * cos(s);
+                y = e.R * sin(s);
+                z = 0*s;
+                % Umrechnung in globale Koords und Verschiebung um globale Koords des lokalen Ursprungs e.pc
+                COR = e.T * [x; y; z];
+                plot3( p(e.pc, 1) + COR(1,:), p(e.pc, 2) + COR(2,:), p(e.pc, 3) + COR(3,:), 'k:' );
+            else
+                %     for i = 1:num_elem_FH
+                %         s = 0 : FH(i).Length/(4*split_factor_FH) : FH(i).Length;
+                %         % Parametrisierung des Viertelkreises in lokalen Koords
+                %         y = (FH(i).Length/(2*split_factor_FH)) * sin( 2*pi*s / (FH(i).Length/split_factor_FH) );
+                %         x = s;
+                %         z = 0*s;
+                %         % Umrechnung in globale Koords und Verschiebung um globale Koords des
+                %         % lokalen Ursprungs e.pc
+                %         COR = FH(i).T * [x; y; z];
+                %         plot3( p(FH(i).p(1), 1) + COR(1,:), p(FH(i).p(1), 2) + COR(2,:), p(FH(i).p(1), 3) + COR(3,:), 'k:', 'LineWidth', 1 );
+                %     end
+            end
         end
-        for i = 1:num_elem_KR
-        %     split = max(fix(split_factor_KR / (0.5*pi/KR(i).angle)), 1);
-            s = 0 : KR(i).angle/(KR(i).split+1) : KR(i).angle;
-            % Parametrisierung des Viertelkreises in lokalen Koords
-            x = KR(i).R * cos(s);
-            y = KR(i).R * sin(s);
-            z = 0*s;
-            % Umrechnung in globale Koords und Verschiebung um globale Koords des lokalen Ursprungs KR(i).pc
-            COR = KR(i).T * [x; y; z];
-            plot3( p(KR(i).pc, 1) + COR(1,:), p(KR(i).pc, 2) + COR(2,:), p(KR(i).pc, 3) + COR(3,:), 'k:' );
-        end
-    %     for i = 1:num_elem_FH
-    %         s = 0 : FH(i).Length/(4*split_factor_FH) : FH(i).Length;
-    %         % Parametrisierung des Viertelkreises in lokalen Koords
-    %         y = (FH(i).Length/(2*split_factor_FH)) * sin( 2*pi*s / (FH(i).Length/split_factor_FH) );
-    %         x = s;
-    %         z = 0*s;
-    %         % Umrechnung in globale Koords und Verschiebung um globale Koords des
-    %         % lokalen Ursprungs KR(i).pc
-    %         COR = FH(i).T * [x; y; z];
-    %         plot3( p(FH(i).p(1), 1) + COR(1,:), p(FH(i).p(1), 2) + COR(2,:), p(FH(i).p(1), 3) + COR(3,:), 'k:', 'LineWidth', 1 );
-    %     end
     end
 
     %% Berechnung der zu visualisierenden Größen
@@ -214,35 +202,22 @@ function plotSingle(this, t, u)
 
     % VARIANTE 2: Visualisierung nach Temperatur
     % -------------------------------------------------------------------------
-    N = zeros(num_elem_RO + num_elem_KR, 1);
-    offset = 0;
-    for i = 1:num_elem_RO
-        % Temperatur der der Anfangs- u Endpunkte
-        T1 = u(7*knoten_index(RO(i).PointsIdx(1)));
-        T2 = u(7*knoten_index(RO(i).PointsIdx(2))); 
-        N(i) = 0.5 * (T1 + T2);
-
-        offset = offset + 1;
+    el = this.Elements;
+    N = zeros(length(el));
+    idx = [];
+    for i = 1:length(el)
+        e = el{i};
+        if ~isa(e,'models.beam.Truss')
+            idx(end+1) = i;%#ok
+            N(i) = .5*sum(u(7*knoten_index(e.PointsIdx(:))));
+        end
     end
-
-    for i = 1:num_elem_KR
-        indices = 7*knoten_index(KR(i).PointsIdx(:));       
-        % Temperatur der der Anfangs- u Endpunkte
-        u_elem = u(indices);
-
-        N(offset + i) = 0.5*(u_elem(1) + u_elem(2));
-    end
-
-    % N_min = -.7e6;
-    % N_max = .7e6;
-    % N_min = -5;
-    % N_max = 5;
-    % N_min = min(N) - .5
-    % N_max = max(N) + .5
-
+    % Reduce to actually assigned temperatures (excluding trusses)
+    % N(i) entspricht Farbe für this.Elements{idx(i)}
+    N = N(idx);
+  
     N_min = 0;
     N_max = 2e6;
-
 
     %% Colormaps und Farbindexing
     % col = colormap('hot');
@@ -278,235 +253,216 @@ function plotSingle(this, t, u)
 
     %% Plotten
     offset = 0;
-    for i = 1:num_elem_RO
-        % (End)Indizes der Anfangs- und Endpunkte des Elements im globalen
-        % Verschiebungsvektor
-        indices = 7*knoten_index(RO(i).PointsIdx(:));
-        % (Verstärkte) Verschiebung der der Anfangs- u Endpunkte
-    %     u_p = plot_options.multiplier * [u(indices-6) u(indices-5) u(indices-4)];
+    for i = 1:length(el)
+        e = el{i};
+        if isa(e,'models.beam.StraightBeam')
+            % (End)Indizes der Anfangs- und Endpunkte des Elements im globalen
+            % Verschiebungsvektor
+            indices = 7*knoten_index(e.PointsIdx(:));
+            % (Verstärkte) Verschiebung der der Anfangs- u Endpunkte
+            %     u_p = plot_options.multiplier * [u(indices-6) u(indices-5) u(indices-4)];
 
-    %     plot3( p(RO(i).p(:),1) + u_p(:,1), p(RO(i).p(:),2) + u_p(:,2), p(RO(i).p(:),3) + u_p(:,3), '-+', 'LineWidth', 3, 'Color', col(col_index(i),:) );
-        offset = offset + 1;
+            %     plot3( p(e.p(:),1) + u_p(:,1), p(e.p(:),2) + u_p(:,2), p(e.p(:),3) + u_p(:,3), '-+', 'LineWidth', 3, 'Color', col(col_index(i),:) );
+            offset = offset + 1;
 
-        u1_lok = [RO(i).T' * u([indices(1)-6:indices(1)-4]); RO(i).T' * u([indices(1)-3:indices(1)-1])];
-        u2_lok = [RO(i).T' * u([indices(2)-6:indices(2)-4]); RO(i).T' * u([indices(2)-3:indices(2)-1])];
+            u1_lok = [e.T' * u([indices(1)-6:indices(1)-4]); e.T' * u([indices(1)-3:indices(1)-1])];
+            u2_lok = [e.T' * u([indices(2)-6:indices(2)-4]); e.T' * u([indices(2)-3:indices(2)-1])];
 
-         % Ableitungen der Basisfunktionen
-        N_prime_1 = RO(i).beam_shape_functions_derivative(0);
-        N_prime_2 = RO(i).beam_shape_functions_derivative(RO(i).Length);
-        % Ableitungen der Variablen berechnen
-        u1_prime_lok = N_prime_1 * [u1_lok; u2_lok];
-        u2_prime_lok = N_prime_2 * [u1_lok; u2_lok];   
+             % Ableitungen der Basisfunktionen
+            N_prime_1 = e.beam_shape_functions_derivative(0);
+            N_prime_2 = e.beam_shape_functions_derivative(e.Length);
+            % Ableitungen der Variablen berechnen
+            u1_prime_lok = N_prime_1 * [u1_lok; u2_lok];
+            u2_prime_lok = N_prime_2 * [u1_lok; u2_lok];   
 
-        if ( strcmpi(plot_options.colorbar, 'Temperatur') )
-            % Temperatur
-            val1 = u(7*knoten_index(RO(i).p(1)));
-            val2 = u(7*knoten_index(RO(i).p(2)));
-        elseif ( strcmpi(plot_options.colorbar, 'Normalkraft') )
-            % Normalenkraft
-            val1 = RO(i).c(13) * RO(i).Length * u1_prime_lok(1);
-            val2 = RO(i).c(13) * RO(i).Length * u2_prime_lok(1);
-        elseif ( strcmpi(plot_options.colorbar, 'Querkraft y') )
-            % Querkraft y
-            val1 = RO(i).c(3) / RO(i).Length * (u1_prime_lok(2) - u1_lok(6));
-            val2 = RO(i).c(3) / RO(i).Length * (u2_prime_lok(2) - u2_lok(6));
-        elseif ( strcmpi(plot_options.colorbar, 'Querkraft z') )
-            % Querkraft z
-            val1 = RO(i).c(3) / RO(i).Length * (u1_prime_lok(3) - u1_lok(5));
-            val2 = RO(i).c(3) / RO(i).Length * (u2_prime_lok(3) - u2_lok(5));
-        elseif ( strcmpi(plot_options.colorbar, 'Gesamtquerkraft') )
-            % Gesamtquerkraft
-            val1 = RO(i).c(3) / RO(i).Length * sqrt((u1_prime_lok(2) - u1_lok(6))^2 + (u1_prime_lok(3) - u1_lok(5))^2);
-            val2 = RO(i).c(3) / RO(i).Length * sqrt((u2_prime_lok(2) - u2_lok(6))^2 + (u2_prime_lok(3) - u2_lok(5))^2);
-        elseif ( strcmpi(plot_options.colorbar, 'Torsionsmoment') )
-            % Torsionsmoment
-            val1 = RO(i).c(14) * RO(i).Length * abs(u1_prime_lok(4));
-            val2 = RO(i).c(14) * RO(i).Length * abs(u2_prime_lok(4));
-        elseif ( strcmpi(plot_options.colorbar, 'Biegemoment y') )    
-            % Biegemoment y
-            val1 = RO(i).c(1) * u1_prime_lok(5);
-            val2 = RO(i).c(1) * u2_prime_lok(5);
-        elseif ( strcmpi(plot_options.colorbar, 'Biegemoment z') )    
-            % Biegemoment z
-            val1 = RO(i).c(1) * u1_prime_lok(6);
-            val2 = RO(i).c(1) * u2_prime_lok(6);
-        elseif ( strcmpi(plot_options.colorbar, 'Gesamtbiegemoment') )
-            % Gesamtbiegemoment
-            val1 = RO(i).c(1) * sqrt(u1_prime_lok(5)^2 + u1_prime_lok(6)^2);
-            val2 = RO(i).c(1) * sqrt(u2_prime_lok(5)^2 + u2_prime_lok(6)^2);
-        else
-            % Keine Farbe
-            val1 = N_min;
-            val2 = N_min;
-        end
+            if ( strcmpi(plot_options.colorbar, 'Temperatur') )
+                % Temperatur
+                val1 = u(7*knoten_index(e.p(1)));
+                val2 = u(7*knoten_index(e.p(2)));
+            elseif ( strcmpi(plot_options.colorbar, 'Normalkraft') )
+                % Normalenkraft
+                val1 = e.c(13) * e.Length * u1_prime_lok(1);
+                val2 = e.c(13) * e.Length * u2_prime_lok(1);
+            elseif ( strcmpi(plot_options.colorbar, 'Querkraft y') )
+                % Querkraft y
+                val1 = e.c(3) / e.Length * (u1_prime_lok(2) - u1_lok(6));
+                val2 = e.c(3) / e.Length * (u2_prime_lok(2) - u2_lok(6));
+            elseif ( strcmpi(plot_options.colorbar, 'Querkraft z') )
+                % Querkraft z
+                val1 = e.c(3) / e.Length * (u1_prime_lok(3) - u1_lok(5));
+                val2 = e.c(3) / e.Length * (u2_prime_lok(3) - u2_lok(5));
+            elseif ( strcmpi(plot_options.colorbar, 'Gesamtquerkraft') )
+                % Gesamtquerkraft
+                val1 = e.c(3) / e.Length * sqrt((u1_prime_lok(2) - u1_lok(6))^2 + (u1_prime_lok(3) - u1_lok(5))^2);
+                val2 = e.c(3) / e.Length * sqrt((u2_prime_lok(2) - u2_lok(6))^2 + (u2_prime_lok(3) - u2_lok(5))^2);
+            elseif ( strcmpi(plot_options.colorbar, 'Torsionsmoment') )
+                % Torsionsmoment
+                val1 = e.c(14) * e.Length * abs(u1_prime_lok(4));
+                val2 = e.c(14) * e.Length * abs(u2_prime_lok(4));
+            elseif ( strcmpi(plot_options.colorbar, 'Biegemoment y') )    
+                % Biegemoment y
+                val1 = e.c(1) * u1_prime_lok(5);
+                val2 = e.c(1) * u2_prime_lok(5);
+            elseif ( strcmpi(plot_options.colorbar, 'Biegemoment z') )    
+                % Biegemoment z
+                val1 = e.c(1) * u1_prime_lok(6);
+                val2 = e.c(1) * u2_prime_lok(6);
+            elseif ( strcmpi(plot_options.colorbar, 'Gesamtbiegemoment') )
+                % Gesamtbiegemoment
+                val1 = e.c(1) * sqrt(u1_prime_lok(5)^2 + u1_prime_lok(6)^2);
+                val2 = e.c(1) * sqrt(u2_prime_lok(5)^2 + u2_prime_lok(6)^2);
+            else
+                % Keine Farbe
+                val1 = N_min;
+                val2 = N_min;
+            end
 
-        if (val1 > val_max)
-            val_max = val1;
-        end
-        if (val2 > val_max)
-            val_max = val2;
-        end
-        if (val1 < val_min)
-            val_min = val1;
-        end
-        if (val2 < val_min)
-            val_min = val2;
-        end
+            if (val1 > val_max)
+                val_max = val1;
+            end
+            if (val2 > val_max)
+                val_max = val2;
+            end
+            if (val1 < val_min)
+                val_min = val1;
+            end
+            if (val2 < val_min)
+                val_min = val2;
+            end
 
-        % Den farbgebenden Werten col1 u col2 aufgrund der Grenzen N_min/max Farbindex zuweisen
-        cols = fix( ([val1 val2] - N_min) / (N_max - N_min) * (size(col,1)-1)) + 1;
-        cols(cols > num_col) = num_col;
-        cols(cols < 1) = 1;
-        %this.plot_beam(RO(i).split, RO(i).T, RO(i).c, p(RO(i).PointsIdx(1),:), p(RO(i).PointsIdx(2),:), plot_options.multiplier*u1_lok, plot_options.multiplier*u2_lok, cols(1), cols(2), plot_options)
-        RO(i).plot(p, plot_options.multiplier*u1_lok, plot_options.multiplier*u2_lok, cols(1), cols(2), plot_options)
-    end
+            % Den farbgebenden Werten col1 u col2 aufgrund der Grenzen N_min/max Farbindex zuweisen
+            cols = fix( ([val1 val2] - N_min) / (N_max - N_min) * (size(col,1)-1)) + 1;
+            cols(cols > num_col) = num_col;
+            cols(cols < 1) = 1;
+            %this.plot_beam(e.split, e.T, e.c, p(e.PointsIdx(1),:), p(e.PointsIdx(2),:), plot_options.multiplier*u1_lok, plot_options.multiplier*u2_lok, cols(1), cols(2), plot_options)
+            e.plot(p, plot_options.multiplier*u1_lok, plot_options.multiplier*u2_lok, cols(1), cols(2), plot_options)
+            
+        elseif isa(e,'models.beam.CurvedBeam')
+            % (End)Indizes der Anfangs- und Endpunkte des Elements im globalen
+            % Verschiebungsvektor
+            indices = 7*knoten_index(e.PointsIdx(:));
 
-    for i = 1:num_elem_KR
-        % (End)Indizes der Anfangs- und Endpunkte des Elements im globalen
-        % Verschiebungsvektor
-        indices = 7*knoten_index(KR(i).PointsIdx(:));
+            % Verschiebung der der Anfangs- u Endpunkte
+            u_elem = [u(indices-6) u(indices-5) u(indices-4) u(indices-3) u(indices-2) u(indices-1)];
 
-        % Verschiebung der der Anfangs- u Endpunkte
-        u_elem = [u(indices-6) u(indices-5) u(indices-4) u(indices-3) u(indices-2) u(indices-1)];
-
-    %     split = max(fix(split_factor_KR / (0.5*pi/KR(i).angle)), 1);
-    %     split = KR(i).split;
-    %     s = ( 0 : (KR(i).angle/split) : KR(i).angle );   
-
-    %     x = KR(i).R * cos(s);
-    %     y = KR(i).R * sin(s);
-    %     z = 0*s;
-    %     COR = KR(i).T * [x; y; z];
-
-        u1_lok = KR(i).T_block1' * u_elem(1,1:3)';
-        t1_lok = KR(i).T_block1' * u_elem(1,4:6)';
-        u2_lok = KR(i).T_block2' * u_elem(2,1:3)';
-        t2_lok = KR(i).T_block2' * u_elem(2,4:6)';
-        u1 = [u1_lok; t1_lok];
-        u2 = [u2_lok; t2_lok];
-
-        % d/ds(u) - theta x e_1 (Querkräfte ohne Stoffkonstanten)
-        Q_temp = KR(i).B3*[u1; u2];
-        % d/ds(theta) (Momente ohne Stoffkonstanten)
-        M_temp = KR(i).B4*[u1; u2];
-
-        if ( strcmpi(plot_options.colorbar, 'Temperatur') )
-            % Temperatur
-            val1 = u(7*knoten_index(KR(i).PointsIdx(1)));
-            val2 = u(7*knoten_index(KR(i).PointsIdx(2)));
-        % Schnittgrößen über Element konstant!
-        elseif ( strcmpi(plot_options.colorbar, 'Normalkraft') )
-            % Normalenkraft
-            val1 = KR(i).c(3) * Q_temp(1);
-            val2 = val1;
-        elseif ( strcmpi(plot_options.colorbar, 'Querkraft y') )
-            % Querkraft y
-            val1 = KR(i).c(4) * Q_temp(2);
-            val2 = val1;
-        elseif ( strcmpi(plot_options.colorbar, 'Querkraft z') )
-            % Querkraft z
-            val1 = KR(i).c(4) * Q_temp(3);
-            val2 = val1;
-        elseif ( strcmpi(plot_options.colorbar, 'Gesamtquerkraft') )
-            % Gesamtquerkraft
-            val1 = KR(i).c(4) * sqrt(Q_temp(2)^2 + Q_temp(3)^2);
-            val2 = val1;
-        elseif ( strcmpi(plot_options.colorbar, 'Torsionsmoment') )
-            % Torsionsmoment
-            val1 = KR(i).c(2) * abs(M_temp(1));
-            val2 = val1;
-        elseif ( strcmpi(plot_options.colorbar, 'Biegemoment y') )    
-            % Biegemoment y
-            val1 = KR(i).c(1) * M_temp(2);
-            val2 = val1;
-        elseif ( strcmpi(plot_options.colorbar, 'Biegemoment z') )    
-            % Biegemoment z
-            val1 = KR(i).c(1) * M_temp(3);
-            val2 = val1;
-        elseif ( strcmpi(plot_options.colorbar, 'Gesamtbiegemoment') )
-            % Gesamtbiegemoment
-            val1 = KR(i).c(1) * sqrt(M_temp(2)^2 + M_temp(3)^2);
-            val2 = val1;
-        else
-            % Keine Farbe
-            val1 = N_min;
-            val2 = val1;
-        end
-
-        if (val1 > val_max)
-            val_max = val1;
-        end
-        if (val2 > val_max)
-            val_max = val2;
-        end
-        if (val1 < val_min)
-            val_min = val1;
-        end
-        if (val2 < val_min)
-            val_min = val2;
-        end
-
-        cols = fix( ([val1 val2] - N_min) / (N_max - N_min) * (size(col,1)-1)) + 1;
-        cols(cols > num_col) = num_col;
-        cols(cols < 1) = 1;
-        u1 = plot_options.multiplier * u1;
-        u2 = plot_options.multiplier * u2;
-        
-        KR(i).plot(p, u1, u2, cols(1), cols(2), plot_options);
-        %this.plot_circle(KR(i).split, KR(i).T, KR(i).T_block1, KR(i).T_block2, KR(i).Fren, KR(i).R, KR(i).angle, KR(i).B, p(KR(i).pc,:), u1, u2, cols(1), cols(2), plot_options)
-
-    %     x = [u0_lok; t0_lok; uL_lok; tL_lok];
-    %     x_lok = zeros(6, length(s));
-    %     for j = 1:length(s)
-    %         Ns = circle_shape_functions(KR(i).R, KR(i).R*s(j), KR(i).B);
-    %         x_lok(:,j) = Ns*x;
-    %     end
-    %     
-    %     u_lok = x_lok(1:3,:);
-    %     u_p = 0*u_lok;
-    %     u_p(:,1) = plot_factor * u_elem(1,1:3)';
-    %     u_p(:,length(s)) = plot_factor * u_elem(2,1:3)';
-    %     for k = 2:length(s)-1        
-    %         u_p(:,k) = plot_factor * KR(i).T * KR(i).Fren(s(k)) * u_lok(:,k);       
-    %     end
-    %     plot3( p(KR(i).pc, 1) + COR(1,:) + u_p(1,:), p(KR(i).pc, 2) + COR(2,:) + u_p(2,:), p(KR(i).pc, 3) + COR(3,:) + u_p(3,:), 'LineWidth', 3, 'Color', col(col_index(offset + i),:) );
-    %     plot3( p(KR(i).PointsIdx(:),1) + u_p(1,[1 length(s)])', p(KR(i).PointsIdx(:),2) +  + u_p(2,[1 length(s)])', p(KR(i).PointsIdx(:),3) + u_p(3,[1 length(s)])', '+', 'LineWidth', 3, 'Color', col(col_index(offset + i),:) );
-    % %     plot3( p(KR(i).pc, 1) + COR(1,:) + u_p(1,:), p(KR(i).pc, 2) + COR(2,:) + u_p(2,:), p(KR(i).pc, 3) + COR(3,:) + u_p(3,:), 'LineWidth', 3);
-
-    end
-
-    for i = 1:num_elem_FH
-
-        % Verschiebungsvektor
-        indices = 7*knoten_index(FH(i).PointsIdx(:));
-
-        % Verschiebung der der Anfangs- u Endpunkte
-        u_elem = [u(indices-6) u(indices-5) u(indices-4)];
-
-        if (i==5)
-            plot3( p(FH(i).PointsIdx(:), 1) + plot_options.multiplier *u_elem(:,1), p(FH(i).PointsIdx(:), 2) + plot_options.multiplier *u_elem(:,2), p(FH(i).PointsIdx(:), 3) + plot_options.multiplier *u_elem(:,3), 'k', 'LineWidth', 3 );
-            continue;
-        end
-
-%     % 	u0_lok = FH(i).T' * u_elem(1,:)';   
-%     %     uL_lok = FH(i).T' * u_elem(2,:)';
-%     %     
-%     %     u_lok = uL_lok * s/FH(i).Length + u0_lok * (1 - s/FH(i).Length);   
+%             split = max(fix(split_factor_KR / (0.5*pi/e.angle)), 1);
+%             split = e.split;
+%             s = ( 0 : (e.angle/split) : e.angle );   
 % 
-%         s = 0 : FH(i).Length/(4*split_factor_FH) : FH(i).Length;
-% 
-%         u_p = plot_options.multiplier * (u_elem(2,:)' * s/FH(i).Length + u_elem(1,:)' * (1 - s/FH(i).Length));
-%         % Parametrisierung des Viertelkreises in lokalen Koords
-%         y = (FH(i).Length/(2*split_factor_FH)) * sin( 2*pi*s / (FH(i).Length/split_factor_FH) );
-%         x = s;
-%         z = 0*s;
-%         % Umrechnung in globale Koords und Verschiebung um globale Koords des
-%         % lokalen Ursprungs KR(i).pc
-%         COR = FH(i).T * [x; y; z];
-%         plot3( p(FH(i).PointsIdx(1), 1) + COR(1,:) + u_p(1,:), ...
-%                p(FH(i).PointsIdx(1), 2) + COR(2,:) + u_p(2,:), ...
-%                p(FH(i).PointsIdx(1), 3) + COR(3,:) + u_p(3,:), 'k' );
-        FH(i).plot(p, u_elem, plot_options);
+%             x = e.R * cos(s);
+%             y = e.R * sin(s);
+%             z = 0*s;
+%             COR = e.T * [x; y; z];
+
+            u1_lok = e.T_block1' * u_elem(1,1:3)';
+            t1_lok = e.T_block1' * u_elem(1,4:6)';
+            u2_lok = e.T_block2' * u_elem(2,1:3)';
+            t2_lok = e.T_block2' * u_elem(2,4:6)';
+            u1 = [u1_lok; t1_lok];
+            u2 = [u2_lok; t2_lok];
+
+            % d/ds(u) - theta x e_1 (Querkräfte ohne Stoffkonstanten)
+            Q_temp = e.B3*[u1; u2];
+            % d/ds(theta) (Momente ohne Stoffkonstanten)
+            M_temp = e.B4*[u1; u2];
+
+            if ( strcmpi(plot_options.colorbar, 'Temperatur') )
+                % Temperatur
+                val1 = u(7*knoten_index(e.PointsIdx(1)));
+                val2 = u(7*knoten_index(e.PointsIdx(2)));
+            % Schnittgrößen über Element konstant!
+            elseif ( strcmpi(plot_options.colorbar, 'Normalkraft') )
+                % Normalenkraft
+                val1 = e.c(3) * Q_temp(1);
+                val2 = val1;
+            elseif ( strcmpi(plot_options.colorbar, 'Querkraft y') )
+                % Querkraft y
+                val1 = e.c(4) * Q_temp(2);
+                val2 = val1;
+            elseif ( strcmpi(plot_options.colorbar, 'Querkraft z') )
+                % Querkraft z
+                val1 = e.c(4) * Q_temp(3);
+                val2 = val1;
+            elseif ( strcmpi(plot_options.colorbar, 'Gesamtquerkraft') )
+                % Gesamtquerkraft
+                val1 = e.c(4) * sqrt(Q_temp(2)^2 + Q_temp(3)^2);
+                val2 = val1;
+            elseif ( strcmpi(plot_options.colorbar, 'Torsionsmoment') )
+                % Torsionsmoment
+                val1 = e.c(2) * abs(M_temp(1));
+                val2 = val1;
+            elseif ( strcmpi(plot_options.colorbar, 'Biegemoment y') )    
+                % Biegemoment y
+                val1 = e.c(1) * M_temp(2);
+                val2 = val1;
+            elseif ( strcmpi(plot_options.colorbar, 'Biegemoment z') )    
+                % Biegemoment z
+                val1 = e.c(1) * M_temp(3);
+                val2 = val1;
+            elseif ( strcmpi(plot_options.colorbar, 'Gesamtbiegemoment') )
+                % Gesamtbiegemoment
+                val1 = e.c(1) * sqrt(M_temp(2)^2 + M_temp(3)^2);
+                val2 = val1;
+            else
+                % Keine Farbe
+                val1 = N_min;
+                val2 = val1;
+            end
+
+            if (val1 > val_max)
+                val_max = val1;
+            end
+            if (val2 > val_max)
+                val_max = val2;
+            end
+            if (val1 < val_min)
+                val_min = val1;
+            end
+            if (val2 < val_min)
+                val_min = val2;
+            end
+
+            cols = fix( ([val1 val2] - N_min) / (N_max - N_min) * (size(col,1)-1)) + 1;
+            cols(cols > num_col) = num_col;
+            cols(cols < 1) = 1;
+            u1 = plot_options.multiplier * u1;
+            u2 = plot_options.multiplier * u2;
+
+            e.plot(p, u1, u2, cols(1), cols(2), plot_options);
+
+%             x = [u0_lok; t0_lok; uL_lok; tL_lok];
+%             x_lok = zeros(6, length(s));
+%             for j = 1:length(s)
+%                 Ns = circle_shape_functions(e.R, e.R*s(j), e.B);
+%                 x_lok(:,j) = Ns*x;
+%             end
+%             
+%             u_lok = x_lok(1:3,:);
+%             u_p = 0*u_lok;
+%             u_p(:,1) = plot_factor * u_elem(1,1:3)';
+%             u_p(:,length(s)) = plot_factor * u_elem(2,1:3)';
+%             for k = 2:length(s)-1        
+%                 u_p(:,k) = plot_factor * e.T * e.Fren(s(k)) * u_lok(:,k);       
+%             end
+%             plot3( p(e.pc, 1) + COR(1,:) + u_p(1,:), p(e.pc, 2) + COR(2,:) + u_p(2,:), p(e.pc, 3) + COR(3,:) + u_p(3,:), 'LineWidth', 3, 'Color', col(col_index(offset + i),:) );
+%             plot3( p(e.PointsIdx(:),1) + u_p(1,[1 length(s)])', p(e.PointsIdx(:),2) +  + u_p(2,[1 length(s)])', p(e.PointsIdx(:),3) + u_p(3,[1 length(s)])', '+', 'LineWidth', 3, 'Color', col(col_index(offset + i),:) );
+%         %     plot3( p(e.pc, 1) + COR(1,:) + u_p(1,:), p(e.pc, 2) + COR(2,:) + u_p(2,:), p(e.pc, 3) + COR(3,:) + u_p(3,:), 'LineWidth', 3);
+
+        %% Plot of Truss elements    
+        else
+            % Verschiebungsvektor
+            indices = 7*knoten_index(e.PointsIdx(:));
+
+            % Verschiebung der der Anfangs- u Endpunkte
+            u_elem = [u(indices-6) u(indices-5) u(indices-4)];
+
+            if (i==5)
+                plot3( p(e.PointsIdx(:), 1) + plot_options.multiplier *u_elem(:,1), p(e.PointsIdx(:), 2) + plot_options.multiplier *u_elem(:,2), p(e.PointsIdx(:), 3) + plot_options.multiplier *u_elem(:,3), 'k', 'LineWidth', 3 );
+                continue;
+            end
+            
+            e.plot(p, u_elem, plot_options);
+        end
     end
 
     % Geschwindigkeitsvektoren plotten
@@ -532,8 +488,8 @@ function plotSingle(this, t, u)
     % camtarget([0 0 0])
     hold off;
 
-    val_min
-    val_max
+    %val_min
+    %val_max
 
     % Frame für Video speichern und anhängen
     if (video)

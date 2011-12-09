@@ -88,6 +88,10 @@ classdef StraightBeam < models.beam.Beam
                  zeros(4,2)     zeros(4,2)      zeros(4,4)  M_w+M_psi];
 
             M = this.TG * M * this.TG';
+            
+            % Komisches umsortieren
+            index_lok = [1 5 9 3 10 6 2 7 11 4 12 8];
+            M = M(index_lok,index_lok);
         end
         
         function K = getLocalStiffnessMatrix(this)
@@ -108,6 +112,12 @@ classdef StraightBeam < models.beam.Beam
             % c12 = rho*A*l/6; 
             % c13 = E*A/l;
             % c14 = G*I_t/l
+            %
+            % @note Habe das ehemals in prepareConstants liegende index_lok
+            % hier ans ende jeder fkt gepackt:
+            % index_0_lok = [1 5 9 3 10 6];
+            % index_l_lok = [2 7 11 4 12 8];
+            % index_lok = [index_0_lok index_l_lok]
             
             c = this.c;
             l = this.Length;
@@ -139,6 +149,10 @@ classdef StraightBeam < models.beam.Beam
                  zeros(4,2)     zeros(4,2)      zeros(4,4)  K_w_block];
 
             K = this.TG * K * this.TG';
+            
+            % Komisches umsortieren
+            index_lok = [1 5 9 3 10 6 2 7 11 4 12 8];
+            K = K(index_lok,index_lok);
         end
         
         function f = getLocalForce(this, gravity)
@@ -150,6 +164,10 @@ classdef StraightBeam < models.beam.Beam
             f_w = q_lok(3) * l/12 * [6; -l; 6; l];
             
             f = this.TG * [f_u; f_v; f_w];
+            
+            % Komisches umsortieren
+            index_lok = [1 5 9 3 10 6 2 7 11 4 12 8];
+            f = f(index_lok);
         end
         
         function [K, R, U_pot] = getLocalTangentials(this, u)

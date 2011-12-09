@@ -46,7 +46,7 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
             % Massenmatrix (u und T)
             m = this.sys.Model;
             data = m.data;
-            RO = m.RO;
+            
             withHeat = false;
             
             % Mass matrix (M is actually the full M (including dirichlet
@@ -56,71 +56,21 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
             % Steifigkeitsmatrix für u und T
             K = sparse(7 * data.num_knots, 7 * data.num_knots);
             % Kraftvektor und Wärmequellen 
-            f_const = sparse(7 * data.num_knots, 1); 
+            f_const = sparse(7 * data.num_knots, 1);
 
-            for i = 1:data.num_elem_RO
-                M_lok = RO(i).getLocalMassMatrix;
-                K_lok = RO(i).getLocalStiffnessMatrix;
-                f_lok = RO(i).getLocalForce(m.Gravity);
-                index_0_lok = [1 5 9 3 10 6];
-                index_l_lok = [2 7 11 4 12 8];
+            %% Assemblieren der globalen matrizen
+            e = this.sys.Model.Elements;
+            for i = 1:length(e)
+                M_lok = e{i}.getLocalMassMatrix;
+                K_lok = e{i}.getLocalStiffnessMatrix;
+                f_lok = e{i}.getLocalForce(m.Gravity);
+                index_glob = e{i}.getGlobalIndices;
 
-%                 p = RO(i).PointsIdx;
-%                 index_0_glob = 7*data.knot_index(p(1))-6 : 7*data.knot_index(p(1))-1;
-%                 index_l_glob = 7*data.knot_index(p(2))-6 : 7*data.knot_index(p(2))-1;
-% 
-%                 index_glob = [index_0_glob index_l_glob];
-                index_glob = RO(i).getGlobalIndices;
-                index_lok = [index_0_lok index_l_lok];
-
-                M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok(index_lok, index_lok); %#ok<*SPRIX>
-                K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok(index_lok, index_lok);
-                f_const(index_glob) = f_const(index_glob) + f_lok(index_lok);
+                M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok; %#ok<*SPRIX>
+                K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
+                f_const(index_glob) = f_const(index_glob) + f_lok;
             end
             
-            KR = m.KR;
-            for i = 1:data.num_elem_KR
-                M_lok = KR(i).getLocalMassMatrix;
-                K_lok = KR(i).getLocalStiffnessMatrix;
-                f_lok = KR(i).getLocalForce(m.Gravity);
-                
-                %[M_lok, K_lok] = this.loc_matrix_circle_special(KR(i).R, KR(i).T_block1, KR(i).T_block2, KR(i).B, KR(i).angle, KR(i).c);
-                %f_lok = this.loc_matrix_circle_special_force(KR(i).R, KR(i).Fren, KR(i).T_block1, KR(i).T_block2, KR(i).B, KR(i).angle, KR(i).q_lok);
-%                 p = KR(i).PointsIdx;
-%                 index_0_glob = 7*data.knot_index(p(1))-6 : 7*data.knot_index(p(1))-1;
-%                 index_l_glob = 7*data.knot_index(p(2))-6 : 7*data.knot_index(p(2))-1;
-% 
-%                 index_glob = [index_0_glob index_l_glob];
-                index_glob = KR(i).getGlobalIndices;
-                M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok;
-                K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
-                f_const(index_glob) = f_const(index_glob) + f_lok;
-            end
-
-            FH = m.FH;
-            for i = 1:data.num_elem_FH
-                M_lok = FH(i).getLocalMassMatrix;
-                K_lok = FH(i).getLocalStiffnessMatrix;
-                f_lok = FH(i).getLocalForce(m.Gravity);
-
-%                 index_0_glob = 7*data.knot_index(FH(i).PointsIdx(1))-6 : 7*data.knot_index(FH(i).PointsIdx(1))-4;
-%                 index_l_glob = 7*data.knot_index(FH(i).PointsIdx(2))-6 : 7*data.knot_index(FH(i).PointsIdx(2))-4;
-%                 index_glob = [index_0_glob index_l_glob];
-                index_glob = FH(i).getGlobalIndices;
-                
-                M(index_glob, index_glob) = M(index_glob, index_glob) + M_lok;
-                K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
-                f_const(index_glob) = f_const(index_glob) + f_lok;
-
-%                 % Beiträge der Heat-equation assemblieren
-%                 [M_lok, K_lok, f_lok] = loc_matrix_heat(FH(i).l, [0; 0]);
-%                 index_glob = [7*data.knot_index(FH(i).p(1)) 7*data.knot_index(FH(i).p(2))];
-%                 if (dynamic)
-%                     M(index_glob, index_glob) = M(index_glob, index_glob) + FH(i).c_theta * M_lok;
-%                 end
-%                 K(index_glob, index_glob) = K(index_glob, index_glob) + FH(i).kappa * K_lok;    
-            end
-
             %% Einbau der Randbedingungen
             % Balken
             for i = 1:length(data.neumann)

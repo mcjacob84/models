@@ -62,22 +62,18 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         % @type matrix
         Points;
         
-        % Struct for each beam with several fields.
+        % Cell array of all model structure elements.
         % 
         % Fields:
         % p: The index of the start and end point of the beam, defined in
         % property Points.
         %
         % @type struct
-        Beams;
+        Elements;
         
         Supports;
         
         Loads;
-        
-        RO;
-        KR;
-        FH;
         
         data;
         

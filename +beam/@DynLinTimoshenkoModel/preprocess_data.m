@@ -70,43 +70,41 @@ else
     this.data.neu_data = [];
 end
 
+this.Elements = cell(1,num_elem_RO+num_elem_KR+num_elem_FH);
 %% Verarbeitung der geraden Rohrleitungen RO_raw
-RO = models.beam.StraightBeam.empty;
 gesamtlaenge = 0;
+cnt = 1;
 for i = 1:num_elem_RO
     material = this.mat(this.RO_raw(i,1),:);
     % constructor arguments: model instance, material, pointsindices
-    RO(i) = models.beam.StraightBeam(this, material, this.RO_raw(i,2:3));
-    gesamtlaenge = gesamtlaenge + RO(i).Length;
+    sb = models.beam.StraightBeam(this, material, this.RO_raw(i,2:3));
+    gesamtlaenge = gesamtlaenge + sb.Length;
+    this.Elements{cnt} = sb;
+    cnt = cnt+1;
 end
 %% Verarbeitung der krummen Rohrleitungen KR_raw
 %	KR	<Mat>	<P1>	<P2>	<PCenter>
-KR = models.beam.CurvedBeam.empty;
 for i = 1:num_elem_KR
     material = this.mat(this.KR_raw(i,1),:);
-    KR(i) = models.beam.CurvedBeam(this, material, this.KR_raw(i,2:4));
-    gesamtlaenge = gesamtlaenge + KR(i).Length;
+    cb = models.beam.CurvedBeam(this, material, this.KR_raw(i,2:4));
+    gesamtlaenge = gesamtlaenge + cb.Length;
+    this.Elements{cnt} = cb;
+    cnt = cnt+1;
 end
+%% Verarbeitung der Stäbe FH_raw
 %	FH	<Mat>	<P1>	<P2>
-FH = models.beam.Truss.empty;
 for i = 1:num_elem_FH
     material = this.mat(this.FH_raw(i,1),:);
-    FH(i) = models.beam.Truss(this, material, this.FH_raw(i,2:3));
-    %gesamtlaenge = gesamtlaenge + FH(i).Length;
+    this.Elements{cnt} = models.beam.Truss(this, material, this.FH_raw(i,2:3));
+    cnt = cnt+1;
 end
 
-% Anteil der jeweiligen Elementen an der Gesamtsystemlänge speichern
+%% Anteil der jeweiligen Elementen an der Gesamtsystemlänge speichern
 % Speichern, an wievielen Stellen das Element ausgewertet werden soll, wenn auf das Gesamtsystem M auswertungen kommen sollen
+% Gilt nur für RO und KR elemente
 M = 75;
-for i = 1:num_elem_RO
-    RO(i).split = round(M * RO(i).Length / gesamtlaenge); %#ok<*AGROW>
-end
-for i = 1:num_elem_KR
-    KR(i).split = round(M * KR(i).angle * KR(i).R / gesamtlaenge);
+for i = 1:num_elem_RO+num_elem_KR
+    this.Elements{i}.split = round(M * this.Elements{i}.Length / gesamtlaenge);
 end
 
 fprintf('Gesamtlänge: %f\n',gesamtlaenge);
-
-this.RO = RO;
-this.KR = KR;
-this.FH = FH;
