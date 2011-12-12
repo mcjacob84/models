@@ -120,7 +120,7 @@ classdef CurvedBeam < models.beam.Beam
             K = this.TG * K * this.TG';
         end
         
-        function f = getLocalForce(this, gravity)
+        function f = getLocalForceMatrix(this)
             % Berechnet lokale Steifigkeits- und Massenmatrix eines gekrümmten
             % Timoshenko-Balkens (Viertelkreis) (numerisch mit speziell gewonnenen Ansatzfunktionen)
             %
@@ -132,12 +132,12 @@ classdef CurvedBeam < models.beam.Beam
             % c6 = rho*I
             % c7 = rho*It
                                     
-            f = zeros(12,1);
+            f = zeros(12,3);
             
             L = this.Length;
-            q_lok = (this.c(5) + this.Material.q_plus)* (this.T' * gravity);
+            q_lok = (this.c(5) + this.Material.q_plus) * this.T';
             % Stützstellen für Gaußquadratur
-            s = 0.5*L * [ (1-sqrt(3/5)), 1, (1+sqrt(3/5)) ];
+            s = 0.5*L * [(1-sqrt(3/5)), 1, (1+sqrt(3/5))];
             % Gewichte für Gaußquadratur
             w = 0.5*L * 1/9 * [5 8 5];
             for i=1:3
@@ -392,7 +392,6 @@ classdef CurvedBeam < models.beam.Beam
                 plot3( pc(1) + COR(1,1) + u_glob(1,1), pc(2) + COR(2,1) + u_glob(2,1), pc(3) + COR(3,1) + u_glob(3,1), '+', 'LineWidth', plot_options.endmarker, 'Color', cmap(col(1),:) )
                 plot3( pc(1) + COR(1,N+2) + u_glob(1,N+2), pc(2) + COR(2,N+2) + u_glob(2,N+2), pc(3) + COR(3,N+2) + u_glob(3,N+2), '+', 'LineWidth', plot_options.endmarker, 'Color', cmap(col(N+2),:) )
             end
-
 
             %% Querschnitte plotten
             if (plot_options.crosssection ~= 0)

@@ -155,19 +155,19 @@ classdef StraightBeam < models.beam.Beam
             K = K(index_lok,index_lok);
         end
         
-        function f = getLocalForce(this, gravity)
+        function f = getLocalForceMatrix(this)
             l = this.Length;
-            q_lok = (this.c(9) + this.Material.q_plus) * (this.T' * gravity);
+            q_lok = (this.c(9) + this.Material.q_plus) * this.T';
             
-            f_u = q_lok(1) * 0.5 * l * [1; 1; 0; 0];
-            f_v = q_lok(2) * l/12 * [6; l; 6; -l];
-            f_w = q_lok(3) * l/12 * [6; -l; 6; l];
+            f_u = 0.5 * l * [1; 1; 0; 0];
+            f_v = l/12 * [6; l; 6; -l];
+            f_w = l/12 * [6; -l; 6; l];
             
-            f = this.TG * [f_u; f_v; f_w];
+            f = this.TG * (blkdiag(f_u, f_v, f_w) * q_lok);
             
             % Komisches umsortieren
             index_lok = [1 5 9 3 10 6 2 7 11 4 12 8];
-            f = f(index_lok);
+            f = f(index_lok,:);
         end
         
         function [K, R, U_pot] = getLocalTangentials(this, u)
@@ -510,7 +510,6 @@ classdef StraightBeam < models.beam.Beam
 
             % Effektive Konstanten
             m = this.Material;
-            g = this.Model.GravLocalFactor;
             c(1) = m.E * m.Iy;          % c1            = E*I
             c(2) = c(1)^2;              % c2 = c1^2     = (E*I)^2
             c(3) = m.k*m.G*m.A*l;       % c3            = G*As*L
@@ -520,7 +519,8 @@ classdef StraightBeam < models.beam.Beam
             c(7) = c(1) * c(5);         % c7 = c1*c5    = E*I*G*As*L^2
             c(8) = c(1) * m.k*m.G*m.A;  % c8 = c1*G*As  = E*I*G*As
             c(9) = m.rho * m.A;         % c9 = rho*A
-            c(10) = m.rho * m.A * g;    % c10 = q = rho*A*Ortsfaktor
+            % Wird nicht benutzt!
+            %c(10) = m.rho * m.A * g;    % c10 = q = rho*A*Ortsfaktor
             c(11) = m.rho * m.Iy;       % c11= rho*I
             c(12) = c(9) * l / 6;       % c12= c9*L/6   = rho*A*L/6
             c(13) = m.E * m.A / l;      % c13= E*A/L

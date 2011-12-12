@@ -42,5 +42,6 @@ function plot(model, t, u)
 
 for tidx=1:length(t)
     model.plotSingle(t(tidx),u(:,tidx));
-    pause(.1);
+    %pause(.01);
+    drawnow;
 end

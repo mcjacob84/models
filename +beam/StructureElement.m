@@ -61,7 +61,7 @@ classdef StructureElement < handle
     methods(Abstract)
         M = getLocalMassMatrix(this);
         K = getLocalStiffnessMatrix(this);
-        f = getLocalForce(this, gravity);
+        f = getLocalForceMatrix(this, gravity);
         [K, R, U_pot] = getLocalTangentials(this, u);
         globIdx = getGlobalIndices(this);
     end

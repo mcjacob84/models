@@ -32,10 +32,10 @@ classdef DLTLinearCoreFun < models.beam.DLTBaseCoreFun & dscomponents.AffLinCore
             u(m.dir_u) = m.u_dir;
             f_dir = -this.K0*u; 
             d = length(m.free);
-            this.f_big(d+1:end) = this.f_big(d+1:end) + f_dir(m.free);
+            this.f_const_big(d+1:end) = this.f_const_big(d+1:end) + f_dir(m.free);
             
             %% Assign offset part of linear core function
-            this.b = this.f_big;
+            this.b = this.f_const_big;
             
             %% Fill inner AffLinCoreFun with matrices
             % Dämpfungsmodell 1: M a_t + (d1*M + d2*K) v_t + K u_t = f

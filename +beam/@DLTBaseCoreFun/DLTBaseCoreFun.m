@@ -21,7 +21,7 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
     end
     
     properties(Access=protected)
-        f_big;
+        f_const_big;
     end
     
     methods
@@ -44,37 +44,30 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
             %% Assemblieren der globalen matrizen
 %             % Steifigkeitsmatrix für u und T
 %             K = sparse(7 * data.num_knots, 7 * data.num_knots);
-%             % Kraftvektor und Wärmequellen 
-%             f_const = sparse(7 * data.num_knots, 1);
             e = this.sys.Model.Elements;
             i = []; j = [];
-            K = []; 
-            fi = []; f = [];
+            K = [];
             for k = 1:length(e)
                 K_lok = e{k}.getLocalStiffnessMatrix;
-                f_lok = e{k}.getLocalForce(m.Gravity);
                 index_glob = e{k}.getGlobalIndices;
 
                 [li,lj] = meshgrid(index_glob);
                 i = [i; li(:)];%#ok<*AGROW>
                 j = [j; lj(:)];
                 K = [K; K_lok(:)];
-                fi = [fi; index_glob'];%#ok<*AGROW>
-                f = [f; f_lok(:)];
 %                 K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
-%                 f_const(index_glob) = f_const(index_glob) + f_lok;
             end
             this.K0 = sparse(i,j,K,7*data.num_knots,7*data.num_knots);
-            f_const = sparse(fi,ones(size(fi)),f,7*data.num_knots,1);
-            
+                        
             % Add Neumann forces (computed in Model.preprocess_data)
-            f_const = f_const + m.f_neum;
+            % f_const = sparse(7*data.num_knots, 1) +
+            f_const = m.f_neum;
             
             % Dirichlet forces will be added directly in LinearFun.initialize, but
             % as there are none in NonlinearFun there is nothing to do here
             
             f_const = f_const(m.free);
-            this.f_big = [zeros(size(f_const)); f_const];
+            this.f_const_big = [zeros(size(f_const)); f_const];
             
             %% Jacobian matrix sparsity pattern
             % Create a fake big system matrix here to obtain the sparsity

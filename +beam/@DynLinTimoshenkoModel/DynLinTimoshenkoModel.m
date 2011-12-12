@@ -24,7 +24,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         % @propclass{optional} Scales the displacement
         %
         % @type double @default 1
-        PlotFactor = 1;
+        PlotFactor = 20;
         
         % The beam line width for plotting
         %
@@ -57,11 +57,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
     end
     
     properties(SetAccess=private)
-        % The system's full dimension
-        %
-        % @type integer
-%         dim;
-        
         % 3D coordinates of the beam end points
         %
         % @type matrix
@@ -83,9 +78,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         Materials;
         
         data;
-        
-        Gravity = [0; 0; -1];
-        GravLocalFactor = 9.81;
         
         % Vector for neumann boundary conditions
         f_neum;

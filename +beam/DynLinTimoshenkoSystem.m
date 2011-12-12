@@ -35,7 +35,7 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             % Mass matrix (M is actually the full M (including dirichlet
             % nodes), but is projected at the end of this method to the
             % size of actual DoFs)
-            M2 = sparse(7 * model.data.num_knots, 7 * model.data.num_knots);
+%             M2 = sparse(7 * model.data.num_knots, 7 * model.data.num_knots);
             e = this.Model.Elements;
             i = []; j = [];
             M = []; 
@@ -48,14 +48,13 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
                 j = [j; lj(:)];
                 M = [M; M_lok(:)];
                 
-                M2(index_glob, index_glob) = M2(index_glob, index_glob) + M_lok;
+%                 M2(index_glob, index_glob) = M2(index_glob, index_glob) + M_lok;
             end
             nk = model.data.num_knots;
             M = sparse(i,j,M,7*nk,7*nk);
             %% Mass matrix for system
             % Project M to effectively needed entries
             M = M(model.free,model.free);
-            M2 = M2(model.free,model.free);
             this.M = dscomponents.ConstMassMatrix(blkdiag(eye(size(M)), M));
             this.M_small = M;
             
@@ -63,12 +62,34 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             x0 = zeros(2*length(model.free),1);
             this.x0 = dscomponents.ConstInitialValue(x0);
             
-            %% Input
-%             B = ones(dim,3);
-%             this.B = dscomponents.LinearInputConv(B);
-%             this.Inputs{1} = @(t)[sin(t); 0; 0];
-%             this.Inputs{2} = @(t)[sin(t); cos(t); 0];
-%             this.Inputs{3} = @(t)[0; t; cos(t)];
+            %% Input (gravity)
+            % Add the 3rd parameter, the local gravity factor
+            this.addParam('gravity constant',[0 20],1);
+
+            i = []; j = [];
+            F = []; 
+            for k = 1:length(e)
+                F_lok = e{k}.getLocalForceMatrix;
+                index_glob = e{k}.getGlobalIndices;
+
+                [li,lj] = meshgrid(index_glob,1:3);
+                i = [i; li(:)]; %#ok<*AGROW>
+                j = [j; lj(:)];
+                F = [F; F_lok(:)];
+            end
+            B = dscomponents.AffLinInputConv;
+            F = sparse(i,j,F,7*nk,3);
+            F = F(model.free,:);
+            B.addMatrix('mu(3)',[sparse(size(F,1),3); F]);
+            this.B = B;
+            % Fake constant gravity
+            this.Inputs{1} = @(t)[0; 0; -1];
+            this.Inputs{2} = @(t)[-1; 0; 0];
+            this.Inputs{3} = @(t)[0; -1; 0];
+            this.Inputs{4} = @(t)[sin(t); 0; 0];
+            T = model.T;
+            this.Inputs{5} = @(t)[sin((t/T)*2*pi); cos((t/T)*2*pi); 0];
+            this.Inputs{6} = @(t)[0; sin((t/T)*2*pi); cos((t/T)*2*pi)];
             
 %             %% Output setup (dim = 3*space + 3*velo + 1*temp)
 %             %xdim = (dim - (dim/7))/2;

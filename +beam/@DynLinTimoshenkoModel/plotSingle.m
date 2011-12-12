@@ -93,25 +93,42 @@ function plotSingle(this, t, u)
     u = hlp;
 
     % split_factor_KR = 15;  % Wie oft wird ein Viertelkreis zerlegt
+    persistent h;
+    if isempty(h) || ~ishandle(h)
+        h = figure(plot_options.figure);
+        axis equal;
+        axis(plot_options.axis)
+        % RotMat = viewmtx(37.5, 30);
+        % view(RotMat)
 
-    h = figure(plot_options.figure);
-    clf
-    axis equal;
-    axis(plot_options.axis)
-    set(h, 'Color', 'White')
-    if (video)
-        set(gcf, 'Renderer', 'zbuffer');
+        % Spirale, Rohrleitungen
+        view(3)
+
+        % view(-37.5-video,30)
+        % camva(10)
+        % Portal
+        % view(0,0)
+        set(h, 'Color', 'White')
+        if (video)
+            set(gcf, 'Renderer', 'zbuffer');
+        end
+        
+        if (strcmp(plot_options.colorbar,'') == 0)
+            handle = colorbar;
+            xlabel(handle, plot_options.colorbar, 'FontSize', 12)
+        end
+        
+        hold on;
+    else
+        cla;
     end
-    hold on;
-
+    
     if (t == -1)
         title_string = sprintf('Statische Lösung (Verschiebungen um Faktor %2.1f vergrößert)', plot_options.multiplier);
     else
         title_string = sprintf('Balkenwerk zur Zeit t = %2.2f (Verschiebungen um Faktor %2.0f vergrößert)', t, plot_options.multiplier);
     end
     title(title_string, 'FontSize', 15, 'FontWeight', 'bold');
-
-
 
     %% Ausgangslage
     if (plot_options.ref_config)
@@ -230,12 +247,7 @@ function plotSingle(this, t, u)
     dc = [0:3/num_col:1]';
     col = [0*dc dc 1-dc; dc 0*dc+1 0*dc; 0*dc+1 1-dc 0*dc];
     colormap(col);
-    caxis([N_min N_max])
-
-    if (strcmp(plot_options.colorbar,'') == 0)
-        handle = colorbar;
-        xlabel(handle, plot_options.colorbar, 'FontSize', 12)
-    end
+    caxis([N_min N_max]);
 
     % Den einzelnen Werten von N den richtigen Index in der Colormap zuweisen
     if ( (N_max - N_min) > 1e-5 )
@@ -471,21 +483,9 @@ function plotSingle(this, t, u)
     %     end
     % end
 
-    % RotMat = viewmtx(37.5, 30);
-    % view(RotMat)
-
-    % Spirale, Rohrleitungen
-    view(3)
-
-    % view(-37.5-video,30)
-    % camva(10)
-    % Portal
-    % view(0,0)
-
     % camup([-1 0 1])
     % campos([0 6 0])
     % camtarget([0 0 0])
-    hold off;
 
     %val_min
     %val_max

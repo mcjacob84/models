@@ -38,7 +38,7 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
             % Daten nicht aktuell? (check inside)
             this.updateB(x, mu);
             % Funktion f auswerten
-            fx = this.f_big - this.B_big*x - this.R_big;
+            fx = this.f_const_big - this.B_big*x - this.R_big;
         end
         
         function J = getStateJacobian(this, x, t, mu)%#ok

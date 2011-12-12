@@ -59,14 +59,12 @@ classdef Truss < models.beam.StructureElement
             K = this.TG * K * this.TG';
         end
         
-        function f = getLocalForce(this, gravity)
+        function f = getLocalForceMatrix(this)
             % Berechnet lokale Kraft eines Stabes
-            
-            q_lok = this.Material.rho * this.Material.A * (this.T' * gravity);
-            f = zeros(6, 1);
-            f([1 4]) = 0.5 * q_lok(1) * this.Length * [1; 1];
-            
-            f = this.TG * f;
+            q_lok = this.Material.rho * this.Material.A * this.T';
+            f = zeros(6, 3);
+            f([1 4],1) = 0.5 * this.Length;
+            f = this.TG * f * q_lok;
         end
         
         function [K, R] = getLocalTangentials(this, u)
