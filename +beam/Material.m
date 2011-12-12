@@ -16,24 +16,34 @@ classdef Material < handle
     properties
         % Auﬂendurchmesser (m)
         d_a = 457e-3;
+        
         % Wandst‰rke (m)
         s = 40e-3;
+        
         % Isolierungsdicke (m)
         iso = 400e-3;
+        
         % Manteldicke (m)
         mantel = 1e-3;
+        
         % Dichte des Stahls (kg/m≥) (Konstruktor!)
-        rho;
+        rho = [];
+        
         % Dichte der Isolierung (kg/m≥)
         rho_iso = 100;
+        
         % Dichte des Mantels (kg/m≥)
         rho_mantel = 7850;
+        
         % Dichte des Mediums (kg/m≥)
         rho_med = 20;
+        
         % Querkontraktionszahl
         ny = 0.3;
+        
         % E-Modul (N/m≤) (Konstruktor!)
-        E;
+        E = [];
+        
         % Rohrinnendruck (N/m≤)
         p = 50 * 1e5;
     end
@@ -49,11 +59,23 @@ classdef Material < handle
     end
     
     methods
-        function this = Material(rho, E)
+        function this = Material(raw_mat)
             % @todo q_pkus in effektive dichte umrechnen
-            this.rho = rho;
-            this.E = E;
             
+            % #	MAT	NR <rho>	<A>     	<E>     	<Iy/In>		<Iz/Ib>     	<It>		<G>		<k>		<c_th>	<kappa>	<alpha>
+            this.rho = raw_mat(1);
+            this.E = raw_mat(3);
+            
+            % Compute standard dependencies
+            this.updateDependentValues;
+            
+            % Overwrite with custom settings from file here..
+            % [...]
+        end
+    end
+    
+    methods(Access=private)
+        function updateDependentValues(this)
             % Innen-/Auﬂendurchmesser des Rohrs
             r_a = 0.5 * this.d_a;
             r_i = r_a - this.s;
@@ -64,9 +86,9 @@ classdef Material < handle
             this.Iz = this.Iy;
             
             % Torsionstr‰gheitsmoment f¸r Balken
-            this.It = 2 * Iy;
+            this.It = 2 * this.Iy;
             % Schubmodul f¸r Balken
-            this.G = E / ( 2*(1+this.ny) );
+            this.G = this.E / ( 2*(1+this.ny) );
             % Schubkorrekturfaktor f¸r Balken
             m_tmp = r_i / r_a;
             this.k = 6*(1+this.ny)*(1+m_tmp^2)^2 / ( (7+6*this.ny)*(1+m_tmp^2)^2 + (20+12*this.ny)*m_tmp^2);
@@ -74,7 +96,6 @@ classdef Material < handle
             % Berechnung der durch Medium und D‰mmung verursachten zus‰tzlichen Steckenlast
             this.q_plus = pi * ( r_i^2 * this.rho_med + ( (r_a + this.iso)^2 - r_a^2 ) * this.rho_iso + ( (r_a + this.iso + this.mantel)^2 - (r_a + this.iso)^2) * this.rho_mantel );
         end
-        
     end
     
 end

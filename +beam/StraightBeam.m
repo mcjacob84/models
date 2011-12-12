@@ -157,7 +157,7 @@ classdef StraightBeam < models.beam.Beam
         
         function f = getLocalForce(this, gravity)
             l = this.Length;
-            q_lok = (this.c(9) + this.ROHR_q_plus) * (this.T' * gravity);
+            q_lok = (this.c(9) + this.Material.q_plus) * (this.T' * gravity);
             
             f_u = q_lok(1) * 0.5 * l * [1; 1; 0; 0];
             f_v = q_lok(2) * l/12 * [6; l; 6; -l];
@@ -509,24 +509,23 @@ classdef StraightBeam < models.beam.Beam
             this.TG = T;
 
             % Effektive Konstanten
-            %   <rho>	<A>     <E>     <Iy/In>     <Iz/Ib>     <It>        <G>     <k>	<c_th>	<kappa>	<alpha>
-            %   1       2       3       4           5           6           7       8   9       10      11
-            material = this.Material;
-            c(1) = material(3) * material(4);                   % c1            = E*I
-            c(2) = c(1)^2;                                      % c2 = c1^2     = (E*I)^2
-            c(3) = material(8)*material(7)*material(2)*l;       % c3            = G*As*L
-            c(4) = c(3)^2;                                      % c4 = c3^2     = (G*As*L)^2
-            c(5) = c(3) * l;                                    % c5 = c3*L     = G*As*L^2
-            c(6) = c(5)^2;                                      % c6 = c5^2     = (G*As*L^2)^2
-            c(7) = c(1) * c(5);                                 % c7 = c1*c5    = E*I*G*As*L^2
-            c(8) = c(1) * material(8)*material(7)*material(2);  % c8 = c1*G*As  = E*I*G*As
-            c(9) = material(1) * material(2);                   % c9 = rho*A
-            c(10) = material(1) * material(2) * 9.81;           %  q = rho*A*Ortsfaktor
-            c(11) = material(1) * material(4);                  % c11= rho*I
-            c(12) = c(9) * l / 6;                               % c12= c9*L/6   = rho*A*L/6
-            c(13) = material(3) * material(2) / l;              % c13= E*A/L
-            c(14) = material(7)*material(6) / l;                % c14= G*It/L
-            c(15) = material(1)*material(6)*l / 6;              % c15= rho*It*L/6
+            m = this.Material;
+            g = this.Model.GravLocalFactor;
+            c(1) = m.E * m.Iy;          % c1            = E*I
+            c(2) = c(1)^2;              % c2 = c1^2     = (E*I)^2
+            c(3) = m.k*m.G*m.A*l;       % c3            = G*As*L
+            c(4) = c(3)^2;              % c4 = c3^2     = (G*As*L)^2
+            c(5) = c(3) * l;            % c5 = c3*L     = G*As*L^2
+            c(6) = c(5)^2;              % c6 = c5^2     = (G*As*L^2)^2
+            c(7) = c(1) * c(5);         % c7 = c1*c5    = E*I*G*As*L^2
+            c(8) = c(1) * m.k*m.G*m.A;  % c8 = c1*G*As  = E*I*G*As
+            c(9) = m.rho * m.A;         % c9 = rho*A
+            c(10) = m.rho * m.A * g;    % c10 = q = rho*A*Ortsfaktor
+            c(11) = m.rho * m.Iy;       % c11= rho*I
+            c(12) = c(9) * l / 6;       % c12= c9*L/6   = rho*A*L/6
+            c(13) = m.E * m.A / l;      % c13= E*A/L
+            c(14) = m.G*m.It / l;       % c14= G*It/L
+            c(15) = m.rho*m.It*l / 6;   % c15= rho*It*L/6
             this.c = c;
         end
     end

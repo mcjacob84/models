@@ -38,9 +38,9 @@ classdef StructureElement < handle
         % Effektive Stoffkonstanten
         c;
         
-        c_theta = [];
-        kappa = [];
-        alphaA = [];
+%         c_theta = [];
+%         kappa = [];
+%         alphaA = [];
     end
     
     properties(Access=protected)

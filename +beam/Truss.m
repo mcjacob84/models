@@ -60,17 +60,9 @@ classdef Truss < models.beam.StructureElement
         end
         
         function f = getLocalForce(this, gravity)
-            % Berechnet lokale Steifigkeits- und Massenmatrix eines Stabes
-            % c kodiert Stoffparameter:
-            % c1 = E*A/L      (Federhärte)
-            % c2 = rho*A*L/6
+            % Berechnet lokale Kraft eines Stabes
             
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Sortierung der Variablen:
-            % u0, v0, w0, u1, v1, w1
-            %  1   2   3   4   5   6
-            
-            q_lok = this.Material(1) * this.Material(2) * (this.T' * gravity);
+            q_lok = this.Material.rho * this.Material.A * (this.T' * gravity);
             f = zeros(6, 1);
             f([1 4]) = 0.5 * q_lok(1) * this.Length * [1; 1];
             
@@ -84,12 +76,7 @@ classdef Truss < models.beam.StructureElement
             % c2 = rho*A*L/6
             
             L = this.Length;
-            c = this.c;
-
-            % Transformationsmatrix: natürliche Koords -> glob. Koords
-            % Sortierung der Variablen: 
-            % u0, v0, w0, u1, v1, w1
-            %  1   2   3   4   5   6                      
+            c = this.c;                 
 
             % lokale Verschiebungen des Elements
             u_lok  = this.TG' * u;
@@ -148,20 +135,22 @@ classdef Truss < models.beam.StructureElement
             e_z = e_z / norm(e_z);
             this.T = [e_x e_y e_z];
             
+            % Transformationsmatrix: natürliche Koords -> glob. Koords
+            % Sortierung der Variablen:
+            % u0, v0, w0, u1, v1, w1
+            %  1   2   3   4   5   6
             this.TG = zeros(6);
             this.TG([1 2 3], [1 2 3]) = this.T;      % Verschiebung links
             this.TG([4 5 6], [4 5 6]) = this.T;    % Verschiebung rechts
             
             %     Effektive Konstanten
-            %     <rho>	<A>     <E>
-            %       1    2       3
-            material = this.Material;
-            this.c(1) = material(3) * material(2) / l;                           % c1 = E*A/L      (Federhärte)
-            this.c(2) = material(1) * material(2) * l / 6;                       % c2 = rho*A*L/6
+            m = this.Material;
+            this.c(1) = m.E * m.A / l;          % c1 = E*A/L      (Federhärte)
+            this.c(2) = m.rho * m.A * l / 6;    % c2 = rho*A*L/6
             
-            this.c_theta = material(9);
-            this.kappa = material(10);
-            this.alphaA = material(11);
+%             this.c_theta = material(9);
+%             this.kappa = material(10);
+%             this.alphaA = material(11);
         end
     end
     

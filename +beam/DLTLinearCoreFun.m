@@ -1,4 +1,4 @@
-classdef DLTLinearCoreFun < models.beam.DLTBaseCoreFun & dscomponents.LinearCoreFun
+classdef DLTLinearCoreFun < models.beam.DLTBaseCoreFun & dscomponents.AffLinCoreFun
 % DLTLinearCoreFun: 
 %
 %
@@ -16,25 +16,44 @@ classdef DLTLinearCoreFun < models.beam.DLTBaseCoreFun & dscomponents.LinearCore
     methods
         function this = DLTLinearCoreFun(system)
             this = this@models.beam.DLTBaseCoreFun(system);
+            this.initialize;
         end
         
-        function prepareConstants(this, ~)
-            prepareConstants@models.beam.DLTBaseCoreFun(this);
-            % Assemble matrix (K is constant for this case)
-            this.A = -this.B_big;
-            % Assign offset
+        function initialize(this)
+            initialize@models.beam.DLTBaseCoreFun(this);
+            
+            m = this.sys.Model;
+            
+            %% Add constant dirichlet forces
+            % Reconstruct fake u vector which has entries only at
+            % dirichlet points. Used for computation of constant forces due
+            % to dirichlet values.
+            u = zeros(7*m.data.num_knots,1);
+            u(m.dir_u) = m.u_dir;
+            f_dir = -this.K0*u; 
+            d = length(m.free);
+            this.f_big(d+1:end) = this.f_big(d+1:end) + f_dir(m.free);
+            
+            %% Assign offset part of linear core function
             this.b = this.f_big;
+            
+            %% Fill inner AffLinCoreFun with matrices
+            % Dämpfungsmodell 1: M a_t + (d1*M + d2*K) v_t + K u_t = f
+            % d1 = 0.3 Dämpfungsfaktor vor Massenmatrix (Luftwiderstand)
+            % d2 = .01 Dämpfungsfaktor vor Steifigkeitsmatrix (Materialdämpfung)
+            % C = (mu(1)*M + mu(2)*K);
+            K = this.K0(m.free,m.free);
+            s = length(m.free);
+            null = sparse(s,s);
+            % Add constant term
+            this.addMatrix('1',[null -speye(s);...
+                                K null]);
+                            % Remember: this.M is a ConstantMassMatrix
+                            % class which has the M property as matrix!
+            this.addMatrix('mu(1)',[null null;...
+                                    null this.sys.M_small]);
+            this.addMatrix('mu(2)',[null null;...
+                                    null K]);
         end
     end
-    
-    methods(Access=protected)
-        function f_eff = getf_eff(~, f, K, u)
-            f_eff = f - K*u;% + M_T*u;
-        end
-        
-        function B = getB_big(~, K, C)
-            B = [zeros(size(K)), -eye(size(K)); K, C];
-        end
-    end
-    
 end

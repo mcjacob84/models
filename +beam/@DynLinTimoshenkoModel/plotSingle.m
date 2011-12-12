@@ -87,10 +87,9 @@ function plotSingle(this, t, u)
     video = false;
     knoten_index = this.data.knot_index;
     
-    f = this.System.f;
     hlp = zeros(7*this.data.num_knots,1);
-    hlp(f.free) = u(1:length(f.free));
-    hlp(f.dir_u) = f.u_dir;
+    hlp(this.free) = u(1:length(this.free));
+    hlp(this.dir_u) = this.u_dir;
     u = hlp;
 
     % split_factor_KR = 15;  % Wie oft wird ein Viertelkreis zerlegt

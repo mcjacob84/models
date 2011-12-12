@@ -12,6 +12,11 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
 % - \c Homepage http://www.agh.ians.uni-stuttgart.de/research/software/kermor.html
 % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
 % - \c License @ref licensing
+
+    properties(Constant)
+        % No heat modeling at the current stage
+        withHeat = false;
+    end
     
     properties(SetObservable)        
         % Plot enhancement factor
@@ -75,9 +80,25 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         
         Loads;
         
+        Materials;
+        
         data;
         
-        Gravity = [0; 0; -9.81];
+        Gravity = [0; 0; -1];
+        GravLocalFactor = 9.81;
+        
+        % Vector for neumann boundary conditions
+        f_neum;
+        
+        dir_u;
+        dir_T;
+        
+        % The indices in the global state space vector of all points
+        % including dirichlet points (dim=7: 3location, 3velocity & heat) 
+        free;
+        
+        % Extracted Dirichlet values full u vector (using dir_u)
+        u_dir;
     end
     
     properties(Dependent, SetAccess=private)
@@ -103,11 +124,9 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         
         FH_raw;
         
-        RO_factor_global = 2;
+        RO_factor_global = 1;
         
-        KR_factor_global = 2;
-        
-        mat;
+        KR_factor_global = 1;
         
         fNonlin = false;
     end
@@ -125,7 +144,13 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             %% Load geometry from config file
             path = fileparts(mfilename('fullpath'));
             cfile = fullfile(path,cfgfile);
-            [this.Points, this.RO_raw, this.KR_raw, this.FH_raw, this.mat, this.Supports, this.Loads] = this.read_file(cfile);
+            [this.Points, this.RO_raw, this.KR_raw, this.FH_raw, raw_mat, this.Supports, this.Loads] = this.read_file(cfile);
+            
+            this.Materials = models.beam.Material.empty;
+            for midx = 1:size(raw_mat,1)
+                this.Materials(midx) = models.beam.Material(raw_mat(midx,:));
+            end
+            
             this.split_RO;
             this.split_KR;
             this.preprocess_data;
@@ -180,7 +205,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         plot(model, t, u);
 
         plotSingle(model, t, u);
-        
     end
     
     %% Getter & Setters

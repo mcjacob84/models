@@ -13,11 +13,6 @@ classdef CurvedBeam < models.beam.Beam
     % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
     % - \c License @ref licensing
     
-    properties(Constant)
-        % Rohrinnendruck (N/m²)
-        ROHR_p = 50 * 1e5;
-    end
-    
     properties
         pc;
         R;
@@ -76,7 +71,7 @@ classdef CurvedBeam < models.beam.Beam
                 N = this.circle_shape_functions(s(i), this.B);
                 N1 = N(1:3,:);
                 N2 = N(4:6,:);
-                M = M + w(i) * ( c(5)*N1'*N1 + N2'*rhoJ*N2 );
+                M = M + w(i) * ( c(5)*(N1'*N1) + N2'*rhoJ*N2 );
             end
             
             M = this.TG * M * this.TG';
@@ -140,7 +135,7 @@ classdef CurvedBeam < models.beam.Beam
             f = zeros(12,1);
             
             L = this.Length;
-            q_lok = (this.c(5) + this.ROHR_q_plus)* (this.T' * gravity);
+            q_lok = (this.c(5) + this.Material.q_plus)* (this.T' * gravity);
             % Stützstellen für Gaußquadratur
             s = 0.5*L * [ (1-sqrt(3/5)), 1, (1+sqrt(3/5)) ];
             % Gewichte für Gaußquadratur
@@ -491,26 +486,24 @@ classdef CurvedBeam < models.beam.Beam
             this.B3 = B(7:9,:);
             this.B4 = B(10:12,:);
             
+            % Effektive Konstanten
+            m = this.Material;
             % Berechnung des Flexibilitätsfaktors (verringerte Biegesteifigkeit auf Grund von Ovalisierung)
-            dm_tmp = this.ROHR_r_i + this.ROHR_r_a;
-            h_tmp = 4 * this.R * this.ROHR_s / dm_tmp^2;
-            flex_factor = 1.65 / ( h_tmp*(1 + 6*this.ROHR_p/this.ROHR_E*(0.5*dm_tmp/this.ROHR_s)^2*(this.R/this.ROHR_s)^(1/3)) );
+            dm_tmp = m.d_a - m.s;
+            h_tmp = 4 * this.R * m.s / dm_tmp^2;
+            flex_factor = 1.65 / ( h_tmp*(1 + 6*m.p/m.E*(0.5*dm_tmp/m.s)^2*(this.R/m.s)^(1/3)) );
             if (flex_factor < 1)
                 flex_factor = 1;
             end
             
-            % Effektive Konstanten
-            %   <rho>	<A>     <E>     <Iy/In>     <Iz/Ib>     <It>        <G>     <k>
-            %    1       2       3       4           5           6           7       8
-            material = this.Material;
-            this.c(1) = material(3) * material(4) / flex_factor;             % c1 = E*I
-            this.c(2) = material(7) * material(6);                           % c2 = G*It
-            this.c(3) = material(3) * material(2);                           % c3 = E*A
-            this.c(4) = material(8) * material(7) * material(2);             % c4 = G*As
-            this.c(5) = material(1) * material(2);                           % c5 = rho*A
-            this.c(6) = material(1) * material(4);                           % c6 = rho*I
-            this.c(7) = material(1) * material(6);                           % c7 = rho*It
-            this.c(8) = material(1);                                         % c8 = rho
+            this.c(1) = m.E * m.Iy / flex_factor;   % c1 = E*I
+            this.c(2) = m.G * m.It;                 % c2 = G*It
+            this.c(3) = m.E * m.A;                  % c3 = E*A
+            this.c(4) = m.k * m.G * m.A;            % c4 = G*As
+            this.c(5) = m.rho * m.A;                % c5 = rho*A
+            this.c(6) = m.rho * m.Iy;               % c6 = rho*I
+            this.c(7) = m.rho * m.It;               % c7 = rho*It
+            this.c(8) = m.rho;                      % c8 = rho
         end
     end    
 end
