@@ -82,10 +82,12 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             F = F(model.free,:);
             B.addMatrix('mu(3)',[sparse(size(F,1),3); F]);
             this.B = B;
+            
             % Fake constant gravity
             this.Inputs{1} = @(t)[0; 0; -1];
             this.Inputs{2} = @(t)[-1; 0; 0];
             this.Inputs{3} = @(t)[0; -1; 0];
+            % More "advanced" gravity
             this.Inputs{4} = @(t)[sin(t); 0; 0];
             T = model.T;
             this.Inputs{5} = @(t)[sin((t/T)*2*pi); cos((t/T)*2*pi); 0];

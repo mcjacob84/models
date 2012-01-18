@@ -116,7 +116,7 @@ if this.withHeat
     this.dir_T = setdiff(nodes_T, free_T);
 end
 % Store dirichlet values
-this.u_dir = u(this.dir_u);
+this.u_dir = u(this.dir_u); % (eigentlich aus data.dir_data direkt zuweisbar?)
 
 %% Erstellen der Strukturelemente
 this.Elements = cell(1,num_elem_RO+num_elem_KR+num_elem_FH);

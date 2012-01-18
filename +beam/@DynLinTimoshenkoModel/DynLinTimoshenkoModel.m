@@ -126,7 +126,9 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
     methods
         function this = DynLinTimoshenkoModel(cfgfile)
             if nargin == 0
-                error('no config file given');
+                %error('no config file given');
+                cfgfile = 'Simpel1.txt';
+                fprintf('No config file specified, using ''Simpel1.txt''\n');
             end
             
             this = this@models.BaseFullModel;
