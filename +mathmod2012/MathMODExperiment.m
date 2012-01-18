@@ -20,6 +20,8 @@ classdef MathMODExperiment < models.BaseFullModel
             end
             this.dim = dims;
             
+            this.Name = 'MathMOD 2012 Experiments';
+            
             this.Sampler = [];%sampling.GridSampler;
             
             % This class implements a fake Approx subclass to allow access
@@ -38,8 +40,6 @@ classdef MathMODExperiment < models.BaseFullModel
             this.T = 20;
             this.dt = 0.05;
             
-            this.System.addParam('mu1',[0 1],4);
-            this.System.addParam('mu2',[1 1],1);
             this.Sampler = sampling.GridSampler;
             %m.System.addParam('mu3',[3 3],1);
             
@@ -47,18 +47,15 @@ classdef MathMODExperiment < models.BaseFullModel
             e2 = [zeros(dims,1) ones(dims,1)];
             
             x0 = dscomponents.AffineInitialValue;
-            x0.addMatrix('mu(2)', ones(dims,1));
+            x0.addMatrix('mu(3)', ones(dims,1));
             %x0.addMatrix('sum(mu)', e1);
             this.System.x0 = x0;
             
             f = this.System.f;
             f.Ma = repmat(-exp(-f.Centers.xi(1,:)/15),dims,1);
             
-            %this.System.Inputs{1} = @(t)[.04*sin(t/3); exp(-abs(10-t/2))];
-            this.System.Inputs{1} = @(t)[.04*sin(t/3);.5*exp(-(12-t).^2)];
-            %             m.System.Inputs{2} = @(t)exp(-abs(10-t/2)); % Gutes Beispiel!
-            %             m.System.Inputs{3} = @(t).5*exp(-(12-t).^2); % Sehr interessante dynamik
-            %             m.System.Inputs{4} = @(t)(t>10)*.1; % okay, aber nicht so spannend
+            this.System.Inputs{1} = @(t)[.4*sin(t/3); exp(-(12-t).^2)];
+            this.System.Inputs{2} = @(t)[.5*sin(t/2); 4*exp(-7*(12-t).^2)-.5*exp(-(5-t).^2)];
             B = dscomponents.AffLinInputConv;
             B.addMatrix('mu(1)', e1);
             B.addMatrix('1-mu(1)', e2);
