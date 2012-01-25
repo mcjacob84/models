@@ -19,7 +19,7 @@ classdef RCLadderSys < models.BaseDynSystem
             
             dim = this.Model.Dims;
             
-            this.x0 = @(mu)zeros(this.Model.Dims,1);
+            this.x0 = dscomponents.ConstInitialValue(zeros(this.Model.Dims,1));
             
             B = zeros(dim,1);
             B(1) = 1;

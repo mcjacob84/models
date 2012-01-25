@@ -1,4 +1,4 @@
-classdef RCLadder < models.BaseFullModel
+classdef RCLadder < models.BaseFullModel & IDemoProvider
 % RCLadder: Model of a nonlinear resistor with independent current source
 %
 % This model has been used as benchmark in many papers. This implementation follows the details in
@@ -54,17 +54,22 @@ classdef RCLadder < models.BaseFullModel
             
             this.Sampler = [];
             
+            app = approx.KernelApprox;
             a = approx.algorithms.AdaptiveCompWiseKernelApprox;
-            a.TimeKernel = kernels.NoKernel;
-            a.ParamKernel = kernels.NoKernel;
-            a.Kernel = kernels.GaussKernel(.5);
             a.MaxRelErr = 1e-5;
             a.MaxAbsErrFactor = 1e-3;
             a.NumGammas = 10;
+            app.Algorithm = a;
+            
+            app.TimeKernel = kernels.NoKernel;
+            app.ParamKernel = kernels.NoKernel;
+            app.Kernel = kernels.GaussKernel(.5);
+            app.Kernel.G = 1;
+                        
             t = approx.selection.TimeSelector;
             t.Size = 12000;
-            a.TrainDataSelector = t;
-            this.Approx = a;
+            app.TrainDataSelector = t;
+            this.Approx = app;
             
             s = spacereduction.PODReducer;
             s.Mode = 'abs';
@@ -86,6 +91,23 @@ classdef RCLadder < models.BaseFullModel
     end
     
     methods(Static)
+        
+        function runDemo
+            % Implements the IDemoProvider main demo function.
+            m = models.circ.RCLadder;
+            [t,y] = m.simulate([],2);
+            m.plot(t,y);
+            title('Plot for full model');
+            
+            m.offlineGenerations;
+            r = m.buildReducedModel;
+            [t,yr] = r.simulate([],2);
+            m.plot(t,yr);
+            title('Plot for reduced model');
+            m.plot(t,yr-y);
+            title('Error plot for reduced/full model');
+        end
+        
         function m = getTPWLVersion
             m = models.circ.RCLadder(100);
             m.T = 10;
