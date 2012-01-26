@@ -4,6 +4,9 @@ classdef RBMatlabModel < models.BaseFullModel
     % Subclassing instances MUST explicitly call this classes constructor
     % in order to ensure that KerMor is connected to rbmatlab.
     %
+    % @change{0,6,dw,2012-01-26} Adopted to new computeTrajectory interface (returning time,
+    % too)
+    %
     % @change{0,3,sa,2011-05-11} Implemented setters for the properties
     %
     % @new{0,2,dw,2011-03-17} Added overloads for the
@@ -60,7 +63,7 @@ classdef RBMatlabModel < models.BaseFullModel
             [t,y,sec,x] = simulate@models.BaseModel(this, varargin{:});
         end
         
-        function [t,x] = computeTrajectory(this, varargin)
+        function [t, x, time] = computeTrajectory(this, varargin)
             % Computes a trajectory of the RBMatlab model for given
             % parameter and inputindex.
             % 
@@ -71,7 +74,7 @@ classdef RBMatlabModel < models.BaseFullModel
             if ~KerMor.App.Hasrbmatlab
                 error('rbmatlab is not registered with KerMor. Set KerMor.App.rbmatlabDirectory to fix.');
             end
-            [t,x] = computeTrajectory@models.BaseModel(this, varargin{:});
+            [t, x, time] = computeTrajectory@models.BaseModel(this, varargin{:});
         end
     end
     

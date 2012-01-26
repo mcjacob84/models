@@ -78,12 +78,12 @@ classdef RiemannBurgers < models.rbmatlab.RBMatlabModel
         function preApproxCallback(this)
             xnum = this.RBMModel.xnumintervals;
             %this.Data.ApproxTrainData = this.Data.ApproxTrainData(1:xnum+3,:);
-            this.Data.ApproxfValues = this.Data.ApproxfValues(1:xnum,:);
+            this.Data.ApproxTrainData.fxi = this.Data.ApproxTrainData.fxi(1:xnum,:);
         end
         
         function postApproxCallback(this)
             ynum = this.RBMModel.ynumintervals;
-            this.Data.ApproxfValues = repmat(this.Data.ApproxfValues,ynum,1);
+            this.Data.ApproxTrainData.fxi = repmat(this.Data.ApproxTrainData.fxi,ynum,1);
             this.Approx.Ma = repmat(this.Approx.Ma,ynum,1);
             this.Approx.off = repmat(this.Approx.off,ynum,1);
         end
