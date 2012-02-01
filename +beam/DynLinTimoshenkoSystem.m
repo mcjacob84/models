@@ -69,7 +69,7 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             i = []; j = [];
             F = []; 
             for k = 1:length(e)
-                F_lok = e{k}.getLocalForceMatrix;
+                F_lok = e{k}.getLocalForceMatrix';
                 index_glob = e{k}.getGlobalIndices;
 
                 [li,lj] = meshgrid(index_glob,1:3);
