@@ -77,6 +77,11 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         
         Materials;
         
+        % The configuration file used for this model
+        %
+        % @type char
+        ConfigFile;
+        
         data;
         
         % Vector for neumann boundary conditions
@@ -100,7 +105,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         ColorMap;
     end
     
-    properties(Access=private)
+    properties(SetAccess=private)
         % Maximum temperature for plotting
         maxTemp = 0;
         
@@ -125,20 +130,20 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
     
     methods
         function this = DynLinTimoshenkoModel(cfgfile)
+            this = this@models.BaseFullModel;
+            
             if nargin == 0
                 %error('no config file given');
                 cfgfile = 'Simpel1.txt';
-                fprintf('No config file specified, using ''Simpel1.txt''\n');
+                fprintf('No config file specified, using ''%s''\n',cfgfile);
             end
-            
-            this = this@models.BaseFullModel;
             this.Name = 'DynLin Timoschenko Beam';
             this.JavaExportPackage = 'models.beam.dynlintimo';
             
             %% Load geometry from config file
             path = fileparts(mfilename('fullpath'));
-            cfile = fullfile(path,cfgfile);
-            [this.Points, this.RO_raw, this.KR_raw, this.FH_raw, raw_mat, this.Supports, this.Loads] = this.read_file(cfile);
+            this.ConfigFile = fullfile(path,cfgfile);
+            [this.Points, this.RO_raw, this.KR_raw, this.FH_raw, raw_mat, this.Supports, this.Loads] = this.read_file(this.ConfigFile);
             
             this.Materials = models.beam.Material.empty;
             for midx = 1:size(raw_mat,1)
@@ -147,6 +152,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             
             this.split_RO;
             this.split_KR;
+            % Important: call before creating the system!
             this.preprocess_data;
             
             %% Model specifics
@@ -165,14 +171,14 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             this.Approx = [];
             
             % No Parameters
-            this.Sampler = [];%sampling.RandomSampler;
+            this.Sampler = sampling.GridSampler;
             %this.Sampler.Samples = 20;
             
             %% Call update of model type (sets the system's f function and chooses an ODE solver)
             this.updateModelType(this.NonlinearModel);
             
             % Train with all inputs
-%             this.TrainingInputs = [1 2 3];
+            this.TrainingInputs = 1:this.System.InputCount;
         end
         
         function m = get.ColorMap(this)
@@ -198,26 +204,37 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         
         plot(model, t, u);
 
-        plotSingle(model, t, u);
+        plotSingle(model, t, u, h);
     end
     
     %% Getter & Setters
     methods
         function set.BeamRefinementFactor(this, value)
+            [this.Points, this.RO_raw] = this.read_file(this.ConfigFile);
             this.RO_factor_global = value;
             this.split_RO;
+            % Update model
             this.preprocess_data;
+            % Update system
+            this.System.buildElementDependentComponents;
+            % Update core function
+            this.System.f.initialize;
         end
         
         function value = get.BeamRefinementFactor(this)
             value = this.RO_factor_global;
         end
 
-        % Todo: für KR!
         function set.CurvedBeamRefinementFactor(this, value)
+            [this.Points, ~, this.KR_raw] = this.read_file(this.ConfigFile);
             this.KR_factor_global = value;
             this.split_KR;
+            % Update model
             this.preprocess_data;
+            % Update system
+            this.System.buildElementDependentComponents;
+            % Update core function
+            this.System.f.initialize;
         end
         
         function value = get.CurvedBeamRefinementFactor(this)
@@ -273,6 +290,25 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         split_KR(this);
                 
         plot_circle(this, N, T, T1, T2, T_Fren, R, angle, B, pc, u1, u2, col1, col2, plot_options);
+    end
+    
+    methods(Static)
+        function experiment1
+            m = models.beam.DynLinTimoshenkoModel('Rohrleitungen z.txt');
+            m.BeamRefinementFactor = 5;
+            m.TrainingInputs = 1:m.System.InputCount;
+            m.T = 10;
+            m.dt = .1;
+            m.System.Params(1).Range = [0 2];
+            m.System.Params(1).Desired = 10;
+            m.System.Params(2).Range = [0 .1];
+            m.System.Params(2).Desired = 10;
+            m.System.Params(3).Range = 20*[-1 1];
+            m.System.Params(3).Desired = 10;
+            m.offlineGenerations;
+            r = m.buildReducedModel;
+            save experiment1 m r;
+        end
     end
     
 end

@@ -45,6 +45,8 @@ classdef DLTLinearCoreFun < models.beam.DLTBaseCoreFun & dscomponents.AffLinCore
             K = this.K0(m.free,m.free);
             s = length(m.free);
             null = sparse(s,s);
+            % Clear affine parametric matrix
+            this.AffParamMatrix.clear;
             % Add constant term
             this.addMatrix('1',[null -speye(s);...
                                 K null]);
