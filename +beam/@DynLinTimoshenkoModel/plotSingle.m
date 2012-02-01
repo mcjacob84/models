@@ -1,4 +1,4 @@
-function plotSingle(this, t, u)
+function plotSingle(model, t, u, h)
 % plot_single: Plots a single beam configuration for given time and field
 % data.
 %
@@ -58,14 +58,14 @@ function plotSingle(this, t, u)
 
     %% Plot Options
     % Vergrößerung der Verschiebungen
-    plot_options.multiplier = this.PlotFactor;
+    plot_options.multiplier = model.PlotFactor;
     % Nummer der Figure, in der geplottet wird
     plot_options.figure = 11;                    
     % Titel der Colorbar und gleichzeitig zu visualisierende Größe
     % Temperatur, Normalkraft, Querkraft y, Querkraft z, Torsionsmoment, 
     % Biegemoment y, Biegemoment z,
     % Gesamtquerkraft, Gesamtbiegemoment
-    plot_options.colorbar = 'Normalkraft';       
+    plot_options.colorbar = 'Normalkraft';
     plot_options.axis = 'auto';
     % Testszenario
     % plot_options.axis = [-17 17 -17 2 -2 17];   % Grenzen der Achsen des Plots
@@ -83,18 +83,17 @@ function plotSingle(this, t, u)
     plot_options.crosssection = 0;              % Querschnitte (0: keine, 1: nach Theorie 1. Ordn, 2: Theorie 2. Ordn, sonst: exakt rotiert)
     plot_options.ref_config = 1;                % Plotten der Ausgangslage (0: nein, 1: ja)
 
-    p = this.Points;
+    p = model.Points;
     video = false;
-    knoten_index = this.data.knot_index;
+    knoten_index = model.data.knot_index;
     
-    hlp = zeros(7*this.data.num_knots,1);
-    hlp(this.free) = u(1:length(this.free));
-    hlp(this.dir_u) = this.u_dir;
+    hlp = zeros(7*model.data.num_knots,1);
+    hlp(model.free) = u(1:length(model.free));
+    hlp(model.dir_u) = model.u_dir;
     u = hlp;
-
-    % split_factor_KR = 15;  % Wie oft wird ein Viertelkreis zerlegt
-    persistent h;
-    if isempty(h) || ~ishandle(h)
+    
+%     persistent h;
+    if nargin == 3 || isempty(h) || ~ishandle(h)
         h = figure(plot_options.figure);
         axis equal;
         axis(plot_options.axis)
@@ -122,17 +121,12 @@ function plotSingle(this, t, u)
     else
         cla;
     end
-    
-    if (t == -1)
-        title_string = sprintf('Statische Lösung (Verschiebungen um Faktor %2.1f vergrößert)', plot_options.multiplier);
-    else
-        title_string = sprintf('Balkenwerk zur Zeit t = %2.2f (Verschiebungen um Faktor %2.0f vergrößert)', t, plot_options.multiplier);
-    end
+    title_string = sprintf('Balkenwerk zur Zeit t = %2.2f (Verschiebungen um Faktor %2.0f vergrößert)', t, plot_options.multiplier);
     title(title_string, 'FontSize', 15, 'FontWeight', 'bold');
 
     %% Ausgangslage
     if (plot_options.ref_config)
-        el = this.Elements;
+        el = model.Elements;
         for i = 1:length(el)
             e = el{i};
             if isa(e,'models.beam.StraightBeam')
@@ -218,7 +212,7 @@ function plotSingle(this, t, u)
 
     % VARIANTE 2: Visualisierung nach Temperatur
     % -------------------------------------------------------------------------
-    el = this.Elements;
+    el = model.Elements;
     N = zeros(length(el));
     idx = [];
     for i = 1:length(el)

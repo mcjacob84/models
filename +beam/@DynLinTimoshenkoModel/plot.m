@@ -16,32 +16,42 @@ function plot(model, t, u)
 % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
 % - \c License @ref licensing
         
-% h = figure(1);
-% set(h, 'Color', 'White');
-% axis equal;
-% xlabel('x'); ylabel('y'); zlabel('z');
-% %% Plotting bound computations
-% marginFactor = 1.2;
-% 
-% hlp = reshape(u,4,[]);
-% mins = min(hlp,[],2);
-% maxs = max(hlp,[],2);
-% mins(1:3) = model.PlotFactor*mins(1:3) + min(model.Points,[],1)';
-% maxs(1:3) = model.PlotFactor*maxs(1:3) + max(model.Points,[],1)';
-% %axis(marginFactor*[mins(1) maxs(1) mins(2) maxs(2) mins(3) maxs(3)]);
-% % Colors
-% model.minTemp = mins(4);
-% model.maxTemp = maxs(4);
-% 
-% % Colorbar stuff
-% col = model.ColorMap;
-% colormap(col);
-% caxis([model.minTemp model.maxTemp]);
-% model.cbh = colorbar;
-% xlabel(model.cbh, 'Temperatur', 'FontSize', 12);
+%% Plot Options
+% Nummer der Figure, in der geplottet wird
+plot_options.figure = 11;                    
+plot_options.axis = 'auto';
+plot_options.colorbar = 'Normalkraft';
+
+h = figure(plot_options.figure);
+axis equal;
+axis(plot_options.axis)
+% RotMat = viewmtx(37.5, 30);
+% view(RotMat)
+
+% Spirale, Rohrleitungen
+view(3)
+
+% view(-37.5-video,30)
+% camva(10)
+% Portal
+% view(0,0)
+set(h, 'Color', 'White')
+
+if (strcmp(plot_options.colorbar,'') == 0)
+    handle = colorbar;
+    xlabel(handle, plot_options.colorbar, 'FontSize', 12)
+end
+
+ctrl = uicontrol('Tag','btnCancel','Parent',h);
+set(ctrl,'String','Cancel','Callback',@(h,e)set(h,'UserData',1));
+
+hold on;
 
 for tidx=1:length(t)
-    model.plotSingle(t(tidx),u(:,tidx));
+    if get(ctrl,'UserData') == 1
+        break;
+    end
+    model.plotSingle(t(tidx), u(:,tidx), h);
     %pause(.01);
     drawnow;
 end
