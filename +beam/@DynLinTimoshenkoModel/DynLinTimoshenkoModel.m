@@ -158,6 +158,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             %% Model specifics
             this.T = 5;
             this.dt = .05;
+            this.Data = data.FileModelData(this);%#ok
             
             %% Internal setup
             this.System = models.beam.DynLinTimoshenkoSystem(this);
