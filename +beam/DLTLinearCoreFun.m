@@ -24,25 +24,12 @@ classdef DLTLinearCoreFun < models.beam.DLTBaseCoreFun & dscomponents.AffLinCore
             
             m = this.sys.Model;
             
-            %% Add constant dirichlet forces
-            % Reconstruct fake u vector which has entries only at
-            % dirichlet points. Used for computation of constant forces due
-            % to dirichlet values.
-            u = zeros(7*m.data.num_knots,1);
-            u(m.dir_u) = m.u_dir;
-            f_dir = -this.K0*u; 
-            d = length(m.free);
-            this.f_const_big(d+1:end) = this.f_const_big(d+1:end) + f_dir(m.free);
-            
-            %% Assign offset part of linear core function
-            this.b = this.f_const_big;
-            
             %% Fill inner AffLinCoreFun with matrices
             % Dämpfungsmodell 1: M a_t + (d1*M + d2*K) v_t + K u_t = f
             % d1 = 0.3 Dämpfungsfaktor vor Massenmatrix (Luftwiderstand)
             % d2 = .01 Dämpfungsfaktor vor Steifigkeitsmatrix (Materialdämpfung)
-            % C = (mu(1)*M + mu(2)*K);
-            K = this.K0(m.free,m.free);
+            % C = (mu(1)*M + mu(2)*K_0);
+            K = this.sys.K0(m.free,m.free);
             s = length(m.free);
             null = sparse(s,s);
             % Clear affine parametric matrix

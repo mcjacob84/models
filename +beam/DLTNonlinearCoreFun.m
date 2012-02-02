@@ -38,7 +38,7 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
             % Daten nicht aktuell? (check inside)
             this.updateB(x, mu);
             % Funktion f auswerten
-            fx = this.f_const_big - this.B_big*x - this.R_big;
+            fx = - this.B_big*x - this.R_big;
         end
         
         function J = getStateJacobian(this, x, t, mu)%#ok
@@ -66,7 +66,7 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
                 s = length(m.free);
                 null = sparse(s,s);
                 % Use K here to have even nonlinear C!
-                K0 = this.K0(m.free,m.free);
+                K0 = this.sys.K0(m.free,m.free);
                 C = mu(1)*K0 + mu(2)*this.sys.M_small;
                 this.B_big = this.B_big_const + [null, null;
                                                  K, C];

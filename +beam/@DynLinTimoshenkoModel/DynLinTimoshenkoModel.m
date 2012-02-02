@@ -47,13 +47,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         BeamRefinementFactor;
         
         CurvedBeamRefinementFactor;
-        
-        % Flag that determines if the nonlinear model should be used.
-        %
-        % @propclass{optional} Switches between model types
-        %
-        % @default false @type logical
-        NonlinearModel;
     end
     
     properties(SetAccess=private)
@@ -70,6 +63,11 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         %
         % @type struct
         Elements;
+        
+        % Flag that indicates if the nonlinear model is used.
+        %
+        % @type logical @default false 
+        NonlinearModel = false;
         
         Supports;
         
@@ -124,18 +122,30 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         RO_factor_global = 1;
         
         KR_factor_global = 1;
-        
-        fNonlin = false;
     end
     
     methods
-        function this = DynLinTimoshenkoModel(cfgfile)
+        function this = DynLinTimoshenkoModel(cfgfile, nonlinear)
+            % Creates a new timoshenko model
+            %
+            % Parameters:
+            % cfgfile: The configuration file for the beams. @type char @default 'Simpel1.txt'
+            % nonlinear: Flag to indicate if the linear or nonlinear model should be used.
+            % @type logical @default false
+            %
+            % Return values:
+            % this: The new model instance
             this = this@models.BaseFullModel;
             
-            if nargin == 0
-                %error('no config file given');
-                cfgfile = 'Simpel1.txt';
-                fprintf('No config file specified, using ''%s''\n',cfgfile);
+            if nargin < 2
+                this.NonlinearModel = false;
+                if nargin < 1
+                    %error('no config file given');
+                    cfgfile = 'Simpel1.txt';
+                    fprintf('No config file specified, using ''%s''\n',cfgfile);
+                end
+            else
+                this.NonlinearModel = nonlinear;
             end
             this.Name = 'DynLin Timoschenko Beam';
             this.JavaExportPackage = 'models.beam.dynlintimo';
@@ -175,8 +185,23 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             this.Sampler = sampling.GridSampler;
             %this.Sampler.Samples = 20;
             
-            %% Call update of model type (sets the system's f function and chooses an ODE solver)
-            this.updateModelType(this.NonlinearModel);
+            %% Function & ODE solver setup
+            if this.NonlinearModel
+                this.System.f = models.beam.DLTNonlinearCoreFun(this.System);
+                
+                % ODE Solver -> Use Matlab ode15i
+                o = solvers.ode.MLode15i;
+                o.RelTol = 1e-3;
+                o.AbsTol = 1e-3;
+                
+                %o = solvers.ode.MLWrapper(@ode45);
+                %o.MaxStep = this.dt;
+                
+                this.ODESolver = o;
+            else
+                this.System.f = models.beam.DLTLinearCoreFun(this.System);
+                this.ODESolver = solvers.ode.LinearImplEuler(this);
+            end
             
             % Train with all inputs
             this.TrainingInputs = 1:this.System.InputCount;
@@ -241,46 +266,9 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         function value = get.CurvedBeamRefinementFactor(this)
             value = this.KR_factor_global;
         end
-        
-        function v = get.NonlinearModel(this)
-            v = this.fNonlin;
-        end
-        
-        function set.NonlinearModel(this, v)
-            if ~islogical(v) || ~isscalar(v)
-                error('NonlinearModel must be a scalar logical');
-            end
-            if (this.fNonlin ~= v)
-               this.updateModelType(v);
-            end
-            this.fNonlin = v;
-        end
     end
     
     methods(Access=private)
-        function updateModelType(this, nonlin)
-            % Updates the model type (switch for nonlinear/linear)
-            %
-            % Automatically chooses the correct CoreFun and a suitable ODE
-            % solver.
-            s = this.System;
-            if nonlin
-                s.f = models.beam.DLTNonlinearCoreFun(s);
-                % ODE Solver -> Use Matlab ode15i
-                o = solvers.ode.MLode15i;
-                o.RelTol = 1e-3;
-                o.AbsTol = 1e-3;
-                
-                %o = solvers.ode.MLWrapper(@ode45);
-                %o.MaxStep = this.dt;
-                
-                this.ODESolver = o;
-            else
-                s.f = models.beam.DLTLinearCoreFun(s);
-                this.ODESolver = solvers.ode.LinearImplEuler(this);
-            end
-        end
-        
         % Reads the config file
         [Points, RO_raw, KR, FH, mat, lager, lasten] = read_file(this, file);
         
