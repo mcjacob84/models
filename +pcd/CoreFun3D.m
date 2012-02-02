@@ -35,8 +35,10 @@ classdef CoreFun3D < dscomponents.ACoreFun
     methods
         
         function this = CoreFun3D(dynsys)
+            this = this@dscomponents.ACoreFun;
             this.sys = dynsys;
             this.MultiArgumentEvaluations = false;
+            this.TimeDependent = true;
         end
         
         function copy = clone(this)

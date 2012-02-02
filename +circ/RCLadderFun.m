@@ -19,9 +19,10 @@ classdef RCLadderFun < dscomponents.ACoreFun
             
             this.MultiArgumentEvaluations = true;
             this.CustomProjection = true;
+            this.TimeDependent = false;
         end
         
-        function fx = evaluateCoreFun(this, v, t, mu)%#ok
+        function fx = evaluateCoreFun(~, v, ~, ~)
             d = size(v,1);
             e = ones(d,1);
             A = spdiags([e -2*e e],-1:1,d,d);

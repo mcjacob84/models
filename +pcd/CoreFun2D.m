@@ -35,6 +35,16 @@ classdef CoreFun2D < dscomponents.ACoreFun
     
     methods
         
+        function this = CoreFun2D(dynsys)
+            this = this@dscomponents.ACoreFun;
+            this.sys = dynsys;
+            this.MultiArgumentEvaluations = true;
+            this.TimeDependent = false;
+            
+            this.hlp.Diff = this.sys.Diff;
+            this.hlp.n = this.sys.n;
+        end
+        
         function copy = clone(this)
             % sys already copied in constructor (see below)
             copy = models.pcd.CoreFun2D(this.sys);
@@ -45,14 +55,6 @@ classdef CoreFun2D < dscomponents.ACoreFun
             copy.A = this.A;
             copy.idxmat = this.idxmat;
             copy.nodes = this.nodes;
-        end
-        
-        function this = CoreFun2D(dynsys)
-            this.sys = dynsys;
-            this.MultiArgumentEvaluations = true;
-            
-            this.hlp.Diff = this.sys.Diff;
-            this.hlp.n = this.sys.n;
         end
         
         function newSysDimension(this)
@@ -81,7 +83,7 @@ classdef CoreFun2D < dscomponents.ACoreFun
             this.hlp.yd = abs(((1:this.hlp.d2)-1)*this.sys.h-.5*this.hlp.yr); % y distances
         end
         
-        function fx = evaluateCoreFun(this, x, t, mu)%#ok
+        function fx = evaluateCoreFun(this, x, ~, mu)
             % Allocate result vector
             fx = zeros(size(x));
             

@@ -5,6 +5,9 @@ classdef RotationDynSys < models.BaseDynSystem & dscomponents.ACoreFun
         
     methods
         function this = RotationDynSys
+            this = this@dscomponents.ACoreFun;
+            this.TimeDependent = false;
+            
             this.x0 = @(mu)[0;1];
             
             % Add params
@@ -22,7 +25,7 @@ classdef RotationDynSys < models.BaseDynSystem & dscomponents.ACoreFun
             plot@models.BaseDynSystem(this,model,t,y);
         end
         
-        function fx = evaluate(this, x, t, mu)%#ok
+        function fx = evaluate(~, x, ~, mu)
             % Implements ACoreFun.evaluate
             a = mu(1);
             b = a+mu(2);

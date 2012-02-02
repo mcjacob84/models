@@ -27,6 +27,7 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
     methods
         function this = DLTBaseCoreFun(sys)
             this = this@dscomponents.ACoreFun;
+            this.TimeDependent = false;
             this.sys = sys;
             this.initialize;
         end

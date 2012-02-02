@@ -34,8 +34,10 @@ classdef CoreFun1D < dscomponents.ACoreFun
     methods
                 
         function this = CoreFun1D(dynsys)
+            this = this@dscomponents.ACoreFun;
             this.sys = dynsys;
             this.MultiArgumentEvaluations = true;
+            this.TimeDependent = false;
         end
         
         function copy = clone(this)
@@ -65,7 +67,7 @@ classdef CoreFun1D < dscomponents.ACoreFun
             this.nodes = this.sys.Dims(1);
         end
         
-        function fx = evaluateCoreFun(this, x, t, mu)%#ok
+        function fx = evaluateCoreFun(this, x, ~, mu)
             % Allocate result vector
             fx = zeros(size(x));
             

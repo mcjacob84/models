@@ -17,6 +17,7 @@ classdef RiemBurgSys_Fun < models.BaseDynSystem & dscomponents.ACoreFun
         function this = RiemBurgSys_Fun(model)
             this = this@models.BaseDynSystem(model);
             this = this@dscomponents.ACoreFun;
+            this.TimeDependent = true;
             
             this.x0 = dscomponents.PointerInitialValue(@(mu)this.getx0(mu));
             
