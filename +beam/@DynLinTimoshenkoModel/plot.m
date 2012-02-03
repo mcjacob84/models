@@ -42,6 +42,7 @@ if (strcmp(plot_options.colorbar,'') == 0)
     xlabel(handle, plot_options.colorbar, 'FontSize', 12)
 end
 
+set(h,'Toolbar','Figure');
 ctrl = uicontrol('Tag','btnCancel','Parent',h);
 set(ctrl,'String','Cancel','Callback',@(h,e)set(h,'UserData',1));
 
