@@ -236,9 +236,13 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
     %% Getter & Setters
     methods
         function set.BeamRefinementFactor(this, value)
-            [this.Points, this.RO_raw] = this.read_file(this.ConfigFile);
+            [this.Points, this.RO_raw, this.KR_raw] = this.read_file(this.ConfigFile);
+            if value ~= this.RO_factor_global
+                this.simCache.clearTrajectories;
+            end
             this.RO_factor_global = value;
             this.split_RO;
+            this.split_KR;
             % Update model
             this.preprocess_data;
             % Update system
@@ -252,8 +256,12 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         end
 
         function set.CurvedBeamRefinementFactor(this, value)
-            [this.Points, ~, this.KR_raw] = this.read_file(this.ConfigFile);
+            [this.Points, this.RO_raw, this.KR_raw] = this.read_file(this.ConfigFile);
+            if value ~= this.KR_factor_global
+                this.simCache.clearTrajectories;
+            end
             this.KR_factor_global = value;
+            this.split_RO;
             this.split_KR;
             % Update model
             this.preprocess_data;
