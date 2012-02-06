@@ -14,10 +14,11 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
 % - \c License @ref licensing
     
     properties(Access=private)
-        R_big;
+        Kx_big;
         currentx = [];
         B_big;
         B_big_const;
+        dKx_big;
     end
     
     methods
@@ -38,18 +39,18 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
             % Daten nicht aktuell? (check inside)
             this.updateB(x, mu);
             % Funktion f auswerten
-            fx = - this.B_big*x - this.R_big;
+            fx = -this.B_big*x - this.Kx_big;
         end
         
         function J = getStateJacobian(this, x, t, mu)%#ok
             % Daten nicht aktuell? (check inside)
             this.updateB(x, mu);
             % Jacobi-Matrix ausgeben
-            J = -this.B_big;
+            J = -this.B_big - this.dKx_big;
         end
         
         function pr = project(this, V, W)%#ok
-            
+            error('not implemented')
         end
     end
     
@@ -58,19 +59,26 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
             m = this.sys.Model;
             % Updates the x, J and R big versions (if needed)
             if isempty(this.currentx) || (norm(this.currentx - x) > 1e-8)
-                [R_F, K_F] = this.weak_form(x);
-
-                R = R_F(m.free);
-                K = K_F(m.free, m.free);
-                
                 s = length(m.free);
-                null = sparse(s,s);
-                % Use K here to have even nonlinear C!
+                
+                [Kx, dKx] = this.weak_form(x);
+
+                % K(x)
+                Kx = Kx(m.free);
+                this.Kx_big = [0*Kx; Kx];
+                
+                % \partial K|\partial x
+                % dKx = [0 0; dK 0]
+                this.dKx_big = sparse(2*s,2*s);
+                this.dKx_big(s+1:end,1:s) = dKx(m.free, m.free);
+                
+                % Assemble damping matrix (dep. on parameter)
                 K0 = this.sys.K0(m.free,m.free);
-                C = mu(1)*K0 + mu(2)*this.sys.M_small;
-                this.B_big = this.B_big_const + [null, null;
-                                                 K, C];
-                this.R_big = [0*R; R];
+                C_big = sparse(2*s,2*s);
+                C_big(s+1:end,s+1:end) = mu(1)*K0 + mu(2)*this.sys.M_small;
+                % B = [0 -I; 0 C]
+                this.B_big = this.B_big_const + C_big;
+                
                 this.currentx = x;
             end
         end
