@@ -61,7 +61,8 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
             if isempty(this.currentx) || (norm(this.currentx - x) > 1e-8)
                 s = length(m.free);
                 
-                [Kx, dKx] = this.weak_form(x);
+                % Only pass the spatial part of x to the weak form!
+                [Kx, dKx] = this.weak_form(x(1:length(m.free)));
 
                 % K(x)
                 Kx = Kx(m.free);
@@ -87,18 +88,24 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
             % Nichtlineare Funktion (Schwache Form, R-f_s) und ihre Ableitung (nach den Freiheitsgraden) (tangentielle Steifigkeitsmatrix, K)
             m = this.sys.Model;
             data = m.data;
-            
+            % Full dimension
+            fdim = 7*data.num_knots;
             % Steifigkeitsmatrix für u und T
-            K = sparse(7 * data.num_knots, 7 * data.num_knots);
+            K = sparse(fdim, fdim);
             % Residuumsvektor
-            R = sparse(7 * data.num_knots, 1);
+            R = sparse(fdim, 1);
 
             % Tangentiale Steifigkeitsmatrix aufstellen und schwache Form mit der aktuellen Verschiebung auswerten
             el = m.Elements;
 %             i = []; j = []; K = []; R = []; ir = [];
+            u_full = zeros(fdim,1);
+            % load dirichlet values
+            u_full(m.dir_u) = m.u_dir;
+            % set current values, only use x
+            u_full(m.free) = u;
             for k=1:length(el)
                 index_glob = el{k}.getGlobalIndices;
-                [K_lok, R_lok] = el{k}.getLocalTangentials(u(index_glob));
+                [K_lok, R_lok] = el{k}.getLocalTangentials(u_full(index_glob));
                 
                 % Unklar welche alternative schneller ist; muss man in
                 % späteren tests mal profilen. Idealerweise müssen die i,j

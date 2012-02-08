@@ -1,4 +1,4 @@
-classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
+classdef DLTBaseCoreFun < dscomponents.ACoreFun
 % DynLinTimoshenkoCoreFun: 
 %
 %
@@ -25,6 +25,7 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun & dscomponents.IJacobian
         function this = DLTBaseCoreFun(sys)
             this = this@dscomponents.ACoreFun;
             this.TimeDependent = false;
+            this.CustomJacobian = true;
             this.sys = sys;
             this.initialize;
         end

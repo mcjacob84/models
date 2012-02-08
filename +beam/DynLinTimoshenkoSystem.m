@@ -44,11 +44,11 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             this.Inputs{3} = @(t)[1; 0; -1; 0];
             % More "advanced" gravity
             this.Inputs{4} = @(t)[1; sin(t); 0; 0];
-            T = model.T;
-            this.Inputs{5} = @(t)[1; sin((t/T)*2*pi); cos((t/T)*2*pi); 0];
-            this.Inputs{6} = @(t)[1; 0; sin((t/T)*2*pi); cos((t/T)*2*pi)];
+            this.Inputs{5} = @(t)[1; sin((t/10)*2*pi); cos((t/10)*2*pi); 0];
+            this.Inputs{6} = @(t)[1; 0; sin((t/10)*2*pi); cos((t/10)*2*pi)];
             
             this.buildElementDependentComponents;
+            
 %             %% Output setup (dim = 3*space + 3*velo + 1*temp)
 %             %xdim = (dim - (dim/7))/2;
 %             d = sparse(1:dim,1:dim,1);
@@ -111,7 +111,7 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
                 % Reconstruct fake u vector which has entries only at
                 % dirichlet points. Used for computation of constant forces due
                 % to dirichlet values.
-                u = zeros(7*this.Model.data.num_knots,1);
+                u = zeros(7*nk,1);
                 u(this.Model.dir_u) = this.Model.u_dir;
                 f_dir = -this.K0*u;
                 f_const = f_const + f_dir(this.Model.free);
@@ -139,6 +139,7 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             % Add zero column to front
             F = [sparse(size(F,1),1) F];
             B.addMatrix('mu(3)',F);
+            B.CoeffClass = 'InputConvCoeffs';
             
             this.B = B;
         end

@@ -18,7 +18,7 @@ classdef DLTLinearCoreFun < models.beam.DLTBaseCoreFun & dscomponents.AffLinCore
             this = this@models.beam.DLTBaseCoreFun(system);
             this.initialize;
             % Set class for export
-            this.CoeffClass = 'models.beam.dynlintimo.CoreFunCoeffs';
+            this.CoeffClass = 'CoreFunCoeffs';
         end
         
         function initialize(this)
