@@ -48,14 +48,6 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             this.Inputs{6} = @(t)[1; 0; sin((t/10)*2*pi); cos((t/10)*2*pi)];
             
             this.buildElementDependentComponents;
-            
-%             %% Output setup (dim = 3*space + 3*velo + 1*temp)
-%             %xdim = (dim - (dim/7))/2;
-%             d = sparse(1:dim,1:dim,1);
-%             d(repmat(logical([0 0 0 1 1 1 0]'),dim/7,1),:) = [];
-%             %d = reshape(repmat([1 1 1 0 0 0 1]', dim/7,1),[],1);
-%             %d = [d; 0*d];
-%             this.C = dscomponents.LinearOutputConv(d);
         end
         
         function buildElementDependentComponents(this)
@@ -142,6 +134,15 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             B.CoeffClass = 'InputConvCoeffs';
             
             this.B = B;
+            
+            %% Output setup (dim = 3*space + 3*velo + 1*temp)
+            %xdim = (dim - (dim/7))/2;
+            nf = length(this.Model.free);
+            C = speye(nf);
+            % Remove velocity entries
+            %C(repmat(logical([0 0 0 1 1 1]'),nf/6,1),:) = [];
+            C = [C 0*C];
+            this.C = dscomponents.LinearOutputConv(C);
         end
     end
 end

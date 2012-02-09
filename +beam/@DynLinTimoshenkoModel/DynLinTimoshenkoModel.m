@@ -221,13 +221,26 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             m = [0*dc dc 1-dc; dc 0*dc+1 0*dc; 0*dc+1 1-dc 0*dc];
         end
         
-        function exportGeometry(this, f)
+        function exportGeometry(this, f, folder)
             % Exports the model geometry to JKerMor
             %
             % To be done
             %
             % Parameters:
             % f: A file handle to write the model xml @type handle
+            
+            % Nodes (including dirichlet points)
+            vert = single(reshape(this.Points',1,[]));
+            export.AppExport.saveRealVector(vert, 'vertices.bin', folder);
+            export.AppExport.saveRealVector(int16(this.dir_u), 'dir_nodes.bin', folder);
+            export.AppExport.saveRealVector(this.u_dir, 'dir_values.bin', folder);
+            
+            n = length(this.Elements);
+            edges = int16(2*n);
+            for i=1:n
+                edges((2*i-1):(2*i)) = this.Elements{i}.PointsIdx;
+            end
+            export.AppExport.saveRealVector(edges, 'edges.bin', folder);
         end
         
         plot(model, t, u);
