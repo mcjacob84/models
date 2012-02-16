@@ -1,5 +1,4 @@
 function [points, RO, KR, FH, mat, lager, lasten] = read_file(~, file)
-
 %-----------------------------------------------------------
 %Read Geometry Data from file
 %Output: points,Rohre,mat,lager,lasten

@@ -300,8 +300,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
         split_RO(this);
         
         split_KR(this);
-                
-        plot_circle(this, N, T, T1, T2, T_Fren, R, angle, B, pc, u1, u2, col1, col2, plot_options);
     end
     
     methods(Static)
