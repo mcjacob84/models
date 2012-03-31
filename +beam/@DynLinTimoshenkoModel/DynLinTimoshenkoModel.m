@@ -1,4 +1,4 @@
-classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
+classdef DynLinTimoshenkoModel < models.BaseFullModel
 % DynLinTimoshenkoModel: 
 %
 %
@@ -148,7 +148,6 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
                 this.NonlinearModel = nonlinear;
             end
             this.Name = 'DynLin Timoschenko Beam';
-            this.JavaExportPackage = 'models.beam.dynlintimo';
             
             %% Load geometry from config file
             path = fileparts(mfilename('fullpath'));
@@ -207,6 +206,14 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             
             % Train with all inputs
             this.TrainingInputs = 1:this.System.InputCount;
+            
+            % Setup JKerMor export
+            je = export.JKerMorExport;
+            je.JavaExportPackage = 'models.beam.dynlintimo';
+            je.Short = this.Name;
+            je.GeometryExportCallback = @this.exportGeometry;
+            je.JaRMoSBaseSource = 'C:\Users\CreaByte\Documents\Uni\Software\JaRMoSBase\src';
+            this.JKerMorExport = je;
         end
         
         function m = get.ColorMap(this)
@@ -221,7 +228,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             m = [0*dc dc 1-dc; dc 0*dc+1 0*dc; 0*dc+1 1-dc 0*dc];
         end
         
-        function exportGeometry(this, f, folder)
+        function exportGeometry(this, f, folder, export)
             % Exports the model geometry to JKerMor
             %
             % To be done
@@ -229,18 +236,33 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel & export.JKerMorExportable
             % Parameters:
             % f: A file handle to write the model xml @type handle
             
-            % Nodes (including dirichlet points)
-            vert = single(reshape(this.Points',1,[]));
-            export.AppExport.saveRealVector(vert, 'vertices.bin', folder);
-            export.AppExport.saveRealVector(int16(this.dir_u), 'dir_nodes.bin', folder);
-            export.AppExport.saveRealVector(this.u_dir, 'dir_values.bin', folder);
+            fprintf(f,'\t<dimension>3</dimension>\n');
+            fprintf(f,'\t<nodes>%d</nodes>\n',size(this.Points,1));
+%             fprintf(f,'\t<fieldmapping>VERTEX</fieldmapping>\n');
+            fprintf(f,'\t<hasFaces>false</hasFaces>\n');
+            
+            %% Nodes (including dirichlet points)
+            usedpts = [];
+            for i=1:length(this.Elements)
+                el = this.Elements{i};
+                usedpts = [usedpts el.PointsIdx];%#ok
+            end
+            usedpts = unique(usedpts);
+            
+            vert = single(reshape(this.Points(usedpts,:)',1,[]));
+            export.saveRealVector(vert, 'vertices.bin', folder);
+            
+            % Dirichlet nodes
+            fprintf(f,'\t<hasDirichletNodes>true</hasDirichletNodes>\n');
+            export.saveRealVector(int16(this.dir_u), 'dir_nodes.bin', folder);
+            export.saveRealVector(this.u_dir, 'dir_values.bin', folder);
             
             n = length(this.Elements);
             edges = int16(2*n);
             for i=1:n
                 edges((2*i-1):(2*i)) = this.Elements{i}.PointsIdx;
             end
-            export.AppExport.saveRealVector(edges, 'edges.bin', folder);
+            export.saveRealVector(edges, 'edges.bin', folder);
         end
         
         plot(model, t, u);

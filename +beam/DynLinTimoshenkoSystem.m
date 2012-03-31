@@ -143,6 +143,20 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             %C(repmat(logical([0 0 0 1 1 1]'),nf/6,1),:) = [];
             C = [C 0*C];
             this.C = dscomponents.LinearOutputConv(C);
+            % Export settings
+            je = this.Model.JKerMorExport;
+            je.DoFFields = 6;
+            
+            f = struct;
+            f(1).Type = 'Displacement3D';
+            f(1).Name = [];
+            f(2).Type = 'RealValue';
+            f(2).Name = 'X-Velocity';
+            f(3).Type = 'RealValue';
+            f(3).Name = 'Y-Velocity';
+            f(4).Type = 'RealValue';
+            f(4).Name = 'Z-Velocity';
+            je.LogicalFields = f;
         end
     end
 end
