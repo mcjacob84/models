@@ -1,0 +1,63 @@
+classdef BurgersF < dscomponents.ACoreFun
+% BurgersF: 
+%
+%
+%
+% @author Daniel Wirtz @date 2012-04-24
+%
+% @new{0,6,dw,2012-04-24} Added this class.
+%
+% This class is part of the framework
+% KerMor - Model Order Reduction using Kernels:
+% - \c Homepage http://www.agh.ians.uni-stuttgart.de/research/software/kermor.html
+% - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
+% - \c License @ref licensing
+    
+    properties
+        A;
+        Ax;
+        System;
+    end
+    
+    methods
+        function this = BurgersF(sys)
+            this = this@dscomponents.ACoreFun;
+            this.System = sys;
+            this.MultiArgumentEvaluations = true;
+            this.CustomProjection = true;
+            this.TimeDependent = false;
+            this.CustomJacobian = true;
+        end
+        
+        function fx = evaluateCoreFun(this, x, ~, mu)
+            fx = mu(1)*this.A*x - x.*(this.Ax*x);
+        end
+        
+        function J = getStateJacobian(this, x, ~, mu)
+            hlp = bsxfun(@times,this.Ax,x);
+            hlp = hlp + spdiags(this.Ax*x,0,size(x,1),size(x,1));
+            J = mu(1)*this.A - hlp;
+        end
+        
+        function newDim(this)
+            m = this.System.Model;
+            n = m.Dimension;
+            dx = (m.Omega(2) - m.Omega(1))/(n+1);
+            e = ones(n,1);
+            d1 = e/(2*dx);
+            d2 = e/(dx^2);
+            this.A = spdiags([d2 -2*d2  d2], -1:1, n, n); 
+            this.Ax = spdiags([-d1 0*d1  d1], -1:1, n, n);
+            this.JSparsityPattern = spdiags([e e  e], -1:1, n, n);
+        end
+        
+%         function target = project(this, V, W)
+%             target = this.clone;
+%             target = project@dscomponents.ACoreFun()
+%         end
+        
+        function copy = clone(this)
+            copy = clone@dscomponents.ACoreFun(this, burgers.BurgersF);
+        end
+    end
+end
