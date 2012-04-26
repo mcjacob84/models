@@ -30,7 +30,7 @@ classdef BurgersF < dscomponents.ACoreFun
         end
         
         function fx = evaluateCoreFun(this, x, ~, mu)
-            fx = mu(1)*this.A*x - x.*(this.Ax*x);
+            fx = bsxfun(@times,this.A*x,mu(1,:)) - x.*(this.Ax*x);
         end
         
         function J = getStateJacobian(this, x, ~, mu)

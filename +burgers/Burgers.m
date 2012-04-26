@@ -42,7 +42,7 @@ classdef Burgers < models.BaseFullModel
             a = this.Approx;
             a.ParamKernel = kernels.GaussKernel;
             al = approx.algorithms.VectorialKernelOMP;
-            al.UseOGA = false;
+            al.UseOGA = true;
             al.NumGammas = 30;
             al.MaxExpansionSize = 400;
             al.gameps = 1e-2;
@@ -70,6 +70,17 @@ classdef Burgers < models.BaseFullModel
         
         function dim = get.Dimension(this)
             dim = this.fDim;
+        end
+    end
+    
+    methods(Static)
+        function m = test_Burgers
+            m = models.burgers.Burgers;
+            m.Approx.Kernel = kernels.PolyKernel(2);
+            m.Approx.Algorithm.Dists = [zeros(2,10); linspace(.1,.9,10)];
+            m.Approx.Algorithm.MaxExpansionSize = 50;
+            m.offlineGenerations;
+            
         end
     end
     
