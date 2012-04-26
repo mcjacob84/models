@@ -83,7 +83,8 @@ classdef Burgers < models.BaseFullModel
             
             %% Sampling - manual
             s = sampling.ManualSampler;
-            s.Samples = logspace(log10(0.005),log10(0.9),50);
+            s.Samples = logspace(log10(0.005),log10(0.9),100);
+            m.Sampler = s;
             
             %% Approx
             a = approx.KernelApprox;
@@ -94,10 +95,10 @@ classdef Burgers < models.BaseFullModel
             al.MaxGFactor = [1 0 1];
             al.MinGFactor = [.2 0 .6];
             al.gameps = 1e-4;
-            al.MaxExpansionSize = 600;
+            al.MaxExpansionSize = 250;
             al.MaxAbsErrFactor = 1e-5;
             al.MaxRelErr = 1e-3;
-            al.NumGammas = 25;
+            al.NumGammas = 30;
             a.Algorithm = al;
             m.Approx = a;
             
