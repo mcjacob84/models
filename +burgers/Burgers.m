@@ -49,18 +49,22 @@ classdef Burgers < models.BaseFullModel
             a.Algorithm = al;
         end
         
-        function [f, ax] = plot(this, t, y)
+        function [f, ax] = plot(this, t, y, ax)
+            if nargin < 4
+                f = figure;
+                ax = gca(f);
+            end
             nt = length(t);
             y  = [zeros(nt,1) y' zeros(nt,1)]; % add boundaries
             xx = linspace(this.Omega(1), this.Omega(2), this.fDim+2);
 
-            f = figure;
-            ax = surfc(xx,t,y);
+            surfc(ax,xx,t,y);
             shading interp;
             title(['Sol of Full System (FD):dim = ' num2str(this.fDim)]);
             xlabel('x');
             ylabel('t');
             zlabel('y');
+            rotate3d on;
         end
         
         function set.Dimension(this, value)
@@ -76,11 +80,29 @@ classdef Burgers < models.BaseFullModel
     methods(Static)
         function m = test_Burgers
             m = models.burgers.Burgers;
-            m.Approx.Kernel = kernels.PolyKernel(2);
-            m.Approx.Algorithm.Dists = [zeros(2,10); linspace(.1,.9,10)];
-            m.Approx.Algorithm.MaxExpansionSize = 50;
-            m.offlineGenerations;
             
+            %% Sampling - manual
+            s = sampling.ManualSampler;
+            s.Samples = logspace(log10(0.005),log10(0.9),50);
+            
+            %% Approx
+            a = approx.KernelApprox;
+            a.Kernel = kernels.GaussKernel;
+            a.ParamKernel = kernels.GaussKernel;
+            
+            al = approx.algorithms.VectorialKernelOMP;
+            al.MaxGFactor = [1 0 1];
+            al.MinGFactor = [.2 0 .6];
+            al.gameps = 1e-4;
+            al.MaxExpansionSize = 600;
+            al.MaxAbsErrFactor = 1e-5;
+            al.MaxRelErr = 1e-3;
+            al.NumGammas = 25;
+            a.Algorithm = al;
+            m.Approx = a;
+            
+            m.offlineGenerations;
+            save test_Burgers;
         end
     end
     
