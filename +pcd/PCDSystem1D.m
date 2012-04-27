@@ -62,7 +62,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
                 di = abs(this.SteadyStates(:,pnr)-y(end));
                 reldi = di ./ (this.SteadyStates(:,pnr)+eps);
                 reldistr = general.Utils.implode(reldi,', ','%2.3e');
-                if all(reldi > .1) && all(reldi < 10)
+                if any(reldi > .1) || any(reldi < 10)
                     [~, id] = min(di);
                     title(sprintf('Model "%s", %s concentrations\nCell state at T=%d: %s\n%s', model.Name, thetitle,...
                     model.T,states{id},reldistr));

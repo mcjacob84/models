@@ -55,9 +55,8 @@ classdef PCDModel < models.BaseFullModel
 %             s = sampling.RandomSampler;
 %             s.Samples = 10;
             s = sampling.GridSampler;
-            s.Spacing = 'lin';
+            s.Spacing = 'log';
             this.Sampler = s;
-            
             
 %             this.ODESolver = solvers.ode.MLWrapper(@ode23);
 %             this.ODESolver = solvers.ode.ExplEuler(this.dt);
@@ -81,10 +80,10 @@ classdef PCDModel < models.BaseFullModel
             this.System = s;
             
             % Space reduction setup
-%             sr = spacereduction.PODGreedy;
-%             sr.Eps = 1e-10;
-%             this.SpaceReducer = sr;
-            this.SpaceReducer = [];
+            sr = spacereduction.PODGreedy;
+            sr.Eps = 1e-10;
+            this.SpaceReducer = sr;
+%             this.SpaceReducer = [];
             
             % Core Approximation
 %             a = approx.algorithms.DefaultCompWiseKernelApprox;
@@ -105,12 +104,13 @@ classdef PCDModel < models.BaseFullModel
             s = approx.selection.LinspaceSelector;
             s.Size = 15000;
             a.TrainDataSelector = s;
-            aa = approx.algorithms.AdaptiveCompWiseKernelApprox;
+            
+            aa = approx.algorithms.VectorialKernelOMP;
             aa.MaxExpansionSize = 200;
             aa.MaxRelErr = 1e-5;
             aa.MaxAbsErrFactor = 1e-5;
-            aa.MaxGFactor = 4;
-            aa.MinGFactor = 0.001;
+            aa.MaxGFactor = 50;
+            aa.MinGFactor = .01;
             aa.NumGammas = 40;
             a.Algorithm = aa; 
             this.Approx = a;
