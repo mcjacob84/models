@@ -46,7 +46,7 @@ classdef PCDModel < models.BaseFullModel
             end
             
             this.T = 6; %[s]
-            this.dt = .01; %[s]
+            this.dt = .001; %[s]
             % time scaling
             this.tau = this.L^2/this.d1;
             

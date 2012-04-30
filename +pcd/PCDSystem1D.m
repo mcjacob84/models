@@ -91,6 +91,44 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
     end
     
     methods(Static)
+        function r = oldconf_search_VKOGA
+            m = models.pcd.PCDModel(1);
+            m.T = 6;
+            m.dt = .001;
+            m.System.Params(1).Range = [1e-3 .1];
+            m.System.Params(1).Desired = 12;
+            
+            s = sampling.GridSampler;
+            s.Spacing = 'lin';
+            m.Sampler = s;
+            
+            a = approx.KernelApprox;
+            a.TimeKernel = kernels.NoKernel;%kernels.GaussKernel(1);
+            %a.TimeKernel.G = 1;
+            a.Kernel = kernels.GaussKernel(1);
+            a.Kernel.G = 1;
+            a.ParamKernel = kernels.GaussKernel(1);
+            a.ParamKernel.G = 1;
+            
+            s = approx.selection.LinspaceSelector;
+            s.Size = 12000;
+            a.TrainDataSelector = s;
+            
+            aa = approx.algorithms.VectorialKernelOMP;
+            aa.MaxExpansionSize = 200;
+            aa.MaxRelErr = 1e-5;
+            aa.MaxAbsErrFactor = 1e-5;
+            aa.MaxGFactor = 50;
+            aa.MinGFactor = .01;
+            aa.NumGammas = 40;
+            a.Algorithm = aa; 
+            
+            m.Approx = a;
+            
+            m.offlineGenerations;
+            r = m.buildReducedModel;
+        end
+        
         function nonzerox0_300s_dt01_largeAA_subsp
             % Configuration to try and find the good old approximation with
             % little approximation error
