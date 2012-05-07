@@ -1,4 +1,4 @@
-classdef CoreFun1D < dscomponents.ACoreFun & dscomponents.IComponentEvaluable
+classdef CoreFun1D < dscomponents.ACompEvalCoreFun
 % The core nonlinear function of the PCD model.
 %
 % @author Daniel Wirtz @date 2010-03-16
@@ -34,7 +34,7 @@ classdef CoreFun1D < dscomponents.ACoreFun & dscomponents.IComponentEvaluable
     methods
                 
         function this = CoreFun1D(dynsys)
-            this = this@dscomponents.ACoreFun;
+            this = this@dscomponents.ACompEvalCoreFun;
             this.sys = dynsys;
             this.MultiArgumentEvaluations = true;
             this.TimeDependent = false;
@@ -72,7 +72,8 @@ classdef CoreFun1D < dscomponents.ACoreFun & dscomponents.IComponentEvaluable
             i = [i; (2*n+1:3*n)']; j = [j; (n+1:2*n)'];
             % Add y_i dependencies
             i = [i; (3*n+1:4*n)']; j = [j; (1:n)'];
-            this.JSparsityPattern = sparse(i,j,ones(length(i),1),4*n,4*n);
+            this.XDim = 4*n;
+            this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.XDim,this.XDim);
             this.nodes = this.sys.Dims(1);
         end
         
@@ -125,11 +126,7 @@ classdef CoreFun1D < dscomponents.ACoreFun & dscomponents.IComponentEvaluable
             end
         end
         
-        function idx = getComponentArgumentIndices(this, i)
-            idx = find(this.JSparsityPattern(i,:));
-        end
-        
-        function fxj = evaluateComponents(this, J, ends, X, ~, mu)
+        function fxj = evaluateComponents(this, J, ends, ~, ~, X, ~, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into
             % the components x_a, y_a, x_i, y_i
             m = this.nodes;

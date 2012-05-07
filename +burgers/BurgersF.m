@@ -1,4 +1,4 @@
-classdef BurgersF < dscomponents.ACoreFun
+classdef BurgersF < dscomponents.ACompEvalCoreFun
 % BurgersF: 
 %
 %
@@ -21,16 +21,33 @@ classdef BurgersF < dscomponents.ACoreFun
     
     methods
         function this = BurgersF(sys)
-            this = this@dscomponents.ACoreFun;
+            this = this@dscomponents.ACompEvalCoreFun;
             this.System = sys;
             this.MultiArgumentEvaluations = true;
-            this.CustomProjection = true;
+            this.CustomProjection = false;
             this.TimeDependent = false;
             this.CustomJacobian = true;
         end
         
         function fx = evaluateCoreFun(this, x, ~, mu)
             fx = bsxfun(@times,this.A*x,mu(1,:)) - x.*(this.Ax*x);
+        end
+                
+        function fxj = evaluateComponents(this, pts, ends, argidx, self, X, ~, mu)
+            % Evaluates the burgers nonlinearity pointwise.
+            fxj = zeros(length(pts),size(X,2));
+            for idx=1:length(pts)
+                pt = pts(idx);
+                if idx == 1
+                    st = 0;
+                else
+                    st = ends(idx-1);
+                end
+                % Select the elements of x that are effectively used in f
+                xidx = (st+1):ends(idx);
+                x = X(xidx,:);
+                fxj(idx,:) = mu(1,:).*(this.A(pt,argidx(xidx))*x) - x(self(xidx),:).*(this.Ax(pt,argidx(xidx))*x);
+            end
         end
         
         function J = getStateJacobian(this, x, ~, mu)
@@ -49,6 +66,7 @@ classdef BurgersF < dscomponents.ACoreFun
             this.A = spdiags([d2 -2*d2  d2], -1:1, n, n); 
             this.Ax = spdiags([-d1 0*d1  d1], -1:1, n, n);
             this.JSparsityPattern = spdiags([e e  e], -1:1, n, n);
+            this.XDim = n;
         end
         
 %         function target = project(this, V, W)
@@ -57,7 +75,9 @@ classdef BurgersF < dscomponents.ACoreFun
 %         end
         
         function copy = clone(this)
-            copy = clone@dscomponents.ACoreFun(this, burgers.BurgersF);
+            copy = clone@dscomponents.ACoreFun(this, models.burgers.BurgersF(this.System));
+            copy.A = this.A;
+            copy.Ax = this.Ax;
         end
     end
 end

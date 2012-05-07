@@ -35,6 +35,7 @@ classdef Burgers < models.BaseFullModel
             this.System = models.burgers.BurgersSys(this);
             this.Dimension = dim;
             this.ODESolver = solvers.ode.MLode15i;
+            this.Name = '1D Burgers equation';
             
             this.SpaceReducer = spacereduction.PODGreedy;
             this.SpaceReducer.Eps = 1e-8;
@@ -104,6 +105,28 @@ classdef Burgers < models.BaseFullModel
             
             m.offlineGenerations;
             save test_Burgers;
+        end
+        
+        function m = test_Burgers_DEIM
+            m = models.burgers.Burgers;
+            
+            %% Sampling - manual
+            s = sampling.ManualSampler;
+            s.Samples = logspace(log10(0.04),log10(0.08),100);
+            m.Sampler = s;
+            
+            %% Approx
+            a = approx.DEIM;
+            a.MaxOrder = 60;
+            m.Approx = a;
+            
+%             m.off1_createParamSamples;
+%             m.off2_genTrainingData;
+%             m.off3_computeReducedSpace;
+%             m.off4_genApproximationTrainData;
+%             m.off5_computeApproximation;
+            m.offlineGenerations;
+            save test_Burgers_DEIM;
         end
     end
     
