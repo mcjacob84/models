@@ -26,28 +26,41 @@ classdef Burgers < models.BaseFullModel
     end
     
     methods
-        function this = Burgers(dim)
-            if nargin < 1
-                dim = 100;
+        function this = Burgers(dim, version)
+            this = this@models.BaseFullModel;
+            if nargin < 2
+                version = 1;
+                if nargin < 1
+                    dim = 100;
+                end
             end
             this.T = 1;
             this.dt = .01;
-            this.System = models.burgers.BurgersSys(this);
+            if version == 1
+                this.System = models.burgers.BurgersSys(this);
+                this.ODESolver = solvers.ode.MLode15i;
+                this.Name = '1D Burgers equation (combined RHS)';
+            elseif version == 2
+                this.System = models.burgers.BurgersSys_A(this);
+                this.System.MaxTimestep = this.dt;
+                this.ODESolver = solvers.ode.SemiImplicitEuler(this);
+                this.Name = '1D Burgers equation (A + f parts)';
+            end
             this.Dimension = dim;
-            this.ODESolver = solvers.ode.MLode15i;
-            this.Name = '1D Burgers equation';
             
             this.SpaceReducer = spacereduction.PODGreedy;
             this.SpaceReducer.Eps = 1e-8;
             
-            a = this.Approx;
-            a.ParamKernel = kernels.GaussKernel;
-            al = approx.algorithms.VectorialKernelOMP;
-            al.UseOGA = true;
-            al.NumGammas = 30;
-            al.MaxExpansionSize = 400;
-            al.gameps = 1e-2;
-            a.Algorithm = al;
+            a = approx.DEIM;
+            a.MaxOrder = 50;
+            this.Approx = a;
+%             a.ParamKernel = kernels.GaussKernel;
+%             al = approx.algorithms.VectorialKernelOMP;
+%             al.UseOGA = true;
+%             al.NumGammas = 30;
+%             al.MaxExpansionSize = 400;
+%             al.gameps = 1e-2;
+%             a.Algorithm = al;
         end
         
         function [f, ax] = plot(this, t, y, ax)
@@ -71,6 +84,7 @@ classdef Burgers < models.BaseFullModel
         function set.Dimension(this, value)
             this.fDim = value;
             this.System.newDim;
+            this.simCache.clearTrajectories;
         end
         
         function dim = get.Dimension(this)
