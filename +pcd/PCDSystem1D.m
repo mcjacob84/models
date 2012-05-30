@@ -83,6 +83,13 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             x0(2*m+1:end) = 1e-9;
             this.x0 = dscomponents.ConstInitialValue(x0);
             
+            e = ones(m,1);
+            A = spdiags([e -2*e e],-1:1,m,m)/this.hs^2;
+            A(1,2) = 2/this.hs^2;
+            A(end,end-1) = 2/this.hs^2;
+            A = blkdiag(A,this.Diff(1)*A,this.Diff(2)*A,this.Diff(3)*A);
+            this.A = dscomponents.LinearCoreFun(A);
+            
             % Extracts the caspase-3 concentrations from the result
 %             C = zeros(m,4*m);
 %             C(:,m+1:2*m) = diag(ones(m,1));

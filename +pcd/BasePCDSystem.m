@@ -203,18 +203,6 @@ classdef BasePCDSystem < models.BaseDynSystem
     end
     
     methods(Access=private)
-%         function setReactionParams(this)
-%             t = this.Model.tau;
-%             this.setParam('Kc1', this.Kc1_real * t, 1); % *this.ya0
-%             this.setParam('Kc2', this.Kc2_real * t, 1); % *this.xa0^this.n
-%             this.setParam('Kd1', this.Kd1_real * t, 1);
-%             this.setParam('Kd2', this.Kd2_real * t, 1);
-%             this.setParam('Kd3', this.Kd3_real * t, 1);
-%             this.setParam('Kd4', this.Kd4_real * t, 1);
-%             this.setParam('Kp1', this.Kp1_real * t, 1); %/this.xi0
-%             this.setParam('Kp2', this.Kp2_real * t, 1); %/this.yi0
-%             
-%         end
         
         function updateDims(this)
             if ~isempty(this.fh) && ~isempty(this.fOmega)
