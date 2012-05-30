@@ -31,7 +31,7 @@ classdef Burgers < models.BaseFullModel
             if nargin < 2
                 version = 1;
                 if nargin < 1
-                    dim = 100;
+                    dim = 2000;
                 end
             end
             this.T = 1;
@@ -44,15 +44,16 @@ classdef Burgers < models.BaseFullModel
                 this.System = models.burgers.BurgersSys_A(this);
                 this.System.MaxTimestep = this.dt;
                 this.ODESolver = solvers.ode.SemiImplicitEuler(this);
+                this.System.MaxTimestep = this.dt;
                 this.Name = '1D Burgers equation (A + f parts)';
             end
             this.Dimension = dim;
             
             this.SpaceReducer = spacereduction.PODGreedy;
-            this.SpaceReducer.Eps = 1e-8;
+            this.SpaceReducer.Eps = 1e-9;
             
             a = approx.DEIM;
-            a.MaxOrder = 50;
+            a.MaxOrder = 80;
             this.Approx = a;
 %             a.ParamKernel = kernels.GaussKernel;
 %             al = approx.algorithms.VectorialKernelOMP;
@@ -121,8 +122,14 @@ classdef Burgers < models.BaseFullModel
             save test_Burgers;
         end
         
-        function m = test_Burgers_DEIM
-            m = models.burgers.Burgers;
+        function m = test_Burgers_DEIM(dim, version)
+            if nargin < 2
+                version = 1;
+                if nargin < 1
+                    dim = 2000;
+                end
+            end
+            m = models.burgers.Burgers(dim, version);
             
             %% Sampling - manual
             s = sampling.ManualSampler;
@@ -131,16 +138,14 @@ classdef Burgers < models.BaseFullModel
             
             %% Approx
             a = approx.DEIM;
-            a.MaxOrder = 60;
+            a.MaxOrder = 80;
             m.Approx = a;
             
-%             m.off1_createParamSamples;
-%             m.off2_genTrainingData;
-%             m.off3_computeReducedSpace;
-%             m.off4_genApproximationTrainData;
-%             m.off5_computeApproximation;
-            m.offlineGenerations;
-            save test_Burgers_DEIM;
+            offline_times = m.offlineGenerations;
+            gitbranch = KerMor.getGitBranch;
+            
+            clear a s;
+            eval(sprintf('save test_Burgers_DEIM_d%d_v%d',dim,version));
         end
     end
     
