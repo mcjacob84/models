@@ -42,11 +42,11 @@ classdef PCDModel < models.BaseFullModel
             
             % Use the PCDSystem
             if nargin == 0
-                dim=1;
+                dim = 1;
             end
             
             this.T = 6; %[s]
-            this.dt = .001; %[s]
+            this.dt = .01; %[s]
             % time scaling
             this.tau = this.L^2/this.d1;
             
@@ -296,6 +296,36 @@ classdef PCDModel < models.BaseFullModel
             times = [t1 t2 t3 t4 t5];
             
             save oldConfigSearch_Large m K times factors;
+        end
+        
+        function m = tests_PCD_DEIM_1D
+            m = models.pcd.PCDModel(1);
+            
+            m.T = 10000; %[s]
+            m.dt = 5; %[s]
+            
+            m.Data = data.MemoryModelData;
+            
+            m.System.Params(1).Desired = 100;
+            s = sampling.GridSampler;
+            s.Spacing = 'lin';
+            m.Sampler = s;
+            
+            m.Approx = approx.DEIM;
+            m.Approx.MaxOrder = 60;
+            
+            s = approx.selection.DefaultSelector;
+            %s.Size = 15000;
+            m.Approx.TrainDataSelector = s;
+            
+            m.System.MaxTimestep = m.dt;
+            m.ODESolver = solvers.ode.SemiImplicitEuler(m);
+            
+            offline_times = m.offlineGenerations;
+            gitbranch = KerMor.getGitBranch;
+            
+            clear s;
+            save tests_PCD_DEIM_1D;
         end
     end
 end

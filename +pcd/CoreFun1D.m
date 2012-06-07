@@ -192,7 +192,7 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
                     fj = mu(1,:).*x(3,:).*x(2,:) - mu(3,:).*x(1,:);
                     % Boundary condition
                     if j == m
-                        fj = fj - x(3,:).*mu(9,:)/this.sys.hs;
+                        fj = fj + x(3,:).*mu(9,:)/this.sys.hs;
                     end
                     
                 % Y_a

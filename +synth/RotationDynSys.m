@@ -35,11 +35,11 @@ classdef RotationDynSys < models.BaseDynSystem & dscomponents.ACoreFun
             fx = A*x;
         end
         
-        function projected = project(this, V)
-            % Implements ACoreFun(::IProjectable).project
+        function varargout = project(varargin)%#ok
+            % Implements general.AProjectable
             % no projection for this model as there are only two
             % dimensions.
-            projected = this;
+            error('not implemented');
         end
     end
     
