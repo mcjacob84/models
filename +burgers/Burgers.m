@@ -55,6 +55,8 @@ classdef Burgers < models.BaseFullModel
             a = approx.DEIM;
             a.MaxOrder = 80;
             this.Approx = a;
+            
+            this.ErrorEstimator = error.DEIMEstimator;
 %             a.ParamKernel = kernels.GaussKernel;
 %             al = approx.algorithms.VectorialKernelOMP;
 %             al.UseOGA = true;
@@ -131,6 +133,12 @@ classdef Burgers < models.BaseFullModel
             end
             m = models.burgers.Burgers(dim, version);
             
+            if dim < 1000
+                m.Data = data.MemoryModelData;
+            else
+                m.Data = data.FileModelData;
+            end
+            
             %% Sampling - manual
             s = sampling.ManualSampler;
             s.Samples = logspace(log10(0.04),log10(0.08),100);
@@ -146,6 +154,45 @@ classdef Burgers < models.BaseFullModel
             
             clear a s;
             eval(sprintf('save test_Burgers_DEIM_d%d_v%d',dim,version));
+        end
+        
+        function m = test_Burgers_DEIM_B(dim)
+            if nargin < 1
+                dim = 200;
+            end
+            m = models.burgers.Burgers(dim, 2);
+            
+            if dim < 1000
+                m.Data = data.MemoryModelData;
+            else
+                m.Data = data.FileModelData;
+            end
+            
+            %% Sampling - manual
+            s = sampling.ManualSampler;
+            s.Samples = logspace(log10(0.04),log10(0.08),100);
+            m.Sampler = s;
+            
+            %% Approx
+            a = approx.DEIM;
+            a.MaxOrder = 80;
+            m.Approx = a;
+            
+            s = m.System;
+            s.x0 = dscomponents.ConstInitialValue(zeros(dim,1));
+            
+            s.Inputs{1} = @(t)2*sin(2*t*pi);
+            B = zeros(dim,1);
+            B([4 5 6 7]) = [1 2 4 1];
+            B(55:60) = 1;
+            s.B = dscomponents.LinearInputConv(B);
+            m.TrainingInputs = 1;
+            
+            offline_times = m.offlineGenerations;
+            gitbranch = KerMor.getGitBranch;
+            
+            clear a s;
+            eval(sprintf('save test_Burgers_DEIM_B_d%d',dim));
         end
     end
     

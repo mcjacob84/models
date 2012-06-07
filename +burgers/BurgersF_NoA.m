@@ -71,7 +71,7 @@ classdef BurgersF_NoA < dscomponents.ACompEvalCoreFun
 %         end
         
         function copy = clone(this)
-            copy = clone@dscomponents.ACoreFun(this, models.burgers.BurgersF(this.System));
+            copy = clone@dscomponents.ACompEvalCoreFun(this, models.burgers.BurgersF_NoA(this.System));
             copy.Ax = this.Ax;
         end
     end
