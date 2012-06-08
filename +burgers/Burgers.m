@@ -153,7 +153,12 @@ classdef Burgers < models.BaseFullModel
             gitbranch = KerMor.getGitBranch;
             
             clear a s;
+            d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_DEIM');
+            mkdir(d);
+            oldd = pwd;
+            cd(d);
             eval(sprintf('save test_Burgers_DEIM_d%d_v%d',dim,version));
+            cd(oldd);
         end
         
         function m = test_Burgers_DEIM_B(dim)
@@ -192,7 +197,12 @@ classdef Burgers < models.BaseFullModel
             gitbranch = KerMor.getGitBranch;
             
             clear a s;
+            d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_DEIM_B');
+            mkdir(d);
+            oldd = pwd;
+            cd(d);
             eval(sprintf('save test_Burgers_DEIM_B_d%d',dim));
+            cd(oldd);
         end
     end
     
