@@ -167,10 +167,10 @@ classdef Burgers < models.BaseFullModel
             end
             m = models.burgers.Burgers(dim, 2);
             
-            if dim < 1000
+            if dim <= 2000
                 m.Data = data.MemoryModelData;
             else
-                m.Data = data.FileModelData;
+                m.Data = data.FileModelData(m);
             end
             
             %% Sampling - manual
