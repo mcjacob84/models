@@ -50,7 +50,13 @@ classdef Tests
             gitbranch = KerMor.getGitBranch;
             
             clear s;
+            d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_1D');
+            mkdir(d);
+            oldd = pwd;
+            cd(d);
+            %eval(sprintf('save tests_PCD_DEIM_1D',dim,version));
             save tests_PCD_DEIM_1D;
+            cd(oldd);
         end
         
         function m = testConfig1
