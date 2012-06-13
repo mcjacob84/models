@@ -92,9 +92,11 @@ classdef Tests
                 m.Data = data.FileModelData(m);
             end
             
-            %% Sampling - manual
-            s = sampling.ManualSampler;
-            s.Samples = logspace(log10(0.01),log10(0.06),100);
+            %% Sampling - log-grid
+            m.System.Params(1).Range = [0.01, 0.06];
+            m.System.Params(1).Desired = 100;
+            s = sampling.GridSampler;
+            s.Spacing = 'log';
             m.Sampler = s;
             
             %% Space reduction
