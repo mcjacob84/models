@@ -94,8 +94,14 @@ classdef Tests
             
             %% Sampling - manual
             s = sampling.ManualSampler;
-            s.Samples = logspace(log10(0.005),log10(0.02),100);
+            s.Samples = logspace(log10(0.01),log10(0.06),100);
             m.Sampler = s;
+            
+            %% Space reduction
+            p = spacereduction.PODReducer;
+            p.Mode = 'abs';
+            p.Value = 44;
+            m.SpaceReducer = p;
             
             %% Approx
             a = approx.DEIM;
@@ -124,6 +130,11 @@ classdef Tests
 
             m.TrainingInputs = 1;
             
+%             m.off1_createParamSamples;
+%             m.off2_genTrainingData;
+%             m.off3_computeReducedSpace;
+%             semilogy(m.SpaceReducer.SingularValues);
+%             return;
             offline_times = m.offlineGenerations;
             gitbranch = KerMor.getGitBranch;
             
