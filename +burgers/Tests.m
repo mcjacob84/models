@@ -20,12 +20,12 @@ classdef Tests
             %m = models.burgers.Tests.test_Burgers_DEIM_B(100);
             load(fullfile(d,'test_Burgers_DEIM_B_d100.mat'));
             
-            m.Approx.Order = [10 5];
+            m.Approx.Order = [6 5];
             r = m.buildReducedModel;
             
             mu = .04;
-            types = {'fig','pdf','jpg'};
-%             types = {'jpg'};
+%             types = {'fig','pdf','jpg'};
+            types = {'png','jpg'};
             
             %% Simulation pics
             [~,y] = m.simulate(mu, 1);
@@ -36,6 +36,7 @@ classdef Tests
             r.ErrorEstimator.Enabled = true;
             
             pm = tools.PlotManager;
+            pm.NoTitlesOnSave = true;
             pm.FilePrefix = 'sim';
             m.plot(t, y1, pm.nextPlot('full_sol_mumin',...
                 sprintf('Full solution for \\mu=%g',m.Data.ParamSamples(:,1))));
@@ -55,108 +56,115 @@ classdef Tests
 %             m.plot(t, abs((y-yr)./y), pm.nextPlot('rel_err','Relative error'));
             pm.done;
             pm.savePlots(d,types,[],true);
-            
-            %% DEIM reduction error plots
-            pm = tools.PlotManager;
-            pm.FilePrefix = 'deim_rm';
-            [errs, relerrs, times, deim_orders] = testing.DEIM.getDEIMReducedModelErrors(r, mu, 1);
-            testing.DEIM.getDEIMReducedModelErrors_plots(r, errs, relerrs, times, deim_orders, pm);
-            pm.savePlots(d,types,[1 2],true);
-
-            %% Reduction process plots
-            pm = tools.PlotManager;
-            pm.FilePrefix = 'deim_approx';
-            h = pm.nextPlot('singvals','Singular values of SVD for DEIM basis computation');
-            semilogy(h, m.Approx.SingularValues);
-            pm.savePlots(d,types,[],true);
-
-            %% Plot for different M,M' values
-            pm = tools.PlotManager;
-            pm.FilePrefix = 'comp_m_mdash';
-            [o, eo] = meshgrid([1 2 3 4 5 7 10 12 20 25 30],...
-                [1 2 3 4 5 7 10 15 20 25 30 40]);
-            errs = testing.DEIM.computeDEIMErrors(...
-                m.Approx, m.Data.ApproxTrainData, o(:), eo(:));
-            testing.DEIM.plotDEIMErrs(errs, pm);
-            figure(3); view(54,30);
-            figure(6); view(100,60);
-            pm.done;
-            pm.savePlots(d,types,[1 3 6],true);
-
-            %% Mean required error orders over training data
-%             [res, ~, ~, t] = testing.DEIM.getMeanRequiredErrorOrders(...
-%                 r, [1e-1 1e-2 1e-4 1e-6], 1:3:r.System.f.MaxOrder,...
-%                 m.Data.ParamSamples, 1);
-            load(fullfile(d,'minreq_test_Burgers_DEIM_B.mat'));
-            t.Format = 'tex';
-            t.Caption = sprintf('Minimum required error orders over trajectories of %d parameters',...
-                m.Data.SampleCount);
-            t.saveToFile(fullfile(d,'table_minreqorders.tex'));
-            t.display;
-            
-            %% Error estimator check for M,M' DEIM approx error est
-            % Using true log norm
-            r.System.f.Order = 6;
-            r.ErrorEstimator.UseTrueLogLipConst = true;
-            ea = tools.EstimatorAnalyzer(r);
-            ea.LineWidth = 2;
-            ea.SaveTexTables = fullfile(d,'table_mdash.tex');
-            ea.ErrorOrders = [1 2 3 5 10];
-            pm = tools.PlotManager;
-            pm.FilePrefix = 'err_mdash';
-            [~, ~, errs] = ea.start(mu,1,pm);
-            axis(pm.copyFigure(1,[get(1,'Tag') '_zoom']),...
-              [.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
-            delete(findobj(get(gcf,'Children'),'Tag','legend'));
-            pm.done;
-            pm.savePlots(d,types,[],true);
-            
-            %% Error estimator check for M,M' DEIM approx error est
-            % Using approx JacDEIM & ST
-            r.System.f.Order = 6;
-            r.ErrorEstimator.UseTrueLogLipConst = false;
-            r.ErrorEstimator.JacMatDEIMOrder = 10;
-            r.ErrorEstimator.JacSimTransSize = 10;
-            ea = tools.EstimatorAnalyzer(r);
-            ea.LineWidth = 2;
-            ea.SaveTexTables = fullfile(d,'table_mdash.tex');
-            ea.ErrorOrders = [1 2 3 5 10];
-            % Add comparison plot
-            
-            ea.Est(end+1).Name = 'Comp: True DEIM with Log lip. const.';
-            ea.Est(end).Estimator = r.ErrorEstimator.clone;
-            ea.Est(end).Estimator.UseTrueDEIMErr = true;
-            ea.Est(end).Estimator.UseTrueLogLipConst = true;
-            ea.Est(end).MarkerStyle = 'p';
-            ea.Est(end).LineStyle = '-';
-            
-            pm = tools.PlotManager;
-            pm.FilePrefix = 'err_mdash_jacd_st';
-            [~, ~, errs] = ea.start(mu,1,pm);
-            axis(pm.copyFigure(1,[get(1,'Tag') '_zoom']),...
-              [.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
-            delete(findobj(get(gcf,'Children'),'Tag','legend'));
-            pm.done;
-            pm.savePlots(d,types,[],true);
-             
-            %% JacMDEIM & SimTrans error plots
-            r.System.f.Order = [6 10];
-            ea.SaveTexTables = fullfile(d,'table_jac_st.tex');
-            ea.ErrorOrders = [];
-            ea.JacDEIMOrders = [1 3 10];
-            ea.SimTransSizes = [1 3 10];
-            pm = tools.PlotManager;
-            pm.FilePrefix = 'err_jac_st';
-            [~, ~, errs] = ea.start(mu,1,pm);
-            axis(pm.copyFigure(1,[get(1,'Tag') '_zoom']), ...
-                [.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
-            delete(findobj(get(gcf,'Children'),'Tag','legend'));
-            pm.done;
-            pm.savePlots(d,types,[],true);
+%             
+%             %% DEIM reduction error plots
+%             pm = tools.PlotManager;
+%             pm.NoTitlesOnSave = true;
+%             pm.FilePrefix = 'deim_rm';
+%             [errs, relerrs, times, deim_orders] = testing.DEIM.getDEIMReducedModelErrors(r, mu, 1);
+%             testing.DEIM.getDEIMReducedModelErrors_plots(r, errs, relerrs, times, deim_orders, pm);
+%             pm.savePlots(d,types,[1 2],true);
 % 
+%             %% Reduction process plots
+%             pm = tools.PlotManager;
+%             pm.NoTitlesOnSave = true;
+%             pm.FilePrefix = 'deim_approx';
+%             h = pm.nextPlot('singvals','Singular values of SVD for DEIM basis computation');
+%             semilogy(h, m.Approx.SingularValues);
+%             pm.savePlots(d,types,[],true);
+% 
+%             %% Plot for different M,M' values
+%             pm = tools.PlotManager;
+%             pm.NoTitlesOnSave = true;
+%             pm.FilePrefix = 'comp_m_mdash';
+%             [o, eo] = meshgrid([1 2 3 4 5 7 10 12 20 25 30],...
+%                 [1 2 3 4 5 7 10 15 20 25 30 40]);
+%             errs = testing.DEIM.computeDEIMErrors(...
+%                 m.Approx, m.Data.ApproxTrainData, o(:), eo(:));
+%             testing.DEIM.plotDEIMErrs(errs, pm);
+%             figure(3); view(54,30);
+%             figure(6); view(100,60);
+%             pm.done;
+%             pm.savePlots(d,types,[1 3 6],true);
+% 
+%             %% Mean required error orders over training data
+% %             [res, ~, ~, t] = testing.DEIM.getMeanRequiredErrorOrders(...
+% %                 r, [1e-1 1e-2 1e-4 1e-6], 1:3:r.System.f.MaxOrder,...
+% %                 m.Data.ParamSamples, 1);
+%             load(fullfile(d,'minreq_test_Burgers_DEIM_B.mat'));
+%             t.Format = 'tex';
+%             t.Caption = sprintf('Minimum required error orders over trajectories of %d parameters',...
+%                 m.Data.SampleCount);
+%             t.saveToFile(fullfile(d,'table_minreqorders.tex'));
+%             t.display;
+%             
+%             %% Error estimator check for M,M' DEIM approx error est
+%             % Using true log norm
+%             r.System.f.Order = 6;
+%             r.ErrorEstimator.UseTrueLogLipConst = true;
+%             ea = tools.EstimatorAnalyzer(r);
+%             ea.LineWidth = 2;
+%             ea.SaveTexTables = fullfile(d,'table_mdash.tex');
+%             ea.ErrorOrders = [1 2 3 5 10];
+%             pm = tools.PlotManager;
+%             pm.NoTitlesOnSave = true;
+%             pm.FilePrefix = 'err_mdash';
+%             [~, ~, errs] = ea.start(mu,1,pm);
+%             axis(pm.copyFigure(1,[get(1,'Tag') '_zoom']),...
+%               [.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
+%             delete(findobj(get(gcf,'Children'),'Tag','legend'));
+%             pm.done;
+%             pm.savePlots(d,types,[],true);
+%             
+%             %% Error estimator check for M,M' DEIM approx error est
+%             % Using approx JacDEIM & ST
+%             r.System.f.Order = 6;
+%             r.ErrorEstimator.UseTrueLogLipConst = false;
+%             r.ErrorEstimator.JacMatDEIMOrder = 10;
+%             r.ErrorEstimator.JacSimTransSize = 10;
+%             ea = tools.EstimatorAnalyzer(r);
+%             ea.LineWidth = 2;
+%             ea.SaveTexTables = fullfile(d,'table_mdash.tex');
+%             ea.ErrorOrders = [1 2 3 5 10];
+%             % Add comparison plot
+%             
+%             ea.Est(end+1).Name = 'Comp: True DEIM with Log lip. const.';
+%             ea.Est(end).Estimator = r.ErrorEstimator.clone;
+%             ea.Est(end).Estimator.UseTrueDEIMErr = true;
+%             ea.Est(end).Estimator.UseTrueLogLipConst = true;
+%             ea.Est(end).MarkerStyle = 'p';
+%             ea.Est(end).LineStyle = '-';
+%             
+%             pm = tools.PlotManager;
+%             pm.NoTitlesOnSave = true;
+%             pm.FilePrefix = 'err_mdash_jacd_st';
+%             [~, ~, errs] = ea.start(mu,1,pm);
+%             axis(pm.copyFigure(1,[get(1,'Tag') '_zoom']),...
+%               [.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
+%             delete(findobj(get(gcf,'Children'),'Tag','legend'));
+%             pm.done;
+%             pm.savePlots(d,types,[],true);
 
             %% Computations for JacMDEIM and Similarity transform
             
+             
+%             %% JacMDEIM & SimTrans error plots
+%             r.System.f.Order = [6 10];
+%             r.ErrorEstimator.UseTrueLogLipConst = false;
+%             ea = tools.EstimatorAnalyzer(r);
+%             ea.SaveTexTables = fullfile(d,'table_jac_st.tex');
+%             ea.ErrorOrders = [];
+%             ea.JacDEIMOrders = [1 3 10];
+%             ea.SimTransSizes = [1 3 10];
+%             pm = tools.PlotManager;
+%             pm.NoTitlesOnSave = true;
+%             pm.FilePrefix = 'err_jac_st';
+%             [~, ~, errs] = ea.start(mu,1,pm);
+%             axis(pm.copyFigure(1,[get(1,'Tag') '_zoom']), ...
+%                 [.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
+%             delete(findobj(get(gcf,'Children'),'Tag','legend'));
+%             pm.done;
+%             pm.savePlots(d,types,[],true);
         end
         
         function m = test_Burgers
