@@ -54,7 +54,6 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
         end
         
         function newSysDimension(this)
-            % Create diffusion matrix
             n = this.sys.Dims(1);
             % Add x_a dependencies
             % 1=x_a, 2=y_a, 3=x_i {, y_i}
@@ -77,51 +76,6 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
             this.nodes = n;
         end
         
-%         function fx = evaluateCoreFun(this, x, ~, mu)
-%             % Allocate result vector
-%             fx = zeros(size(x));
-%             
-%             m = this.nodes;
-%             
-%             % Non-Multidimensional case
-%             if size(x,2) == 1
-%                 mu = [this.sys.ReacCoeff; mu];
-%                 
-%                 % Extract single functions
-%                 xa = x(1:m);
-%                 xan = xa.^this.sys.n;
-%                 ya = x(m+1:2*m);
-%                 xi = x(2*m+1:3*m);
-%                 yi = x(3*m+1:end);
-% 
-%                 % Boundary conditions
-%                 rb = zeros(m,1);
-%                 rb(end) = xi(end)*mu(9)/this.sys.hs; %max((500-t)/500,0)*
-% 
-%                 fx(1:m) = mu(1)*xi.*ya - mu(3)*xa + this.A*xa + rb;
-%                 fx(m+1:2*m) = mu(2)*yi.*xan - mu(4)*ya + this.sys.Diff(1)*this.A*ya;
-%                 fx(2*m+1:3*m) = -mu(1)*xi.*ya - mu(5)*xi + mu(7) + this.sys.Diff(2)*this.A*xi - rb;
-%                 fx(3*m+1:end) = -mu(2)*yi.*xan - mu(6)*yi + mu(8) + this.sys.Diff(3)*this.A*yi;
-%             else
-%                 mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu];
-%                 % Extract single functions
-%                 xa = x(1:m,:);
-%                 xan = xa.^this.sys.n;
-%                 ya = x(m+1:2*m,:);
-%                 xi = x(2*m+1:3*m,:);
-%                 yi = x(3*m+1:end,:);
-% 
-%                 % Boundary conditions
-%                 rb = zeros(m,size(xi,2));
-%                 rb(end,:) = (xi(end,:).*mu(9,:))/this.sys.hs;
-% 
-%                 fx(1:m,:) = bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xa,mu(3,:)) + this.A*xa + rb;
-%                 fx(m+1:2*m,:) = bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,ya,mu(4,:)) + this.sys.Diff(1)*this.A*ya;
-%                 fx(2*m+1:3*m,:) = -bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xi,mu(5,:)) + bsxfun(@times,ones(size(xi)),mu(7,:)) + this.sys.Diff(2)*this.A*xi - rb;
-%                 fx(3*m+1:end,:) = -bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,yi,mu(6,:)) + bsxfun(@times,ones(size(xi)),mu(8,:)) + this.sys.Diff(3)*this.A*yi;
-%             end
-%         end
-
         function fx = evaluateCoreFun(this, x, ~, mu)
             % Allocate result vector
             fx = zeros(size(x));
@@ -220,95 +174,6 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
                 fxj(idx,:) = fj;
             end
         end
-        
-%         function fxj = evaluateComponents(this, J, ends, ~, ~, X, ~, mu)
-%             % The vector embedding results from the fixed ordering of the full 4*m-vector into
-%             % the components x_a, y_a, x_i, y_i
-%             m = this.nodes;
-%             fxj = zeros(length(J),size(X,2));
-%             
-%             mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu];
-%             for idx=1:length(J)
-%                 j = J(idx);
-%                 if idx == 1
-%                     st = 0;
-%                 else
-%                     st = ends(idx-1);
-%                 end
-%                 % Select the elements of x that are effectively used in f
-%                 xidx = (st+1):ends(idx);
-%                 x = X(xidx,:);
-%                 
-%                 % Compose relevant part of A matrix
-%                 Apt = [1 -2 1]/this.sys.hs^2;
-%                 
-%                 % X_a
-%                 if j <= m
-%                     % mu(1)*xi.*ya - mu(3)*xa + this.A*xa + rb;
-%                     if j == 1
-%                         % Vector embedding: 1:x_a(j) 2:x_a(j+1) 3:y_a 4:x_i
-%                         fj = mu(1,:).*x(4,:).*x(3,:) - mu(3,:).*x(1,:) + ([-2 2]/this.sys.hs^2)*x(1:2,:);
-%                     elseif j == m
-%                         % Vector embedding: 1:x_a(j-1) 2:x_a(j) 3:y_a 4:x_i
-%                         fj = mu(1,:).*x(4,:).*x(3,:) - mu(3,:).*x(2,:) + ([2 -2]/this.sys.hs^2)*x(1:2,:) ...
-%                             + x(4,:).*mu(9,:)/this.sys.hs;
-%                     else
-%                         % Vector embedding: 1:x_a(j-1) 2:x_a(j) 3:x_a(j+1) 4:y_a 5:x_i
-%                         fj = mu(1,:).*x(5,:).*x(4,:) - mu(3,:).*x(2,:) + Apt*x(1:3,:);
-%                     end
-%                     
-%                     % Y_a
-%                 elseif m < j && j <= 2*m
-%                     % mu(2)*yi.*xan - mu(4)*ya + this.sys.Diff(1)*this.A*ya;
-%                     if j == m+1
-%                         % Vector embedding: 1:x_a 2:y_a(j) 3:y_a(j+1) 4:y_i
-%                         fj = mu(2,:).*x(4,:).*x(1,:).^this.sys.n - mu(4,:).*x(2,:) + this.sys.Diff(1)*...
-%                             ([-2 2]/this.sys.hs^2)*x(2:3,:);
-%                     elseif j == 2*m
-%                         % Vector embedding: 1:x_a 2:y_a(j-1) 3:y_a(j) 4:y_a(j+1) 5:y_i
-%                         fj = mu(2,:).*x(4,:).*x(1,:).^this.sys.n - mu(4,:).*x(3,:) + this.sys.Diff(1)*...
-%                             ([2 -2]/this.sys.hs^2)*x(2:3,:);
-%                     else
-%                         % Vector embedding: 1:x_a 2:y_a(j-1) 3:y_a(j) 4:y_a(j+1) 5:y_i
-%                         fj = mu(2,:).*x(5,:).*x(1,:).^this.sys.n - mu(4,:).*x(3,:) + this.sys.Diff(1)*Apt*x(2:4,:);
-%                     end
-%                     
-%                     % X_i
-%                 elseif 2*m < j && j <= 3*m
-%                     % -mu(1)*xi.*ya - mu(5)*xi + mu(7) + this.sys.Diff(2)*this.A*xi - rb;
-%                     if j == 2*m+1
-%                         % Vector embedding: 1:y_a 2:x_i(j) 3:x_i(j+1)
-%                         fj = -mu(1,:).*x(2,:).*x(1,:) - mu(5,:).*x(2,:) + mu(7,:) + this.sys.Diff(2)*...
-%                             ([-2 2]/this.sys.hs^2)*x(2:3,:);
-%                     elseif j == 3*m
-%                         % Vector embedding: 1:y_a 2:x_i(j-1) 3:x_i(j)
-%                         fj = -mu(1,:).*x(3,:).*x(1,:) - mu(5,:).*x(3,:) + mu(7,:) + this.sys.Diff(2)*...
-%                             ([2 -2]/this.sys.hs^2)*x(2:3,:) - x(3,:).*mu(9,:)/this.sys.hs;
-%                     else
-%                         % Vector embedding: 1:y_a 2:x_i(j-1) 3:x_i(j) 4:x_i(j+1)
-%                         fj = -mu(1,:).*x(3,:).*x(1,:) - mu(5,:).*x(3,:) + mu(7,:) + this.sys.Diff(2)*Apt*x(2:4,:);
-%                     end
-%                     
-%                     % Y_i
-%                 else
-%                     % -mu(2)*yi.*xan - mu(6)*yi + mu(8) + this.sys.Diff(3)*this.A*yi;
-%                     if j == 3*m+1
-%                         % Vector embedding: 1:x_a 2:y_i(j) 3:y_i(j+1)
-%                         fj = -mu(2,:).*x(2,:).*x(1,:).^this.sys.n - mu(6,:).*x(2,:) + mu(8,:) + ...
-%                             this.sys.Diff(3)*([-2 2]/this.sys.hs^2)*x(2:3,:);
-%                     elseif j == 4*m
-%                         % Vector embedding: 1:x_a 2:y_i(j-1) 3:y_i(j)
-%                         fj = -mu(2,:).*x(3,:).*x(1,:).^this.sys.n - mu(6,:).*x(3,:) + mu(8,:) + ...
-%                             this.sys.Diff(3)*([2 -2]/this.sys.hs^2)*x(2:3,:);
-%                     else
-%                         % Vector embedding: 1:x_a 2:y_i(j-1) 3:y_i(j) 4:y_i(j+1)
-%                         fj = -mu(2,:).*x(3,:).*x(1,:).^this.sys.n - mu(6,:).*x(3,:) + mu(8,:) + ...
-%                             this.sys.Diff(3)*Apt*x(2:4,:);
-%                     end
-%                 end
-%                 fxj(idx,:) = fj;
-%             end
-%         end
     end
 end
 

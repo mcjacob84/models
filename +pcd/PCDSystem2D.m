@@ -128,6 +128,12 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             x0(2*m+1:end) = 1e-9;
             this.x0 = dscomponents.ConstInitialValue(x0);
             
+            % Diffusion part
+            A = general.MatUtils.laplacemat(this.hs, this.Dims(1), this.Dims(2));
+            A = blkdiag(A,this.Diff(1)*A,this.Diff(2)*A,this.Diff(3)*A);
+            this.A = dscomponents.LinearCoreFun(A);
+            
+            % Output extraction
 %             p = .1; % 10% of each dimensions span, centered in geometry.
 %             d = this.dim1;
 %             d1idx = find(abs((1:d) - d/2) <= d/2 * p);

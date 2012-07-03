@@ -20,6 +20,8 @@ classdef Tests
             %m = models.burgers.Tests.test_Burgers_DEIM_B(100);
             load(fullfile(d,'test_Burgers_DEIM_B_d100.mat'));
             
+            d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_DEIM_B');
+            
             m.Approx.Order = [6 5];
             r = m.buildReducedModel;
             
