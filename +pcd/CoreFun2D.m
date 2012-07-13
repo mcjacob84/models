@@ -46,6 +46,8 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             copy = clone@dscomponents.ACoreFun(this, copy);
             
             copy.nodes = this.nodes;
+            copy.hlp = this.hlp;
+            copy.idxmat = this.idxmat;
         end
         
         function newSysDimension(this)
@@ -65,8 +67,8 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             a = s.Omega;
             this.hlp.xr = a(1,2)-a(1,1); % xrange
             this.hlp.yr = a(2,2)-a(2,1); % yrange
-            this.hlp.xd = abs(((1:this.hlp.d1)-1)*this.sys.h-.5*this.hlp.xr); % x distances from middle
-            this.hlp.yd = abs(((1:this.hlp.d2)-1)*this.sys.h-.5*this.hlp.yr); % y distances from middle
+            this.hlp.xd = abs(((1:this.hlp.d1)-1)*this.sys.h-.5*this.hlp.xr)'; % x distances from middle
+            this.hlp.yd = abs(((1:this.hlp.d2)-1)*this.sys.h-.5*this.hlp.yr)'; % y distances from middle
             
             % Add x_a dependencies
             % 1=x_a, 2=y_a, 3=x_i {, y_i}
@@ -84,8 +86,9 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             % 1=x_a, {y_a, x_i}, 2=y_i
             i = [i; (3*n+1:4*n)'; (3*n+1:4*n)']; 
             j = [j; (1:n)'; (3*n+1:4*n)'];
-            this.XDim = 4*n;
-            this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.XDim,this.XDim);
+            this.xDim = 4*n;
+            this.fDim = 4*n;
+            this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.fDim,this.xDim);
         end
         
         function fx = evaluateCoreFun(this, x, ~, mu)
@@ -158,31 +161,31 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 rb = zeros(m,nd);
                 
                 %% Top & Bottom
-                xd = repmat(this.hlp.xd',1,nd); % y distances
+                xd = repmat(this.hlp.xd,1,nd); % y distances
                 % bottom
                 pos = bsxfun(@lt,xd,this.hlp.xr*mu(10,:)/2);
                 idx = this.idxmat(:,1);
-                rb(idx,:) = pos .* (bsxfun(@mult,xi(idx,:),mu(14,:)*ud));
+                rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(14,:)*ud));
                 % top
                 pos = bsxfun(@lt,xd,this.hlp.xr*mu(9,:)/2);
                 idx = this.idxmat(:,end);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@mult,xi(idx,:),mu(13,:)*ud));
+                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(13,:)*ud));
                 
                 %% Left & Right
-                yd = repmat(this.hlp.yd',1,nd);
+                yd = repmat(this.hlp.yd,1,nd);
                 % right
                 pos = bsxfun(@lt,yd,this.hlp.yr*mu(12,:)/2);
                 idx = this.idxmat(end,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@mult,xi(idx,:),mu(16,:)*ud));
+                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(16,:)*ud));
                 % left
                 pos = bsxfun(@lt,yd,this.hlp.yr*mu(11,:)/2);
                 idx = this.idxmat(1,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@mult,xi(idx,:),mu(15,:)*ud));
+                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(15,:)*ud));
                 
-                fx(1:m,:) = bsxfun(@mult,xi.*ya,mu(1,:)) - bsxfun(@mult,xa,mu(3,:)) + rb/this.hlp.hs;
-                fx(m+1:2*m,:) = bsxfun(@mult,yi.*xan,mu(2,:)) - bsxfun(@mult,ya,mu(4,:));
-                fx(2*m+1:3*m,:) = -bsxfun(@mult,xi.*ya,mu(1,:)) - bsxfun(@mult,xi,mu(5,:)) + bsxfun(@mult,ones(size(xi)),mu(7,:)) - rb/this.hlp.hs;
-                fx(3*m+1:end,:) = -bsxfun(@mult,yi.*xan,mu(2,:)) - bsxfun(@mult,yi,mu(6,:)) + bsxfun(@mult,ones(size(xi)),mu(8,:));
+                fx(1:m,:) = bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xa,mu(3,:)) + rb/this.hlp.hs;
+                fx(m+1:2*m,:) = bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,ya,mu(4,:));
+                fx(2*m+1:3*m,:) = -bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xi,mu(5,:)) + bsxfun(@times,ones(size(xi)),mu(7,:)) - rb/this.hlp.hs;
+                fx(3*m+1:end,:) = -bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,yi,mu(6,:)) + bsxfun(@times,ones(size(xi)),mu(8,:));
             end
         end
         
@@ -193,15 +196,14 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             nd = size(X,2);
             fxj = zeros(length(J),nd);
             
-            %mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu];
-            mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu([1 1 1 1 2 2 2 2],:)];
+            mu = [this.sys.ReacCoeff(:,ones(1,size(mu,2))); mu([1 1 1 1 2 2 2 2],:)];
             if nd > 1
-                xd = repmat(this.hlp.xd',1,nd);
-                yd = repmat(this.hlp.yd',1,nd);
-                bottom = bsxfun(@lt,xd,this.hlp.xr*mu(10,:)/2);
-                top = bsxfun(@lt,xd,this.hlp.xr*mu(9,:)/2);
-                right = bsxfun(@lt,yd,this.hlp.yr*mu(12,:)/2);
-                left = bsxfun(@lt,yd,this.hlp.yr*mu(11,:)/2);
+                %xd = repmat(this.hlp.xd,1,nd);
+                %yd = repmat(this.hlp.yd,1,nd);
+                bottom = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(10,:)/2);
+                top = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(9,:)/2);
+                right = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(12,:)/2);
+                left = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(11,:)/2);
             else
                 bottom = this.hlp.xd <= this.hlp.xr*mu(10)/2;
                 top = this.hlp.xd <= this.hlp.xr*mu(9)/2;
@@ -211,8 +213,12 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             % Get matrix indices
             J2 = mod(J,m);
             J2(J2==0) = m;
-            [row, col] = ind2sub([this.hlp.d1 this.hlp.d2],J2);
             
+            %[row2, col2] = ind2sub([this.hlp.d1 this.hlp.d2],J2);
+            % ind2sub direct replacement!
+            row = rem(J2-1, this.hlp.d1)+1;
+            col = (J2-row)/this.hlp.d1+1;
+           
             for idx=1:length(J)
                 j = J(idx);
                 if idx == 1

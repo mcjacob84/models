@@ -66,7 +66,7 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
             app.Kernel = kernels.GaussKernel(.5);
             app.Kernel.G = 1;
                         
-            t = approx.selection.TimeSelector;
+            t = data.selection.TimeSelector;
             t.Size = 12000;
             app.TrainDataSelector = t;
             this.Approx = app;

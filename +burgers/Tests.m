@@ -207,9 +207,9 @@ classdef Tests
             m = models.burgers.Burgers(dim, version);
             
             if dim < 1000
-                m.Data = data.MemoryModelData;
+                m.ModelData.TrajectoryData = data.MemoryTrajectoryData;
             else
-                m.Data = data.FileModelData;
+                m.ModelData.TrajectoryData = data.FileTrajectoryData(m.ModelData);
             end
             
             %% Sampling - manual
@@ -242,9 +242,9 @@ classdef Tests
             m.PlotAzEl = [-130 26];
             
             if dim <= 2000
-                m.Data = data.MemoryModelData;
+                m.ModelData.TrajectoryData = data.MemoryTrajectoryData;
             else
-                m.Data = data.FileModelData(m);
+                m.ModelData.TrajectoryData = data.FileTrajectoryData(m.ModelData);
             end
             
             %% Sampling - log-grid

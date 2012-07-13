@@ -66,7 +66,8 @@ classdef BurgersF < dscomponents.ACompEvalCoreFun
             this.A = spdiags([d2 -2*d2  d2], -1:1, n, n); 
             this.Ax = spdiags([-d1 0*d1  d1], -1:1, n, n);
             this.JSparsityPattern = spdiags([e e  e], -1:1, n, n);
-            this.XDim = n;
+            this.xDim = n;
+            this.fDim = n;
         end
         
 %         function target = project(this, V, W)

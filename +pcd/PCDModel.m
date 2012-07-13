@@ -50,7 +50,7 @@ classdef PCDModel < models.BaseFullModel
             % time scaling
             this.tau = this.L^2/this.d1;
             
-            this.Data = data.FileModelData(this);
+            this.Data.TrajectoryData = data.FileTrajectoryData(this.Data);
             
 %             s = sampling.RandomSampler;
 %             s.Samples = 10;
@@ -101,7 +101,7 @@ classdef PCDModel < models.BaseFullModel
             a.ParamKernel = kernels.GaussKernel(1);
             a.ParamKernel.G = 1;
             
-            s = approx.selection.LinspaceSelector;
+            s = data.selection.LinspaceSelector;
             s.Size = 15000;
             a.TrainDataSelector = s;
             

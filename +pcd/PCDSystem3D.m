@@ -196,9 +196,9 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             m.Sampler = s;
             
             a = m.Approx;
-%             s = approx.selection.DefaultSelector;
-            %s = approx.selection.LinspaceSelector;
-            s = approx.selection.TimeSelector;
+%             s = data.selection.DefaultSelector;
+            %s = data.selection.LinspaceSelector;
+            s = data.selection.TimeSelector;
             s.Size = 25000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.MinMaxAdaptiveCWKA;
@@ -209,7 +209,7 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             aa.InitialCenter = 't0';
             a.Algorithm = aa;
             
-            m.Data = data.FileModelData(m);
+            m.ModelData.TrajectoryData = data.FileTrajectoryData(m.ModelData);
             
             % Zero initial conditions
             %dim = size(m.System.x0.evaluate([]),1);

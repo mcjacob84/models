@@ -167,7 +167,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel
             %% Model specifics
             this.T = 5;
             this.dt = .05;
-            this.Data = data.FileModelData(this);%#ok
+            this.ModelData.TrajectoryData = data.FileTrajectoryData(this.ModelData);%#ok
             
             %% Internal setup
             this.System = models.beam.DynLinTimoshenkoSystem(this);
@@ -275,7 +275,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel
         function set.BeamRefinementFactor(this, value)
             [this.Points, this.RO_raw, this.KR_raw] = this.read_file(this.ConfigFile);
             if value ~= this.RO_factor_global
-                this.simCache.clearTrajectories;
+                this.ModelData.SimCache.clearTrajectories;
             end
             this.RO_factor_global = value;
             this.split_RO;
@@ -295,7 +295,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel
         function set.CurvedBeamRefinementFactor(this, value)
             [this.Points, this.RO_raw, this.KR_raw] = this.read_file(this.ConfigFile);
             if value ~= this.KR_factor_global
-                this.simCache.clearTrajectories;
+                this.ModelData.SimCache.clearTrajectories;
             end
             this.KR_factor_global = value;
             this.split_RO;

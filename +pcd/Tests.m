@@ -14,17 +14,85 @@ classdef Tests
 % - \c License @ref licensing
     
     methods(Static)
+        
+        %% ---------------- 2D tests --------------------
+        function m = tests_PCD_DEIM_2D
+            m = models.pcd.PCDModel(2);
+            
+            m.T = 3000; %[s]
+            m.dt = 5; %[s]
+            m.System.h = 1e-7; %-> 151 x 101 system
+            
+            if all([m.System.f.fDim m.System.f.xDim] < 1000)
+                m.Data.TrajectoryData = data.MemoryTrajectoryData;
+            else
+                m.Data.TrajectoryData = data.FileTrajectoryData(m.Data);
+            end
+            
+            % area
+            m.System.Params(1).Desired = 10;
+            % rate
+            m.System.Params(2).Desired = 20;
+            s = sampling.GridSampler;
+            s.Spacing = 'lin';
+            m.Sampler = s;
+            
+            s = spacereduction.PODGreedy;
+            s.Eps = 1e-7;
+            m.SpaceReducer = s;
+            
+            m.Approx = approx.DEIM;
+            m.Approx.MaxOrder = 120;
+            
+            s = data.selection.LinspaceSelector;
+            s.Size = 20000;
+            m.Approx.TrainDataSelector = s;
+            
+            m.System.MaxTimestep = m.dt;
+            m.ODESolver = solvers.ode.SemiImplicitEuler(m);
+            
+            e = error.DEIMEstimator;
+            e.JacMatDEIMMaxOrder = 80;
+            ts = data.selection.LinspaceSelector;
+            ts.Size = round(.2 * m.T * m.System.Params(1).Desired / m.dt);
+            e.TrainDataSelector = ts;
+            m.ErrorEstimator = e;
+            
+            gitbranch = KerMor.getGitBranch;
+            d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_2D');
+            oldd = pwd;
+            cd(d);
+            save tests_PCD_DEIM_2D;
+            cd(oldd);
+            
+%             t(1) = m.off1_createParamSamples;
+%             t(2) = m.off2_genTrainingData;
+%             t(3) = m.off3_computeReducedSpace;
+%             t(4) = m.off4_genApproximationTrainData;
+%             t(5) = m.off5_computeApproximation;
+%             t(6) = m.off6_prepareErrorEstimator;
+%             offline_times = t;
+
+            offline_times = m.offlineGenerations;
+            
+            clear s t;
+            oldd = pwd;
+            cd(d);
+            save tests_PCD_DEIM_2D;
+            cd(oldd);
+        end
+        
         %% ---------------- 1D tests --------------------
         
         function m = tests_PCD_DEIM_1D
             m = models.pcd.PCDModel(1);
             
-            m.T = 10000; %[s]
-            m.dt = 5; %[s]
+            m.T = 30; %[s]
+            m.dt = 1; %[s]
             
-            m.Data = data.MemoryModelData;
+            m.Data.TrajectoryData = data.MemoryTrajectoryData;
             
-            m.System.Params(1).Desired = 40;
+            m.System.Params(1).Desired = 20;
             s = sampling.GridSampler;
             s.Spacing = 'lin';
             m.Sampler = s;
@@ -32,7 +100,7 @@ classdef Tests
             m.Approx = approx.DEIM;
             m.Approx.MaxOrder = 60;
             
-            s = approx.selection.DefaultSelector;
+            s = data.selection.DefaultSelector;
             %s.Size = 15000;
             m.Approx.TrainDataSelector = s;
             
@@ -41,7 +109,7 @@ classdef Tests
             
             e = error.DEIMEstimator;
             e.JacMatDEIMMaxOrder = 60;
-            ts = approx.selection.LinspaceSelector;
+            ts = data.selection.LinspaceSelector;
             ts.Size = round(.2 * m.T * m.System.Params(1).Desired / m.dt);
             e.TrainDataSelector = ts;
             m.ErrorEstimator = e;
@@ -80,8 +148,8 @@ classdef Tests
             m.Sampler = s;
             
             a = m.Approx;
-            %s = approx.selection.DefaultSelector;
-            s = approx.selection.LinspaceSelector;
+            %s = data.selection.DefaultSelector;
+            s = data.selection.LinspaceSelector;
             s.Size = 20000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.AdaptiveCompWiseKernelApprox;
@@ -93,7 +161,7 @@ classdef Tests
             aa.NumGammas = 60;
             a.Algorithm = aa;
             
-            m.Data = data.MemoryModelData;
+            m.Data = data.MemoryTrajectoryData;
             
             m.SpaceReducer = [];
         end
@@ -129,9 +197,9 @@ classdef Tests
             m.Sampler = s;
             
             a = m.Approx;
-%             s = approx.selection.DefaultSelector;
-%             s = approx.selection.LinspaceSelector;
-            s = approx.selection.TimeSelector;
+%             s = data.selection.DefaultSelector;
+%             s = data.selection.LinspaceSelector;
+            s = data.selection.TimeSelector;
             s.Size = 12000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.AdaptiveCompWiseKernelApprox;
@@ -140,7 +208,7 @@ classdef Tests
             aa.MaxAbsErrFactor = 1e-5;
             a.Algorithm = aa;
             
-            m.Data = data.MemoryModelData;
+            m.Data = data.MemoryTrajectoryData;
             
             % Zero initial conditions
             dim = size(m.System.x0.evaluate([]),1);
@@ -192,9 +260,9 @@ classdef Tests
             m.Sampler = s;
             
             a = m.Approx;
-%             s = approx.selection.DefaultSelector;
-%             s = approx.selection.LinspaceSelector;
-            s = approx.selection.TimeSelector;
+%             s = data.selection.DefaultSelector;
+%             s = data.selection.LinspaceSelector;
+            s = data.selection.TimeSelector;
             s.Size = 24000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.AdaptiveCompWiseKernelApprox;
@@ -203,7 +271,7 @@ classdef Tests
             aa.MaxAbsErrFactor = 1e-5;
             a.Algorithm = aa;
             
-            m.Data = data.MemoryModelData;
+            m.Data = data.MemoryTrajectoryData;
             
             % Zero initial conditions
             dim = size(m.System.x0.evaluate([]),1);
@@ -253,7 +321,7 @@ classdef Tests
             a.ParamKernel = kernels.GaussKernel(1);
             a.ParamKernel.G = 1;
             
-            s = approx.selection.LinspaceSelector;
+            s = data.selection.LinspaceSelector;
             s.Size = 12000;
             a.TrainDataSelector = s;
             
@@ -294,9 +362,9 @@ classdef Tests
             m.Sampler = s;
             
             a = m.Approx;
-%             s = approx.selection.DefaultSelector;
-%             s = approx.selection.LinspaceSelector;
-            s = approx.selection.TimeSelector;
+%             s = data.selection.DefaultSelector;
+%             s = data.selection.LinspaceSelector;
+            s = data.selection.TimeSelector;
             s.Size = 24000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.AdaptiveCompWiseKernelApprox;
@@ -305,7 +373,7 @@ classdef Tests
             aa.MaxAbsErrFactor = 1e-5;
             a.Algorithm = aa;
             
-            m.Data = data.MemoryModelData;
+            m.Data = data.MemoryTrajectoryData;
             
             % Zero initial conditions
             %dim = size(m.System.x0.evaluate([]),1);
@@ -365,9 +433,9 @@ classdef Tests
             m.Sampler = s;
             
             a = m.Approx;
-%             s = approx.selection.DefaultSelector;
-            %s = approx.selection.LinspaceSelector;
-            s = approx.selection.TimeSelector;
+%             s = data.selection.DefaultSelector;
+            %s = data.selection.LinspaceSelector;
+            s = data.selection.TimeSelector;
             s.Size = 25000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.MinMaxAdaptiveCWKA;
@@ -378,7 +446,7 @@ classdef Tests
             aa.InitialCenter = 't0';
             a.Algorithm = aa;
             
-            m.Data = data.MemoryModelData;
+            m.Data = data.MemoryTrajectoryData;
             
             % Zero initial conditions
             %dim = size(m.System.x0.evaluate([]),1);
@@ -443,9 +511,9 @@ classdef Tests
             m.Sampler = s;
             
             a = m.Approx;
-%             s = approx.selection.DefaultSelector;
-            %s = approx.selection.LinspaceSelector;
-            s = approx.selection.TimeSelector;
+%             s = data.selection.DefaultSelector;
+            %s = data.selection.LinspaceSelector;
+            s = data.selection.TimeSelector;
             s.Size = 25000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.MinMaxAdaptiveCWKA;
@@ -456,7 +524,7 @@ classdef Tests
             aa.InitialCenter = 't0';
             a.Algorithm = aa;
             
-            m.Data = data.MemoryModelData;
+            m.Data = data.MemoryTrajectoryData;
             
             % Zero initial conditions
             %dim = size(m.System.x0.evaluate([]),1);
@@ -521,9 +589,9 @@ classdef Tests
             m.Sampler = s;
             
             a = m.Approx;
-%             s = approx.selection.DefaultSelector;
-            %s = approx.selection.LinspaceSelector;
-            s = approx.selection.TimeSelector;
+%             s = data.selection.DefaultSelector;
+            %s = data.selection.LinspaceSelector;
+            s = data.selection.TimeSelector;
             s.Size = 25000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.MinMaxAdaptiveCWKA;
@@ -534,7 +602,7 @@ classdef Tests
             aa.InitialCenter = 't0';
             a.Algorithm = aa;
             
-            m.Data = data.MemoryModelData;
+            m.Data = data.MemoryTrajectoryData;
             
             % Zero initial conditions
             %dim = size(m.System.x0.evaluate([]),1);
@@ -599,9 +667,9 @@ classdef Tests
             m.Sampler = s;
             
             a = m.Approx;
-%             s = approx.selection.DefaultSelector;
-            %s = approx.selection.LinspaceSelector;
-            s = approx.selection.TimeSelector;
+%             s = data.selection.DefaultSelector;
+            %s = data.selection.LinspaceSelector;
+            s = data.selection.TimeSelector;
             s.Size = 25000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.MinMaxAdaptiveCWKA;
@@ -612,7 +680,7 @@ classdef Tests
             aa.InitialCenter = 't0';
             a.Algorithm = aa;
             
-            m.Data = data.MemoryModelData;
+            m.Data = data.MemoryTrajectoryData;
             
             % Zero initial conditions
             %dim = size(m.System.x0.evaluate([]),1);
@@ -681,9 +749,9 @@ classdef Tests
             m.Sampler = s;
             
             a = m.Approx;
-%             s = approx.selection.DefaultSelector;
-            %s = approx.selection.LinspaceSelector;
-            s = approx.selection.TimeSelector;
+%             s = data.selection.DefaultSelector;
+            %s = data.selection.LinspaceSelector;
+            s = data.selection.TimeSelector;
             s.Size = 25000;
             a.TrainDataSelector = s;
             aa = approx.algorithms.MinMaxAdaptiveCWKA;
@@ -694,7 +762,7 @@ classdef Tests
             aa.InitialCenter = 't0';
             a.Algorithm = aa;
             
-            m.Data = data.FileModelData(m);
+            m.ModelData.TrajectoryData = data.FileTrajectoryData(m.ModelData);
             
             % Zero initial conditions
             %dim = size(m.System.x0.evaluate([]),1);

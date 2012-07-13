@@ -71,8 +71,9 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
             % 1=x_a, {y_a, x_i}, 2=y_i
             i = [i; (3*n+1:4*n)'; (3*n+1:4*n)']; 
             j = [j; (1:n)'; (3*n+1:4*n)'];
-            this.XDim = 4*n;
-            this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.XDim,this.XDim);
+            this.xDim = 4*n;
+            this.fDim = 4*n;
+            this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.fDim,this.xDim);
             this.nodes = n;
         end
         

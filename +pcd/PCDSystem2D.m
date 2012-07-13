@@ -22,7 +22,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             % Add params
             % Simpler version: homogeneous area & rate
             this.addParam('area', [0, 1], 10);
-            this.addParam('rate', [1e-5, 1e-1], 15);
+            this.addParam('rate', [1e-5, 1e-2], 15);
 %             rate_min = 1e-4;
 %             rate_max = 1e-1;
 %             % Param indices 9-12

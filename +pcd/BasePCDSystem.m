@@ -162,7 +162,7 @@ classdef BasePCDSystem < models.BaseDynSystem
             
             m = this.Model;
             this.MaxTimestep = [];
-            if ~isa(m.ODESolver,'solvers.ode.AImplSolver')
+            if ~isa(m.ODESolver,'solvers.ode.AImplSolver') && ~isa(m.ODESolver,'solvers.ode.SemiImplicitEuler')
                 maxdt = .95*(value^2/max([m.d1 m.d2 m.d3 m.d4]));
                 maxdtsc = .95*(this.hs^2/max([1 this.Diff]));
                 

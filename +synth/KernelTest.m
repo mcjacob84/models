@@ -45,8 +45,8 @@ classdef KernelTest < models.BaseFullModel
             % to the this.Ma property for the error estimator.
             a = approx.KernelApprox;
             a.Algorithm = approx.algorithms.DefaultCompWiseKernelApprox;
-%             a.TrainDataSelector = approx.selection.DefaultSelector;
-            a.TrainDataSelector = approx.selection.LinspaceSelector;
+%             a.TrainDataSelector = data.selection.DefaultSelector;
+            a.TrainDataSelector = data.selection.LinspaceSelector;
             a.TrainDataSelector.Size = 150;
             a.Kernel = kernels.GaussKernel(3);
             a.Kernel.G = 1;
