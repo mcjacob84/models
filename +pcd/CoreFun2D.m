@@ -3,6 +3,8 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
 %
 % @author Daniel Wirtz @date 16.03.2010
 %
+% @new{0,6,dw,2012-07-16} Added direct jacobian evaluation function.
+%
 % @change{0,5,dw,2011-11-02} Augmenting the mu parameters by the base system's
 % models.pcd.BasePCDSystem.ReacCoeff vector. This removes the reaction coefficients from
 % the system as true parameters but allows to quickly revert the process if needed.
@@ -198,8 +200,6 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             
             mu = [this.sys.ReacCoeff(:,ones(1,size(mu,2))); mu([1 1 1 1 2 2 2 2],:)];
             if nd > 1
-                %xd = repmat(this.hlp.xd,1,nd);
-                %yd = repmat(this.hlp.yd,1,nd);
                 bottom = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(10,:)/2);
                 top = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(9,:)/2);
                 right = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(12,:)/2);
@@ -290,6 +290,56 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 end
                 fxj(idx,:) = fj;
             end
+        end
+        
+        function J = getStateJacobian(this, x, ~, mu)
+            n = this.nodes;
+            mu = [this.sys.ReacCoeff; mu([1 1 1 1 2 2 2 2])];
+            
+            % Boundary stuff
+            bottom = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(10)/2,1);
+            top = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(9)/2,end);
+            right = this.idxmat(end,this.hlp.yd <= this.hlp.yr*mu(12)/2);
+            left = this.idxmat(1,this.hlp.yd <= this.hlp.yr*mu(11)/2);
+            rbxi = zeros(n,1);
+            rbxi(bottom) = mu(14);
+            rbxi(top) = mu(13);
+            rbxi(right) = mu(16);
+            rbxi(left) = mu(15);
+            rbxi = rbxi/this.hlp.hs;
+            
+            %% x_a part
+            % 1=x_a, 2=y_a, 3=x_i {, y_i}
+            i = [(1:n)'; (1:n)'; (1:n)'];
+            j = (1:3*n)';
+            s = [-ones(n,1)*mu(3); ... % dx_a/x_a = -mu3
+                 mu(1)*x(2*n+1:3*n);... % dx_a/y_a = mu1*x_i
+                 mu(1)*x(n+1:2*n) + rbxi]; %dx_a/x_i + rbxi
+            %% y_a part
+            % 1=x_a, 2=y_a {, x_i}, 3=y_i
+            i = [i; (n+1:2*n)'; (n+1:2*n)'; (n+1:2*n)'];
+            j = [j; (1:2*n)'; (3*n+1:4*n)'];
+            hlp1 = this.hlp.n*mu(2)*x(3*n+1:end).*x(1:n).^(this.hlp.n-1);
+            hlp2 = mu(2)*x(1:n).^this.hlp.n;
+            s = [s; hlp1; ... % dy_a/x_a = n*mu2*y_i*x_a^(n-1)
+                 -ones(n,1)*mu(4);... % dy_a/y_a = -mu4
+                 hlp2]; %dy_a/y_i = mu2 * x_a^n
+            
+            %% x_i part
+            % {x_a,} 1=y_a, 2=x_i {, y_i}
+            i = [i; (2*n+1:3*n)'; (2*n+1:3*n)']; 
+            j = [j; (n+1:3*n)'];
+            s = [s; -mu(1)*x(2*n+1:3*n);... %dx_i/y_a = -mu1*x_i
+                    -mu(1)*x(n+1:2*n)-mu(5)-rbxi]; %dx_i/y_a = -mu1*y_a -mu5 -rbxi
+            
+            %% y_i part
+            % 1=x_a, {y_a, x_i}, 2=y_i
+            i = [i; (3*n+1:4*n)'; (3*n+1:4*n)']; 
+            j = [j; (1:n)'; (3*n+1:4*n)'];
+            s = [s; -hlp1; ... %dy_i/x_a = -n*mu2*y_i*x_a^(n-1)
+                    -hlp2-mu(6)]; % dy_i/y_i = -mu2 * x_a^n-mu6
+            
+            J = sparse(i,j,s,this.fDim,this.xDim);
         end
     end
 end

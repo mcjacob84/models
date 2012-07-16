@@ -25,8 +25,6 @@ classdef Tests
             
             if all([m.System.f.fDim m.System.f.xDim] < 1000)
                 m.Data.TrajectoryData = data.MemoryTrajectoryData;
-            else
-                m.Data.TrajectoryData = data.FileTrajectoryData(m.Data);
             end
             
             % area

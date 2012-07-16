@@ -38,7 +38,6 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
             this.sys = dynsys;
             this.MultiArgumentEvaluations = true;
             this.TimeDependent = false;
-%             this.CustomJacobian = true;
         end
         
         function copy = clone(this)

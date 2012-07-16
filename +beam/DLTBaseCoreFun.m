@@ -25,14 +25,9 @@ classdef DLTBaseCoreFun < dscomponents.ACoreFun
         function this = DLTBaseCoreFun(sys)
             this = this@dscomponents.ACoreFun;
             this.TimeDependent = false;
-            this.CustomJacobian = true;
             this.sys = sys;
             this.initialize;
         end
-       
-%         function copy = clone(this)%#ok
-%             
-%         end
 
         function initialize(this)
             % do constant preps, i.e. assign A

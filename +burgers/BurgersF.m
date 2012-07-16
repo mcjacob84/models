@@ -26,7 +26,6 @@ classdef BurgersF < dscomponents.ACompEvalCoreFun
             this.MultiArgumentEvaluations = true;
             this.CustomProjection = false;
             this.TimeDependent = false;
-            this.CustomJacobian = true;
         end
         
         function fx = evaluateCoreFun(this, x, ~, mu)
