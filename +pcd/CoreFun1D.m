@@ -44,7 +44,7 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
             copy = models.pcd.CoreFun1D(this.sys);
             
             % Call superclass method
-            copy = clone@dscomponents.ACoreFun(this, copy);
+            copy = clone@dscomponents.ACompEvalCoreFun(this, copy);
             
             % copy reference!
             %copy.sys = this.sys; % already done in constructor
