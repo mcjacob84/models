@@ -16,6 +16,31 @@ classdef Tests
     methods(Static)
         
         %% ---------------- 2D tests --------------------
+        function createWSH12Plots
+            d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_2D');
+            load(fullfile(d,'tests_PCD_DEIM_2D.mat'));
+            s = load(fullfile(d,'mu.mat'));
+            mu = s.mu;
+            r = m.buildReducedModel;
+            
+            % Using true log norm
+            r.System.f.Order = [15 10];
+            %r.ErrorEstimator.UseTrueLogLipConst = true;
+            ea = tools.EstimatorAnalyzer(r);
+            ea.LineWidth = 2;
+            ea.SaveTexTables = fullfile(d,'table_mdash.tex');
+            ea.ErrorOrders = [1 2 3 5 10];
+            pm = tools.PlotManager;
+            pm.NoTitlesOnSave = true;
+            pm.FilePrefix = 'err_mdash';
+            [~, ~, errs] = ea.start(mu,[],pm);
+            axis(pm.copyFigure(1,[get(1,'Tag') '_zoom']),...
+              [.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
+            delete(findobj(get(gcf,'Children'),'Tag','legend'));
+            pm.done;
+            pm.savePlots(d,types,[],true);
+        end
+        
         function m = tests_PCD_DEIM_2D
             m = models.pcd.PCDModel(2);
             

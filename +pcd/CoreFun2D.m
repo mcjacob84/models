@@ -45,7 +45,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             copy = models.pcd.CoreFun2D(this.sys);
             
             % Call superclass method
-            copy = clone@dscomponents.ACoreFun(this, copy);
+            copy = clone@dscomponents.ACompEvalCoreFun(this, copy);
             
             copy.nodes = this.nodes;
             copy.hlp = this.hlp;

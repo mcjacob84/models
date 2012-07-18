@@ -58,14 +58,14 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
                 if abs((mi-Ma) / mi) < 1e-14
                     mi = .999*mi; Ma=1.001*Ma;
                 end
-                axis([0 this.Model.T this.Omega mi Ma]);
+                axis([0 max(t) this.Omega mi Ma]);
                 di = abs(this.SteadyStates(:,pnr)-y(end));
                 reldi = di ./ (this.SteadyStates(:,pnr)+eps);
                 reldistr = general.Utils.implode(reldi,', ','%2.3e');
                 if any(reldi > .1) || any(reldi < 10)
                     [~, id] = min(di);
                     title(sprintf('Model "%s", %s concentrations\nCell state at T=%d: %s\n%s', model.Name, thetitle,...
-                    model.T,states{id},reldistr));
+                    max(t),states{id},reldistr));
                 else
                     title(sprintf('Model "%s", %s concentrations\n%s', model.Name, thetitle,reldistr));
                 end
