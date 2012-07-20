@@ -96,7 +96,7 @@ classdef Burgers < models.BaseFullModel
         function set.Dimension(this, value)
             this.fDim = value;
             this.System.newDim;
-            this.ModelData.SimCache.clearTrajectories;
+            this.Data.SimCache.clearTrajectories;
         end
         
         function dim = get.Dimension(this)
