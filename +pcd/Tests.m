@@ -16,11 +16,14 @@ classdef Tests
     methods(Static)
         
         %% ---------------- 2D tests --------------------
-        function createWSH12Plots
-            d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_2D');
-            load(fullfile(d,'tests_PCD_DEIM_2D.mat'));
-            s = load(fullfile(d,'mu.mat'));
-            mu = s.mu;
+        function createWSH12Plots(m)
+            
+            if nargin < 1
+                d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_2D');
+                load(fullfile(d,'tests_PCD_DEIM_2D.mat'));
+                s = load(fullfile(d,'mu.mat'));
+                mu = s.mu;
+            end
             r = m.buildReducedModel;
             
             % Using true log norm
@@ -41,12 +44,15 @@ classdef Tests
             pm.savePlots(d,types,[],true);
         end
         
-        function m = tests_PCD_DEIM_2D
+        function m = tests_PCD_DEIM_2D(dim)
             m = models.pcd.PCDModel(2);
             
             m.T = 3000; %[s]
             m.dt = 5; %[s]
-            m.System.h = 1e-7; %-> 151 x 101 system
+            if nargin < 1
+                dim = 150;
+            end
+            m.System.h = (m.System.Omega(1,2)-m.System.Omega(1,1))/(dim-1);
             
             if all([m.System.f.fDim m.System.f.xDim] < 1000)
                 m.Data.TrajectoryData = data.MemoryTrajectoryData;
@@ -82,7 +88,8 @@ classdef Tests
             m.ErrorEstimator = e;
             
             gitbranch = KerMor.getGitBranch;
-            d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_2D');
+            d = fullfile(KerMor.App.DataStoreDirectory,sprintf('tests_PCD_DEIM_2D_%d_%d',m.System.Dims));
+            [~,~] = mkdir(d);
             oldd = pwd;
             cd(d);
             save tests_PCD_DEIM_2D;
@@ -107,11 +114,15 @@ classdef Tests
         
         %% ---------------- 1D tests --------------------
         
-        function m = tests_PCD_DEIM_1D
+        function m = tests_PCD_DEIM_1D(dim)
             m = models.pcd.PCDModel(1);
             
-            m.T = 30; %[s]
-            m.dt = 1; %[s]
+            m.T = 3000; %[s]
+            m.dt = 5; %[s]
+            if nargin < 1
+                dim = 25;
+            end
+            m.System.h = (m.System.Omega(2)-m.System.Omega(1))/(dim-1);
             
             m.Data.TrajectoryData = data.MemoryTrajectoryData;
             
@@ -142,7 +153,7 @@ classdef Tests
             
             clear s;
             d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_1D');
-            mkdir(d);
+            [~,~] = mkdir(d);
             oldd = pwd;
             cd(d);
             %eval(sprintf('save tests_PCD_DEIM_1D',dim,version));

@@ -67,7 +67,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
         end
     end
     
-    methods(Access=protected)            
+    methods(Access=protected)     
         function newSysDimension(this)
             m = prod(this.Dims);
             x0 = zeros(4*m,1);

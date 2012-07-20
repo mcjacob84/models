@@ -85,8 +85,8 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             
             e = ones(m,1);
             A = spdiags([e -2*e e],-1:1,m,m)/this.hs^2;
-            A(1,2) = 2/this.hs^2;
-            A(end,end-1) = 2/this.hs^2;
+            A(1) = -1/this.hs^2;
+            A(end) = -1/this.hs^2;
             A = blkdiag(A,this.Diff(1)*A,this.Diff(2)*A,this.Diff(3)*A);
             this.A = dscomponents.LinearCoreFun(A);
             

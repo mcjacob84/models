@@ -93,7 +93,17 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.fDim,this.xDim);
         end
         
-        function fx = evaluateCoreFun(this, x, ~, mu)
+        function evaluateCoreFun(varargin)
+            error('dont call me (direct overload of evaluate for efficiency');
+        end
+        
+        function fx = evaluate(this, x, ~, mu)
+            
+            % If this has been projected, restore full size and compute values.
+            if ~isempty(this.V)
+                x = this.V*x;
+            end
+            
             % Allocate result vector
             fx = zeros(size(x));
             
@@ -189,8 +199,79 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 fx(2*m+1:3*m,:) = -bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xi,mu(5,:)) + bsxfun(@times,ones(size(xi)),mu(7,:)) - rb/this.hlp.hs;
                 fx(3*m+1:end,:) = -bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,yi,mu(6,:)) + bsxfun(@times,ones(size(xi)),mu(8,:));
             end
+            
+            % If this has been projected, project back to reduced space
+            if ~isempty(this.W)
+                fx = this.W'*fx;
+            end
         end
         
+        function J = getStateJacobian(this, x, ~, mu)
+            
+            % If this has been projected, restore full size and compute values.
+            if ~isempty(this.V)
+                x = this.V*x;
+            end
+            
+            n = this.nodes;
+            mu = [this.sys.ReacCoeff; mu([1 1 1 1 2 2 2 2])];
+            
+            % Boundary stuff
+            bottom = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(10)/2,1);
+            top = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(9)/2,end);
+            right = this.idxmat(end,this.hlp.yd <= this.hlp.yr*mu(12)/2);
+            left = this.idxmat(1,this.hlp.yd <= this.hlp.yr*mu(11)/2);
+            rbxi = zeros(n,1);
+            rbxi(bottom) = mu(14);
+            rbxi(top) = mu(13);
+            rbxi(right) = mu(16);
+            rbxi(left) = mu(15);
+            rbxi = rbxi/this.hlp.hs;
+            
+            %% x_a part
+            % 1=x_a, 2=y_a, 3=x_i {, y_i}
+            i = [(1:n)'; (1:n)'; (1:n)'];
+            j = (1:3*n)';
+            s = [-ones(n,1)*mu(3); ... % dx_a/x_a = -mu3
+                 mu(1)*x(2*n+1:3*n);... % dx_a/y_a = mu1*x_i
+                 mu(1)*x(n+1:2*n) + rbxi]; %dx_a/x_i + rbxi
+            %% y_a part
+            % 1=x_a, 2=y_a {, x_i}, 3=y_i
+            i = [i; (n+1:2*n)'; (n+1:2*n)'; (n+1:2*n)'];
+            j = [j; (1:2*n)'; (3*n+1:4*n)'];
+            hlp1 = this.hlp.n*mu(2)*x(3*n+1:end).*x(1:n).^(this.hlp.n-1);
+            hlp2 = mu(2)*x(1:n).^this.hlp.n;
+            s = [s; hlp1; ... % dy_a/x_a = n*mu2*y_i*x_a^(n-1)
+                 -ones(n,1)*mu(4);... % dy_a/y_a = -mu4
+                 hlp2]; %dy_a/y_i = mu2 * x_a^n
+            
+            %% x_i part
+            % {x_a,} 1=y_a, 2=x_i {, y_i}
+            i = [i; (2*n+1:3*n)'; (2*n+1:3*n)']; 
+            j = [j; (n+1:3*n)'];
+            s = [s; -mu(1)*x(2*n+1:3*n);... %dx_i/y_a = -mu1*x_i
+                    -mu(1)*x(n+1:2*n)-mu(5)-rbxi]; %dx_i/x_i = -mu1*y_a -mu5 -rbxi
+            
+            %% y_i part
+            % 1=x_a, {y_a, x_i}, 2=y_i
+            i = [i; (3*n+1:4*n)'; (3*n+1:4*n)']; 
+            j = [j; (1:n)'; (3*n+1:4*n)'];
+            s = [s; -hlp1; ... %dy_i/x_a = -n*mu2*y_i*x_a^(n-1)
+                    -hlp2-mu(6)]; % dy_i/y_i = -mu2 * x_a^n-mu6
+            
+            n = this.fDim;
+            if ~isempty(this.V)
+                n = size(this.V,1);
+            end
+            m = this.xDim;
+            if ~isempty(this.W)
+                n = size(this.W,1);
+            end
+            J = sparse(i,j,s,n,m);
+        end
+    end
+    
+    methods(Access=protected)
         function fxj = evaluateComponents(this, J, ends, ~, ~, X, ~, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into
             % the components x_a, y_a, x_i, y_i
@@ -292,54 +373,151 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             end
         end
         
-        function J = getStateJacobian(this, x, ~, mu)
-            n = this.nodes;
+        function dfx = evaluateComponentPartialDerivatives(this, pts, ends, ~, deriv, ~, X, ~, mu, ~)
+            % Parameters:
+            % pts: The output dimensions of f for which derivatives are required
+            % ends: At the `i`-th entry it contains the last position in the 'x' vector that
+            % indicates an input value relevant for the `i`-th point evaluation, i.e.
+            % 'f_i(x) = f_i(x(ends(i-1):ends(i)));'
+            % idx: The indices of x entries in the global x vector w.r.t the i-th point, e.g.
+            % 'xglobal(i-1:i+1) = x(ends(i-1):ends(i))'
+            % deriv: The indices within x that derivatives are required for.
+            % self: The positions in the x vector that correspond to the i-th output dimension,
+            % if applicable (usually f_i depends on x_i, but not necessarily)
+            % x: The required x values to evaluate all points pts
+            % t: The current time
+            % mu: the current parameter
+            % dfxsel: A derivative selection matrix. Contains the mapping for each row of x to
+            % the output points pts. As deriv might contain less than 'size(x,1)' values, use
+            % 'dfxsel(:,deriv)' to select the mapping for the actually computed derivatives.
+            %
+            % Return values:
+            % dfx: A column vector with 'numel(deriv)' rows containing the derivatives at all
+            % specified pts i with respect to the coordinates given by 'idx(ends(i-1):ends(i))'
+            m = this.nodes;
             mu = [this.sys.ReacCoeff; mu([1 1 1 1 2 2 2 2])];
+            nd = size(X,2);
             
-            % Boundary stuff
-            bottom = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(10)/2,1);
-            top = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(9)/2,end);
-            right = this.idxmat(end,this.hlp.yd <= this.hlp.yr*mu(12)/2);
-            left = this.idxmat(1,this.hlp.yd <= this.hlp.yr*mu(11)/2);
-            rbxi = zeros(n,1);
-            rbxi(bottom) = mu(14);
-            rbxi(top) = mu(13);
-            rbxi(right) = mu(16);
-            rbxi(left) = mu(15);
-            rbxi = rbxi/this.hlp.hs;
+            %% Boundary stuff
+            % Get matrix indices of points
+            pts2 = mod(pts,m);
+            pts2(pts2==0) = m;
+            row = rem(pts2-1, this.hlp.d1)+1;
+            col = (pts2-row)/this.hlp.d1+1;
+            if nd > 1
+                bottom = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(10,:)/2);
+                top = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(9,:)/2);
+                right = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(12,:)/2);
+                left = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(11,:)/2);
+            else
+                bottom = this.hlp.xd <= this.hlp.xr*mu(10)/2;
+                top = this.hlp.xd <= this.hlp.xr*mu(9)/2;
+                right = this.hlp.yd <= this.hlp.yr*mu(12)/2;
+                left = this.hlp.yd <= this.hlp.yr*mu(11)/2;
+            end
             
-            %% x_a part
-            % 1=x_a, 2=y_a, 3=x_i {, y_i}
-            i = [(1:n)'; (1:n)'; (1:n)'];
-            j = (1:3*n)';
-            s = [-ones(n,1)*mu(3); ... % dx_a/x_a = -mu3
-                 mu(1)*x(2*n+1:3*n);... % dx_a/y_a = mu1*x_i
-                 mu(1)*x(n+1:2*n) + rbxi]; %dx_a/x_i + rbxi
-            %% y_a part
-            % 1=x_a, 2=y_a {, x_i}, 3=y_i
-            i = [i; (n+1:2*n)'; (n+1:2*n)'; (n+1:2*n)'];
-            j = [j; (1:2*n)'; (3*n+1:4*n)'];
-            hlp1 = this.hlp.n*mu(2)*x(3*n+1:end).*x(1:n).^(this.hlp.n-1);
-            hlp2 = mu(2)*x(1:n).^this.hlp.n;
-            s = [s; hlp1; ... % dy_a/x_a = n*mu2*y_i*x_a^(n-1)
-                 -ones(n,1)*mu(4);... % dy_a/y_a = -mu4
-                 hlp2]; %dy_a/y_i = mu2 * x_a^n
-            
-            %% x_i part
-            % {x_a,} 1=y_a, 2=x_i {, y_i}
-            i = [i; (2*n+1:3*n)'; (2*n+1:3*n)']; 
-            j = [j; (n+1:3*n)'];
-            s = [s; -mu(1)*x(2*n+1:3*n);... %dx_i/y_a = -mu1*x_i
-                    -mu(1)*x(n+1:2*n)-mu(5)-rbxi]; %dx_i/y_a = -mu1*y_a -mu5 -rbxi
-            
-            %% y_i part
-            % 1=x_a, {y_a, x_i}, 2=y_i
-            i = [i; (3*n+1:4*n)'; (3*n+1:4*n)']; 
-            j = [j; (1:n)'; (3*n+1:4*n)'];
-            s = [s; -hlp1; ... %dy_i/x_a = -n*mu2*y_i*x_a^(n-1)
-                    -hlp2-mu(6)]; % dy_i/y_i = -mu2 * x_a^n-mu6
-            
-            J = sparse(i,j,s,this.fDim,this.xDim);
+            %% Derivative info per point
+            der = false(size(X,1),1);
+            der(deriv) = true;
+           
+            %% Main loop
+            dfx = zeros(size(deriv,1),nd);
+            curpos = 1;
+            for idx=1:length(pts)
+                i = pts(idx);
+                if idx == 1
+                    st = 0;
+                else
+                    st = ends(idx-1);
+                end
+                % Select the elements of x that are effectively used in f
+                elem = (st+1):ends(idx);
+                x = X(elem);
+                d = der(elem);
+                
+                % X_a
+                if i <= m
+                    % 1=x_a, 2=y_a, 3=x_i {, y_i}
+                    if d(1) % dx_a/x_a = -mu3
+                        dfx(curpos,:) = -mu(3,:);
+                        curpos = curpos + 1;
+                    end
+                    if d(2) % dx_a/y_a = mu1*x_i
+                        dfx(curpos,:) = mu(1,:).*x(3,:);
+                        curpos = curpos + 1;
+                    end
+                    if d(3) % dx_a/x_i = mu1*y_a + rb'
+                        dfx(curpos,:) = mu(1,:)*x(2,:);
+                        if col(idx) == 1 % Bottom
+                            dfx(curpos,:) = dfx(curpos,:) + bottom(row(idx),:) .* mu(14,:)/this.hlp.hs;
+                        end
+                        if col(idx) == this.hlp.d2 % Top
+                            dfx(curpos,:) = dfx(curpos,:) + top(row(idx),:) .* mu(13,:)/this.hlp.hs;
+                        end
+                        if row(idx) == this.hlp.d1 % Right
+                            dfx(curpos,:) = dfx(curpos,:) + right(col(idx),:) .* mu(16,:)/this.hlp.hs;
+                        end
+                        if row(idx) == 1 % Left
+                            dfx(curpos,:) = dfx(curpos,:) + left(col(idx),:) .* mu(15,:)/this.hlp.hs;
+                        end
+                        curpos = curpos + 1;
+                    end
+                    
+                % Y_a
+                elseif m < i && i <= 2*m
+                    % 1=x_a, 2=y_a {, x_i}, 3=y_i
+                    if d(1) % dy_a/x_a = n*mu2*y_i*x_a^(n-1)
+                        dfx(curpos,:) = this.hlp.n*mu(2,:).*x(3,:).*x(1,:).^(this.hlp.n-1);
+                        curpos = curpos + 1;
+                    end
+                    if d(2) % dy_a/y_a = -mu4
+                        dfx(curpos,:) = -mu(4,:);
+                        curpos = curpos + 1;
+                    end
+                    if d(3) % dx_a/x_a = -mu3
+                        dfx(curpos,:) = mu(2,:)*x(1,:).^this.hlp.n;
+                        curpos = curpos + 1;
+                    end
+                    
+                % X_i
+                elseif 2*m < i && i <= 3*m
+                    % {x_a,} 1=y_a, 2=x_i {, y_i}
+                    if d(1) %dx_i/y_a = -mu1*x_i
+                        dfx(curpos,:) = -mu(1,:).*x(2,:);
+                        curpos = curpos + 1;
+                    end
+                    if d(2) %dx_i/x_i = -mu1*y_a -mu5 -rbxi
+                        dfx(curpos,:) = -mu(1,:).*x(1,:)-mu(5,:);
+                        % Boundary conditions
+                        if col(idx) == 1 % Bottom
+                            dfx(curpos,:) = dfx(curpos,:) - bottom(row(idx),:) .* mu(14,:)/this.hlp.hs;
+                        end
+                        if col(idx) == this.hlp.d2 % Top
+                            dfx(curpos,:) = dfx(curpos,:) - top(row(idx),:) .* mu(13,:)/this.hlp.hs;
+                        end
+                        if row(idx) == this.hlp.d1 % Right
+                            dfx(curpos,:) = dfx(curpos,:) - right(col(idx),:) .* mu(16,:)/this.hlp.hs;
+                        end
+                        if row(idx) == 1 % Left
+                            dfx(curpos,:) = dfx(curpos,:) - left(col(idx),:) .* mu(15,:)/this.hlp.hs;
+                        end
+                        
+                        curpos = curpos + 1;
+                    end
+                    
+                % Y_i
+                else
+                    % 1=x_a, {y_a, x_i}, 2=y_i
+                    if d(1) %dy_i/x_a = -n*mu2*y_i*x_a^(n-1)
+                        dfx(curpos,:) = -this.hlp.n*mu(2,:).*x(2,:).*x(1,:).^(this.hlp.n-1);
+                        curpos = curpos + 1;
+                    end
+                    if d(2) % dy_i/y_i = -mu2 * x_a^n-mu6
+                        dfx(curpos,:) = -mu(2,:).*x(1,:).^this.hlp.n - mu(6,:);
+                        curpos = curpos + 1;
+                    end
+                end
+            end
         end
     end
 end
