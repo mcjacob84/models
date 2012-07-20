@@ -31,23 +31,6 @@ classdef BurgersF_NoA < dscomponents.ACompEvalCoreFun
             fx = - x.*(this.Ax*x);
         end
                 
-        function fxj = evaluateComponents(this, pts, ends, argidx, self, X, ~, ~)
-            % Evaluates the burgers nonlinearity pointwise.
-            fxj = zeros(length(pts),size(X,2));
-            for idx=1:length(pts)
-                pt = pts(idx);
-                if idx == 1
-                    st = 0;
-                else
-                    st = ends(idx-1);
-                end
-                % Select the elements of x that are effectively used in f
-                xidx = (st+1):ends(idx);
-                x = X(xidx,:);
-                fxj(idx,:) = - x(self(xidx),:) .* (this.Ax(pt,argidx(xidx))*x);
-            end
-        end
-        
         function J = getStateJacobian(this, x, ~, ~)
             hlp = bsxfun(@times,this.Ax,x);
             J = -hlp - spdiags(this.Ax*x,0,size(x,1),size(x,1));
@@ -73,6 +56,25 @@ classdef BurgersF_NoA < dscomponents.ACompEvalCoreFun
         function copy = clone(this)
             copy = clone@dscomponents.ACompEvalCoreFun(this, models.burgers.BurgersF_NoA(this.System));
             copy.Ax = this.Ax;
+        end
+    end
+    
+    methods(Access=protected)
+        function fxj = evaluateComponents(this, pts, ends, argidx, self, X, ~, ~)
+            % Evaluates the burgers nonlinearity pointwise.
+            fxj = zeros(length(pts),size(X,2));
+            for idx=1:length(pts)
+                pt = pts(idx);
+                if idx == 1
+                    st = 0;
+                else
+                    st = ends(idx-1);
+                end
+                % Select the elements of x that are effectively used in f
+                xidx = (st+1):ends(idx);
+                x = X(xidx,:);
+                fxj(idx,:) = - x(self(xidx),:) .* (this.Ax(pt,argidx(xidx))*x);
+            end
         end
     end
 end
