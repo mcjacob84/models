@@ -395,7 +395,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             % dfx: A column vector with 'numel(deriv)' rows containing the derivatives at all
             % specified pts i with respect to the coordinates given by 'idx(ends(i-1):ends(i))'
             m = this.nodes;
-            mu = [this.sys.ReacCoeff; mu([1 1 1 1 2 2 2 2])];
+            mu = [this.sys.ReacCoeff(:,ones(1,size(mu,2))); mu([1 1 1 1 2 2 2 2],:)];
             nd = size(X,2);
             
             %% Boundary stuff
@@ -432,7 +432,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 end
                 % Select the elements of x that are effectively used in f
                 elem = (st+1):ends(idx);
-                x = X(elem);
+                x = X(elem,:);
                 d = der(elem);
                 
                 % X_a
@@ -447,7 +447,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                         curpos = curpos + 1;
                     end
                     if d(3) % dx_a/x_i = mu1*y_a + rb'
-                        dfx(curpos,:) = mu(1,:)*x(2,:);
+                        dfx(curpos,:) = mu(1,:).*x(2,:);
                         if col(idx) == 1 % Bottom
                             dfx(curpos,:) = dfx(curpos,:) + bottom(row(idx),:) .* mu(14,:)/this.hlp.hs;
                         end
@@ -475,7 +475,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                         curpos = curpos + 1;
                     end
                     if d(3) % dx_a/x_a = -mu3
-                        dfx(curpos,:) = mu(2,:)*x(1,:).^this.hlp.n;
+                        dfx(curpos,:) = mu(2,:).*x(1,:).^this.hlp.n;
                         curpos = curpos + 1;
                     end
                     
@@ -501,7 +501,6 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                         if row(idx) == 1 % Left
                             dfx(curpos,:) = dfx(curpos,:) - left(col(idx),:) .* mu(15,:)/this.hlp.hs;
                         end
-                        
                         curpos = curpos + 1;
                     end
                     

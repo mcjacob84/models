@@ -16,7 +16,7 @@ classdef Tests
     methods(Static)
         
         %% ---------------- 2D tests --------------------
-        function createWSH12Plots(m)
+        function createWSH12Plots(m, mu)
             
             if nargin < 1
                 d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_2D');
