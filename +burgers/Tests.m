@@ -119,47 +119,47 @@ classdef Tests
             
             %% Error estimator check for M,M' DEIM approx error est
             % Using approx JacDEIM & ST
-            r.System.f.Order = 6;
-            r.ErrorEstimator.UseTrueLogLipConst = false;
-            r.ErrorEstimator.JacMatDEIMOrder = 10;
-            r.ErrorEstimator.JacSimTransSize = 10;
-            ea.SaveTexTables = fullfile(d,'table_mdash.tex');
-            est = testing.DEIM.getDEIMEstimators_ErrOrders(r,[1 2 3 5 10]);
-            % Change color of current reference estimate
-            est(2).Color = [.9 .6 0]; %orange
-            li = tools.LineSpecIterator;
-            li.excludeColor([est(1).Color; est(2).Color; [0 0.5 0]]); % take out fixed colors
-            for i=3:length(est)
-                est(i).Color = li.nextColor;
-            end
-            % Add comparison plot
-            est(end+1).Name = 'Prev. ref. est.';
-            est(end).Estimator = r.ErrorEstimator.clone;
-            est(end).Estimator.UseTrueDEIMErr = true;
-            est(end).Estimator.UseTrueLogLipConst = true;
-            est(end).MarkerStyle = 'p';
-            est(end).LineStyle = '-';
-            est(end).Color = [0 0.5 0];
-            ea.Est = est;
-            pm.FilePrefix = 'err_mdash_jacd_st';
-%             pm.MaxLegendRows = 4;
-            [~, ~, errs] = ea.start(mu,1,pm);
-            pm.createZoom(1,[.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
-            pm.done;
-            pm.savePlots(d,types,[1 4],true);
-
-            %% JacMDEIM & SimTrans error plots
-%             r.System.f.Order = [6 10];
+%             r.System.f.Order = 6;
 %             r.ErrorEstimator.UseTrueLogLipConst = false;
-%             ea.SaveTexTables = fullfile(d,'table_jac_st.tex');
-%             ea.Est = testing.DEIM.getDEIMEstimators_MDEIM_ST(r,[1 3 10],[1 3 10]);
-%             ea.NumMarkers = 3;
-%             pm.FilePrefix = 'err_jac_st';
-% %             pm.MaxLegendRows = 6;
+%             r.ErrorEstimator.JacMatDEIMOrder = 10;
+%             r.ErrorEstimator.JacSimTransSize = 10;
+%             ea.SaveTexTables = fullfile(d,'table_mdash.tex');
+%             est = testing.DEIM.getDEIMEstimators_ErrOrders(r,[1 2 3 5 10]);
+%             % Change color of current reference estimate
+%             est(2).Color = [.9 .6 0]; %orange
+%             li = tools.LineSpecIterator;
+%             li.excludeColor([est(1).Color; est(2).Color; [0 0.5 0]]); % take out fixed colors
+%             for i=3:length(est)
+%                 est(i).Color = li.nextColor;
+%             end
+%             % Add comparison plot
+%             est(end+1).Name = 'Prev. ref. est.';
+%             est(end).Estimator = r.ErrorEstimator.clone;
+%             est(end).Estimator.UseTrueDEIMErr = true;
+%             est(end).Estimator.UseTrueLogLipConst = true;
+%             est(end).MarkerStyle = 'p';
+%             est(end).LineStyle = '-';
+%             est(end).Color = [0 0.5 0];
+%             ea.Est = est;
+%             pm.FilePrefix = 'err_mdash_jacd_st';
+% %             pm.MaxLegendRows = 4;
 %             [~, ~, errs] = ea.start(mu,1,pm);
 %             pm.createZoom(1,[.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
 %             pm.done;
-%             pm.savePlots(d,types,[1 4],true,[true false]);
+%             pm.savePlots(d,types,[1 4],true);
+
+            %% JacMDEIM & SimTrans error plots
+            r.System.f.Order = [6 10];
+            r.ErrorEstimator.UseTrueLogLipConst = false;
+            ea.SaveTexTables = fullfile(d,'table_jac_st.tex');
+            ea.Est = testing.DEIM.getDEIMEstimators_MDEIM_ST(r,[1 3 10],[1 3 10]);
+            ea.NumMarkers = 3;
+            pm.FilePrefix = 'err_jac_st';
+%             pm.MaxLegendRows = 6;
+            [~, ~, errs] = ea.start(mu,1,pm);
+            pm.createZoom(1,[.65 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
+            pm.done;
+            pm.savePlots(d,types,[1 4],true,[true false]);
         end
         
         function m = test_Burgers
