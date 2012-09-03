@@ -33,7 +33,6 @@ classdef Tests
             pm = tools.PlotManager;
             pm.NoTitlesOnSave = true;
             pm.SingleSize = [720 540];
-%             pm.MaxLegendRows = 5;
             pm.LeaveOpen = false;
             pm.UseFileTypeFolders = true;
             
@@ -103,62 +102,77 @@ classdef Tests
             ea.LineWidth = 2;
             ea.MarkerSize = 12;
             ea.NumMarkers = 4;
+            tmpest = r.ErrorEstimator.clone;
             
-            %% Error estimator check for M,M' DEIM approx error est
-            % Using true log norm
-%             r.System.f.Order = 6;
-%             r.ErrorEstimator.UseTrueLogLipConst = true;
-%             ea.SaveTexTables = fullfile(d,'table_mdash.tex');
-%             ea.Est = testing.DEIM.getDEIMEstimators_ErrOrders(r,[1 2 3 5 10]);
-%             pm.FilePrefix = 'err_mdash';
-% %             pm.MaxLegendRows = 7;
-%             [~, ~, errs] = ea.start(mu,1,pm);
-%             pm.createZoom(1,[.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
-%             pm.done;
-%             pm.savePlots(d,types,[1 4],true);
+            %% Error estimator check for M,M' DEIM approx error est ---------------------------
+            % Using true log lip const
+            r.System.f.Order = 6;
+            tmpest.UseTrueLogLipConst = true;
             
-            %% Error estimator check for M,M' DEIM approx error est
-            % Using approx JacDEIM & ST
-%             r.System.f.Order = 6;
-%             r.ErrorEstimator.UseTrueLogLipConst = false;
-%             r.ErrorEstimator.JacMatDEIMOrder = 10;
-%             r.ErrorEstimator.JacSimTransSize = 10;
-%             ea.SaveTexTables = fullfile(d,'table_mdash.tex');
-%             est = testing.DEIM.getDEIMEstimators_ErrOrders(r,[1 2 3 5 10]);
-%             % Change color of current reference estimate
-%             est(2).Color = [.9 .6 0]; %orange
-%             li = tools.LineSpecIterator;
-%             li.excludeColor([est(1).Color; est(2).Color; [0 0.5 0]]); % take out fixed colors
-%             for i=3:length(est)
-%                 est(i).Color = li.nextColor;
-%             end
-%             % Add comparison plot
-%             est(end+1).Name = 'Prev. ref. est.';
-%             est(end).Estimator = r.ErrorEstimator.clone;
-%             est(end).Estimator.UseTrueDEIMErr = true;
-%             est(end).Estimator.UseTrueLogLipConst = true;
-%             est(end).MarkerStyle = 'p';
-%             est(end).LineStyle = '-';
-%             est(end).Color = [0 0.5 0];
-%             ea.Est = est;
-%             pm.FilePrefix = 'err_mdash_jacd_st';
-% %             pm.MaxLegendRows = 4;
-%             [~, ~, errs] = ea.start(mu,1,pm);
-%             pm.createZoom(1,[.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
-%             pm.done;
-%             pm.savePlots(d,types,[1 4],true);
+            est = ea.getDefaultEstStruct;
+            est(end+1).Name = 'Reference #1'; % Expensive versions
+            est(end).Estimator = tmpest.clone;
+            est(end).Estimator.UseTrueDEIMErr = true;
+            est(end).MarkerStyle = 'p';
+            est(end).LineStyle = '-';
+            est(end).Color = [0 0.5 0];
+            ref1 = est(end);
+            est = testing.DEIM.getDEIMEstimators_ErrOrders(r,est,[1 2 3 5 10]);
+            ea.Est = est;
+            ea.SaveTexTables = fullfile(d,'table_mdash.tex');
+            [~, ~, errs] = ea.start(mu,1,pm);
+            pm.createZoom(1,[.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
+            pm.done;
+            pm.FilePrefix = 'err_mdash_trueloglip';
+            pm.savePlots(d,types,[1 4],true);
+            
+            %% Error estimator check for M,M' DEIM approx error est ---------------------------
+            % Using full jac log norm
+            r.System.f.Order = 6;
+            tmpest.UseTrueLogLipConst = false;
+            tmpest.UseFullJacobian = true;
+            ea.SaveTexTables = fullfile(d,'table_mdash.tex');
+            
+            est = ea.getDefaultEstStruct;
+            est(end+1).Name = 'Reference #2'; % Expensive versions
+            est(end).Estimator = tmpest.clone;
+            est(end).Estimator.UseTrueDEIMErr = true;
+            est(end).MarkerStyle = 'p';
+            est(end).LineStyle = '-';
+            est(end).Color = [.9 .6 0];
+            ref2 = est(end);
+            est(end+1) = ref1; % Expensive versions
+            est = testing.DEIM.getDEIMEstimators_ErrOrders(r, est, [1 2 3 5 10]);
+            ea.Est = est;
+            [~, ~, errs] = ea.start(mu,1,pm);
+            pm.createZoom(1,[.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
+            pm.done;
+            pm.FilePrefix = 'err_mdash_fulljac_lognorm';
+            pm.savePlots(d,types,[1 4],true);
 
-            %% JacMDEIM & SimTrans error plots
+            
+            %% JacMDEIM & SimTrans error plots ------------------------------------------------
             r.System.f.Order = [6 10];
-            r.ErrorEstimator.UseTrueLogLipConst = false;
-            ea.SaveTexTables = fullfile(d,'table_jac_st.tex');
-            ea.Est = testing.DEIM.getDEIMEstimators_MDEIM_ST(r,[1 3 10],[1 3 10]);
+            tmpest.UseTrueLogLipConst = false;
+            tmpest.UseFullJacobian = false;
+            tmpest.UseTrueDEIMErr = false;
+            
+            % Expensive versions
+            est = ea.getDefaultEstStruct;
+            ref1.Estimator.UseTrueDEIMErr = false;
+            ref1.Name = 'Reference #1 m''';
+            est(end+1) = ref1;
+            ref2.Estimator.UseTrueDEIMErr = false;
+            ref2.Name = 'Reference #2 m''';
+            est(end+1) = ref2;
+            est = testing.DEIM.getDEIMEstimators_MDEIM_ST(r,est,[1 3 10],[1 3 10]);
+            ea.Est = est;
             ea.NumMarkers = 3;
-            pm.FilePrefix = 'err_jac_st';
-%             pm.MaxLegendRows = 6;
+            ea.SaveTexTables = fullfile(d,'table_jac_st.tex');
             [~, ~, errs] = ea.start(mu,1,pm);
             pm.createZoom(1,[.65 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
             pm.done;
+            pm.FilePrefix = 'err_jac_st';
             pm.savePlots(d,types,[1 4],true,[true false]);
         end
         
