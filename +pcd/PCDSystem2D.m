@@ -71,8 +71,8 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
         function newSysDimension(this)
             m = prod(this.Dims);
             x0 = zeros(4*m,1);
-            x0(1:2*m) = 1e-16;
-            x0(2*m+1:end) = 1e-9;
+            x0(1:2*m) = 1e-16; % use 5e-13 for pcd 2d exps
+            x0(2*m+1:end) = 1e-9; % use 3e-8 for pcd 2d exps
             this.x0 = dscomponents.ConstInitialValue(x0);
             
             % Diffusion part
