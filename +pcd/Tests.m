@@ -27,6 +27,8 @@ classdef Tests
 %                 load(fullfile(d,'tests_PCD_DEIM_2D_DEIM40000.mat'));
                 
                 load(fullfile(d,'mu.mat'));
+            else
+                d = fullfile(KerMor.App.DataStoreDirectory,sprintf('tests_PCD_DEIM_2D_%d_%d_500s',m.System.Dims));
             end
             r = m.buildReducedModel;
 %             mu = m.Data.ParamSamples(:,100);
@@ -40,6 +42,8 @@ classdef Tests
             pm.LeaveOpen = false;
             pm.UseFileTypeFolders = true;
             
+            r.ErrorEstimator.JacMatDEIMOrder = 100;
+            r.ErrorEstimator.JacSimTransSize = 50;
             models.pcd.Tests.reductionErrorAnalysis2D(d, r, pm);
             pm.FilePrefix = 'reduction_errors';
             pm.savePlots(d,types,[],true);
@@ -137,77 +141,80 @@ classdef Tests
             % Reduction error analysis - computes the reduction errors for 
             % training parameters and random parameters
 
-%             ma = tools.ModelAnalyzer(r);
-%             %orders = [3 15 35 55 100]; % orders for old large 3000s model
-%             orders = [1 5 20 97 102 107 150];
-%             errors = zeros(4,m.Data.SampleCount,length(orders));
-%             ns = 100;
-%             rand_errors = zeros(4,ns,length(orders));
-%             details = struct;
-%             rand_details = struct;
-%             for k=1:length(orders)
-%                 fprintf('Setting DEIM order = %d\n',orders(k));
-%                 r.System.f.Order = orders(k);
-%                [errors(:,:,k), details(k)] = ma.getRedErrForParamSamples;
-%                 [params, rand_errors(:,:,k), rand_details(k)] = ma.getRedErrForRandomParamSamples(ns,1); % 100 params, seed 1
-%             end
-%             save(fullfile(d,'reduction_errors.mat'),'errors','orders','details');
-%             save(fullfile(d,'reduction_errors_randparams.mat'),'rand_errors','orders','params','rand_details');
-            
-            s=load(fullfile(d,'reduction_errors.mat'));
-            sr=load(fullfile(d,'reduction_errors_randparams.mat'));
-            sr.rand_errors = sr.errors; % fix for re-runs
-            orders = s.orders;
-            
             m = r.FullModel;
-            str = sprintf(' on %d training parameters, m=%d',size(s.errors,2),sr.orders(end));
-            strr = sprintf(' on %d random parameters, m=%d',size(sr.rand_errors,2),sr.orders(end));
-            directplot(s.errors,'train',str);
-            directplot(sr.rand_errors,'random',strr);
-            paramplot(s.errors,'train',str,m.Data.ParamSamples,7);
-            paramplot(sr.rand_errors,'random',strr,sr.params,7);
-            pm.done;
-            
-            function directplot(errors, tag, str)
-                h = pm.nextPlot([tag '_abs'],['Absolute Linf-L2 reduction errors' str],...
-                'DEIM order m','param sample nr');
-                tools.LogPlot.logsurf(h, orders, 1:size(errors,2), squeeze(errors(1,:,:)));
-                h = pm.nextPlot([tag '_rel'],['Relative Linf-L2 reduction errors' str],...
-                    'DEIM order m','param sample nr');
-                tools.LogPlot.logsurf(h, orders, 1:size(errors,2), squeeze(errors(2,:,:)));
+            ma = tools.ModelAnalyzer(r);
+            %orders = [3 15 35 55 100]; % orders for old large 3000s model
+            orders = [1   5   20  97 102 107 145;...
+                      149 145 130 53 48  43  5];
+            errors = zeros(8,m.Data.SampleCount,length(orders));
+            ns = 100;
+            rand_errors = zeros(8,ns,length(orders));
+            details = cell(1,length(orders));
+            rand_details = details;
+            for j=1:size(orders,2)
+                fprintf('Setting DEIM order = %d\n',orders(1,j));
+                r.System.f.Order = orders(:,j)';
+                [e, details{j}] = ma.getRedErrForParamSamples;
+                errors(:,:,j) = e;
+                [params, re, rand_details{j}] = ma.getRedErrForRandomParamSamples(ns,1); % 100 params, seed 1
+                rand_errors(:,:,j) = re;
             end
+            save(fullfile(d,'reduction_errors.mat'),'errors','orders','details');
+            save(fullfile(d,'reduction_errors_randparams.mat'),'rand_errors','orders','params','rand_details');
             
-            function paramplot(errors, tag, str, params, orderidx)
-                innerPlot(1,'abs');
-                innerPlot(2,'rel');
-                function innerPlot(pos,tag2)
-                    h = pm.nextPlot(['paramdomain_' tag '_' tag2],...
-                        ['Locations of 10% of worst ' tag2 ' errors' str],...
-                    ['param "' m.System.Params(1).Name '"'],...
-                    ['param "' m.System.Params(2).Name '"']);
-                    
-                    [v, idx] = sort(errors(pos,:,orderidx));
-                    v = log10(v);
-                    merr = min(v);
-                    range = (max(v)-merr);
-                    hold(h,'on');
-                    for k=1:length(v)
-                        if k > length(v)*.85
-                            c2 = 'blue';
-                        else
-                            c2 = 'none';
-                        end
-                        c = [(v(k)-merr)/range 1-(v(k)-merr)/range 0];
-                        plot3(h,params(1,idx(k)),params(2,idx(k)),v(k),...
-                            'MarkerFaceColor',c,...%'Color',c,...
-                            'MarkerEdgeColor',c2,...
-                            'Marker','o',...
-                            'MarkerSize',10);
-                    end
-                    view(h,21,24);
-                    hold(h,'off');
-                end
-            end
+%             s=load(fullfile(d,'reduction_errors.mat'));
+%             sr=load(fullfile(d,'reduction_errors_randparams.mat'));
+%             sr.rand_errors = sr.errors; % fix for re-runs
+%             orders = s.orders;
+%             
+%             str = sprintf(' on %d training parameters, m=%d',size(s.errors,2),sr.orders(end));
+%             strr = sprintf(' on %d random parameters, m=%d',size(sr.rand_errors,2),sr.orders(end));
+%             directplot(s.errors,'train',str);
+%             directplot(sr.rand_errors,'random',strr);
+%             paramplot(s.errors,'train',str,m.Data.ParamSamples,7);
+%             paramplot(sr.rand_errors,'random',strr,sr.params,7);
+%             pm.done;
+            
+%             function directplot(errors, tag, str)
+%                 h = pm.nextPlot([tag '_abs'],['Absolute Linf-L2 reduction errors' str],...
+%                 'DEIM order m','param sample nr');
+%                 tools.LogPlot.logsurf(h, orders, 1:size(errors,2), squeeze(errors(1,:,:)));
+%                 h = pm.nextPlot([tag '_rel'],['Relative Linf-L2 reduction errors' str],...
+%                     'DEIM order m','param sample nr');
+%                 tools.LogPlot.logsurf(h, orders, 1:size(errors,2), squeeze(errors(2,:,:)));
+%             end
+%             
+%             function paramplot(errors, tag, str, params, orderidx)
+%                 innerPlot(1,'abs');
+%                 innerPlot(2,'rel');
+%                 function innerPlot(pos,tag2)
+%                     h = pm.nextPlot(['paramdomain_' tag '_' tag2],...
+%                         ['Locations of 10% of worst ' tag2 ' errors' str],...
+%                     ['param "' m.System.Params(1).Name '"'],...
+%                     ['param "' m.System.Params(2).Name '"']);
+%                     
+%                     [v, idx] = sort(errors(pos,:,orderidx));
+%                     v = log10(v);
+%                     merr = min(v);
+%                     range = (max(v)-merr);
+%                     hold(h,'on');
+%                     for k=1:length(v)
+%                         if k > length(v)*.85
+%                             c2 = 'blue';
+%                         else
+%                             c2 = 'none';
+%                         end
+%                         c = [(v(k)-merr)/range 1-(v(k)-merr)/range 0];
+%                         plot3(h,params(1,idx(k)),params(2,idx(k)),v(k),...
+%                             'MarkerFaceColor',c,...%'Color',c,...
+%                             'MarkerEdgeColor',c2,...
+%                             'Marker','o',...
+%                             'MarkerSize',10);
+%                     end
+%                     view(h,21,24);
+%                     hold(h,'off');
+%                 end
+%             end
         end
         
         function m = tests_PCD_DEIM_2D(dim)
@@ -306,10 +313,12 @@ classdef Tests
             
             s = spacereduction.PODGreedy;
             s.Eps = 1e-7;
+            s.MaxSubspaceSize = 200;
+            s.MinRelImprovement = 1e-8;
             m.SpaceReducer = s;
             
             m.Approx = approx.DEIM;
-            m.Approx.MaxOrder = 150;
+            m.Approx.MaxOrder = 250;
             
             s = data.selection.LinspaceSelector;
             s.Size = 30000;
@@ -319,10 +328,10 @@ classdef Tests
             m.ODESolver = solvers.ode.SemiImplicitEuler(m);
             
             e = error.DEIMEstimator;
-            e.JacMatDEIMMaxOrder = 100;
-            e.JacSimTransMaxSize = 100;
+            e.JacMatDEIMMaxOrder = 200;
+            e.JacSimTransMaxSize = 200;
             ts = data.selection.LinspaceSelector;
-            ts.Size = 20000;
+            ts.Size = 30000;
             e.TrainDataSelector = ts;
             m.ErrorEstimator = e;
             
