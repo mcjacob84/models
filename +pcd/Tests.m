@@ -302,19 +302,21 @@ classdef Tests
             end
             m.System.h = (m.System.Omega(1,2)-m.System.Omega(1,1))/(dim-1);
             
-            if all([m.System.f.fDim m.System.f.xDim] < 1000)
-                m.Data.TrajectoryData = data.MemoryTrajectoryData;
-            end
+%             if all([m.System.f.fDim m.System.f.xDim] < 1000)
+%                 m.Data.TrajectoryData = data.MemoryTrajectoryData;
+%             end
             
             s = sampling.RandomSampler;
             s.Seed = 35178;
             s.Samples = 200;
             m.Sampler = s;
             
+            m.ComputeTrajectoryFxiData = true;
             s = spacereduction.PODGreedy;
             s.Eps = 1e-7;
             s.MaxSubspaceSize = 200;
             s.MinRelImprovement = 1e-8;
+            s.IncludeTrajectoryFxiData = true; % enable inclusion of f evaluations!
             m.SpaceReducer = s;
             
             m.Approx = approx.DEIM;
@@ -343,15 +345,15 @@ classdef Tests
             save tests_PCD_DEIM_2D_500s;
             cd(oldd);
             
-            t(1) = m.off1_createParamSamples;
-            t(2) = m.off2_genTrainingData;
-            t(3) = m.off3_computeReducedSpace;
-            t(4) = m.off4_genApproximationTrainData;
-            t(5) = m.off5_computeApproximation;
+%             t(1) = m.off1_createParamSamples;
+%             t(2) = m.off2_genTrainingData;
+%             t(3) = m.off3_computeReducedSpace;
+%             t(4) = m.off4_genApproximationTrainData;
+%             t(5) = m.off5_computeApproximation;
 %             t(6) = m.off6_prepareErrorEstimator;
-            offline_times = t;
+%             offline_times = t;
 
-%             offline_times = m.offlineGenerations;
+            offline_times = m.offlineGenerations;
             
             clear s t;
             oldd = pwd;
