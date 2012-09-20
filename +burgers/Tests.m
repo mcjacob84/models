@@ -14,13 +14,19 @@ classdef Tests
 % - \c License @ref licensing
     
     methods(Static)
-        function createSorensenPlots
-            d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_DEIM_B');
+        
+        function d = getWSH12Dir
+            d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_WSH12');
+        end
+        
+        function createSorensenPlots(dim)
+            d = models.burgers.Tests.getWSH12Dir;
             
-            %m = models.burgers.Tests.test_Burgers_DEIM_B(100);
-            load(fullfile(d,'test_Burgers_DEIM_B_d100.mat'));
-            
-            d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_DEIM_B');
+            if nargin < 1
+                dim = 100;
+            end
+            %m = models.burgers.Tests.getModel_WSH12(dim);
+            load(fullfile(d,sprintf('test_Burgers_WSH12_d%d.mat',dim)));
             
             m.Approx.Order = [6 5];
             r = m.buildReducedModel;
@@ -215,7 +221,7 @@ classdef Tests
             save test_Burgers;
         end
         
-        function m = test_Burgers_DEIM(dim, version)
+        function m = test_Burgers_DEIM_versions(dim, version)
             if nargin < 2
                 version = 1;
                 if nargin < 1
@@ -252,7 +258,7 @@ classdef Tests
             cd(oldd);
         end
         
-        function m = test_Burgers_DEIM_B(dim)
+        function m = getModel_WSH12(dim)
             if nargin < 1
                 dim = 100;
             end
@@ -305,33 +311,96 @@ classdef Tests
 
             m.TrainingInputs = 1;
             
-            t(1) = m.off1_createParamSamples;
-            t(2) = m.off2_genTrainingData;
-            t(3) = m.off3_computeReducedSpace;
-            d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_DEIM_B');
-            
-            % code for singular value export for higher dims
-%             pm = tools.PlotManager; pm.FilePrefix = 'statespace_POD';
-%             h = pm.nextPlot(sprintf('svals_d%d',dim),...
-%                 sprintf('Singular values of state space POD, n=%d',dim));
-%             semilogy(h,m.SpaceReducer.SingularValues);
-%             pm.savePlots(d,{'fig','pdf','jpg'},[],true);
-%             if dim > 100
-%                 return;
-%             end
-
-            t(4) = m.off4_genApproximationTrainData;
-            t(5) = m.off5_computeApproximation;
-            t(6) = m.off6_prepareErrorEstimator;
-            offline_times = t;
-%             offline_times = m.offlineGenerations;
+%             t(1) = m.off1_createParamSamples;
+%             t(2) = m.off2_genTrainingData;
+%             t(3) = m.off3_computeReducedSpace;
+%             t(4) = m.off4_genApproximationTrainData;
+%             t(5) = m.off5_computeApproximation;
+%             t(6) = m.off6_prepareErrorEstimator;
+%             offline_times = t;
+            offline_times = m.offlineGenerations;
             gitcommit = KerMor.getGitBranch;
             
             clear a s;
+            d = models.burgers.Tests.getWSH12Dir;
             [~,~] = mkdir(d);
             oldd = pwd;
             cd(d);
-            eval(sprintf('save test_Burgers_DEIM_B_d%d',dim));
+            eval(sprintf('save test_Burgers_WSH12_d%d',dim));
+            cd(oldd);
+        end
+        
+        function m = getModel_WSH12_includefxi(dim)
+            if nargin < 1
+                dim = 100;
+            end
+            m = models.burgers.Burgers(dim, 2);
+            %m.PlotAzEl = [-130 26];
+            m.PlotAzEl = [-49 34];
+            
+            if dim > 500
+                m.Data.TrajectoryData = [];
+                m.Data.TrajectoryData = data.FileTrajectoryData(m.Data);
+            end
+            
+            %% Sampling - log-grid
+            m.System.Params(1).Range = [0.01, 0.06];
+            m.System.Params(1).Desired = 100;
+            s = sampling.GridSampler;
+            s.Spacing = 'log';
+            m.Sampler = s;
+            
+            %% Space reduction
+            m.ComputeTrajectoryFxiData = true;
+            p = spacereduction.PODReducer;
+            p.IncludeTrajectoryFxiData = true;
+            p.Mode = 'abs';
+            p.Value = 200;
+            m.SpaceReducer = p;
+            
+            %% Approx
+            a = approx.DEIM;
+            a.MaxOrder = 200;
+            m.Approx = a;
+            
+            s = m.System;
+            s.x0 = dscomponents.ConstInitialValue(zeros(dim,1));
+            
+            x = linspace(m.Omega(1),m.Omega(2),dim+2);
+            x = x(2:end-1);
+            pos1 = logical((x >= .1) .* (x <= .3));
+            pos2 = logical((x >= .6) .* (x <= .7));
+            %% Not that exciting set of inputs
+%             s.Inputs{1} = @(t)2*sin(2*t*pi);
+%             B = zeros(dim,1);
+%             B(pos1) = 4*exp(-((x(pos1)-.2)/.03).^2);
+%             B(pos2) = 1;
+%             
+            s.Inputs{1} = @(t)[sin(2*t*pi); (t>.2)*(t<.4)];
+            B = zeros(dim,2);
+            B(pos1,1) = 4*exp(-((x(pos1)-.2)/.03).^2);
+            B(pos2,2) = 4;
+            
+            s.B = dscomponents.LinearInputConv(B);
+
+            m.TrainingInputs = 1;
+            
+%             t(1) = m.off1_createParamSamples;
+%             t(2) = m.off2_genTrainingData;
+%             t(3) = m.off3_computeReducedSpace;
+%             t(4) = m.off4_genApproximationTrainData;
+%             t(5) = m.off5_computeApproximation;
+%             t(6) = m.off6_prepareErrorEstimator;
+%             offline_times = t;
+            offline_times = m.offlineGenerations;
+            gitcommit = KerMor.getGitBranch;
+            
+            clear a s;
+            d = models.burgers.Tests.getWSH12Dir;
+            [~,~] = mkdir(d);
+            oldd = pwd;
+            cd(d);
+            eval(sprintf('save test_Burgers_WSH12_d%d',dim));
             cd(oldd);
         end
     end
