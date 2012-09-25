@@ -19,19 +19,21 @@ classdef Tests
             d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_WSH12');
         end
         
-        function createSorensenPlots(dim)
+        function createSorensenPlots(arg)
             d = models.burgers.Tests.getWSH12Dir;
             
-            if nargin < 1
-                dim = 100;
+            if isa(arg,'models.BaseFullModel')
+                m = arg;
+            else
+                %m = models.burgers.Tests.getModel_WSH12(dim);
+                load(fullfile(d,sprintf('test_Burgers_WSH12_d%d.mat',arg)));
             end
-            %m = models.burgers.Tests.getModel_WSH12(dim);
-            load(fullfile(d,sprintf('test_Burgers_WSH12_d%d.mat',dim)));
             
             m.Approx.Order = [6 5];
             r = m.buildReducedModel;
             
             mu = .04;
+            inputidx = 1;
 %             types = {'fig','pdf','jpg'};
 %             types = {'png','jpg'};
             types = {'jpg'};
@@ -71,11 +73,23 @@ classdef Tests
 %             pm.done;
 %             pm.savePlots(d,types,[],true);
 % %             
-%             %% DEIM reduction error plots
-%             pm.FilePrefix = 'deim_rm';
-%             [errs, relerrs, times, deim_orders] = testing.DEIM.getDEIMReducedModelErrors(r, mu, 1);
-%             testing.DEIM.getDEIMReducedModelErrors_plots(r, errs, relerrs, times, deim_orders, pm);
-%             pm.savePlots(d,types,[1 2],true);
+            %% DEIM reduction error plots
+            pm.FilePrefix = 'deim_rederr_m';
+            [errs, relerrs, times, deim_orders] = testing.DEIM.getDEIMReducedModelErrors(r, mu, inputidx);
+            testing.DEIM.getDEIMReducedModelErrors_plots(r, errs, relerrs, times, deim_orders, pm, 'estimated');
+            eold = r.ErrorEstimator;
+            r.ErrorEstimator = error.DefaultEstimator(r);
+            [terrs, trelerrs, ttimes, deim_orders] = testing.DEIM.getDEIMReducedModelErrors(r, mu, inputidx);
+            testing.DEIM.getDEIMReducedModelErrors_plots(r, terrs, trelerrs, ttimes, deim_orders, pm, 'true');
+            % Errors between both
+            testing.DEIM.getDEIMReducedModelErrors_plots(r, errs./terrs, relerrs./trelerrs, times-ttimes, deim_orders, pm, 'effectivity');
+            DEIMerrororder = r.System.f.Order(2);%#ok
+            save(fullfile(d,sprintf('reductionerrors_true_estimated_diffDEIMm_d%d',m.Dimension)),...
+                'terrs','errs','trelerrs','relerrs','ttimes','times','deim_orders','mu','inputidx','DEIMerrororder');
+            %pm.savePlots(d,types,[1 2 5 6 9 10],true);
+            pm.savePlots(d,types);
+            pm.closeAll;
+            r.ErrorEstimator = eold;
 % 
 %             %% Reduction process plots
 %             pm.FilePrefix = 'deim_approx';
@@ -104,6 +118,7 @@ classdef Tests
 %             t.saveToFile(fullfile(d,'table_minreqorders.tex'));
 %             t.display;
 %             
+%             %% Estimator analysis
 %             ea = tools.EstimatorAnalyzer(r);
 %             ea.LineWidth = 2;
 %             ea.MarkerSize = 12;
@@ -126,12 +141,13 @@ classdef Tests
 %             est = testing.DEIM.getDEIMEstimators_ErrOrders(r,est,[1 2 3 5 10]);
 %             ea.Est = est;
 %             ea.SaveTexTables = fullfile(d,'table_mdash.tex');
-%             [~, ~, errs] = ea.start(mu,1,pm);
+%             [errs, relerrs, ctimes] = ea.compute(mu,1,pm);
+%             ea.createPlots(errs, relerrs, ctimes, pm);
 %             pm.createZoom(1,[.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
 %             pm.done;
 %             pm.FilePrefix = 'err_mdash_trueloglip';
 %             pm.savePlots(d,types,[1 4],true);
-%             
+            
 %             %% Error estimator check for M,M' DEIM approx error est ---------------------------
 %             % Using full jac log norm
 %             r.System.f.Order = 6;
@@ -150,7 +166,8 @@ classdef Tests
 %             est(end+1) = ref1; % Expensive versions
 %             est = testing.DEIM.getDEIMEstimators_ErrOrders(r, est, [1 2 3 5 10]);
 %             ea.Est = est;
-%             [~, ~, errs] = ea.start(mu,1,pm);
+%             [errs, relerrs, ctimes] = ea.compute(mu,1,pm);
+%             ea.createPlots(errs, relerrs, ctimes, pm);
 %             pm.createZoom(1,[.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
 %             pm.done;
 %             pm.FilePrefix = 'err_mdash_fulljac_lognorm';
@@ -181,16 +198,17 @@ classdef Tests
 %             pm.FilePrefix = 'err_jac_st';
 %             pm.savePlots(d,types,[1 4],true,[true false]);
 
-            %% Efficiencies of error estimator
-            ma = tools.ModelAnalyzer(r);
-            orders = 1:15:60;
-            for k=1:length(orders)
-                fprintf('Using DEIM order %d...\n',orders(k));
-                r.System.f.Order = [orders(k) 20];
-                [errors(:,:,k), details{k}] = ma.getRedErrForParamSamples(m.Data.ParamSamples,1);%#ok
-                [params, errors_rand(:,:,k), details_rand{k}] = ma.getRedErrForRandomParamSamples(200,1,1);%#ok
-            end
-            save(fullfile(d,'reduction_errors'),'errors','details','errors_rand','details_rand','params');
+%             %% Efficiencies of error estimator
+%             ma = tools.ModelAnalyzer(r);
+%             orders = 1:15:60;
+%             for k=1:length(orders)
+%                 fprintf('Using DEIM order %d...\n',orders(k));
+%                 r.System.f.Order = [orders(k) 20];
+%                 [errors(:,:,k), details{k}] = ma.getRedErrForParamSamples(m.Data.ParamSamples,1);%#ok
+%                 [params, errors_rand(:,:,k), details_rand{k}] = ma.getRedErrForRandomParamSamples(200,1,1);%#ok
+%             end
+%             save(fullfile(d,sprintf('reduction_errors_d%d',m.Dimension)),...
+%                 'errors','details','errors_rand','details_rand','params');
         end
         
         function m = test_Burgers
@@ -259,6 +277,7 @@ classdef Tests
         end
         
         function m = getModel_WSH12(dim)
+            % Original settings for experiments used in WSH12 for far.
             if nargin < 1
                 dim = 100;
             end
@@ -401,6 +420,81 @@ classdef Tests
             oldd = pwd;
             cd(d);
             eval(sprintf('save test_Burgers_WSH12_d%d',dim));
+            cd(oldd);
+        end
+        
+        function m = getModel_WSH12_includefinitediffs(dim)
+            if nargin < 1
+                dim = 100;
+            end
+            m = models.burgers.Burgers(dim, 2);
+            %m.PlotAzEl = [-130 26];
+            m.PlotAzEl = [-49 34];
+            
+            if dim > 500
+                m.Data.TrajectoryData = [];
+                m.Data.TrajectoryData = data.FileTrajectoryData(m.Data);
+            end
+            
+            %% Sampling - log-grid
+            m.System.Params(1).Range = [0.01, 0.06];
+            m.System.Params(1).Desired = 100;
+            s = sampling.GridSampler;
+            s.Spacing = 'log';
+            m.Sampler = s;
+            
+            %% Space reduction
+            m.ComputeTrajectoryFxiData = true;
+            p = spacereduction.PODReducer;
+            p.IncludeTrajectoryFxiData = false;
+            p.IncludeFiniteDifferences = true;
+            p.Mode = 'abs';
+            p.Value = 200;
+            m.SpaceReducer = p;
+            
+            %% Approx
+            a = approx.DEIM;
+            a.MaxOrder = 200;
+            m.Approx = a;
+            
+            s = m.System;
+            s.x0 = dscomponents.ConstInitialValue(zeros(dim,1));
+            
+            x = linspace(m.Omega(1),m.Omega(2),dim+2);
+            x = x(2:end-1);
+            pos1 = logical((x >= .1) .* (x <= .3));
+            pos2 = logical((x >= .6) .* (x <= .7));
+            %% Not that exciting set of inputs
+%             s.Inputs{1} = @(t)2*sin(2*t*pi);
+%             B = zeros(dim,1);
+%             B(pos1) = 4*exp(-((x(pos1)-.2)/.03).^2);
+%             B(pos2) = 1;
+%             
+            s.Inputs{1} = @(t)[sin(2*t*pi); (t>.2)*(t<.4)];
+            B = zeros(dim,2);
+            B(pos1,1) = 4*exp(-((x(pos1)-.2)/.03).^2);
+            B(pos2,2) = 4;
+            
+            s.B = dscomponents.LinearInputConv(B);
+
+            m.TrainingInputs = 1;
+            
+%             t(1) = m.off1_createParamSamples;
+%             t(2) = m.off2_genTrainingData;
+%             t(3) = m.off3_computeReducedSpace;
+%             t(4) = m.off4_genApproximationTrainData;
+%             t(5) = m.off5_computeApproximation;
+%             t(6) = m.off6_prepareErrorEstimator;
+%             offline_times = t;
+            offline_times = m.offlineGenerations;
+            gitcommit = KerMor.getGitBranch;
+            
+            clear a s;
+            d = models.burgers.Tests.getWSH12Dir;
+            [~,~] = mkdir(d);
+            oldd = pwd;
+            cd(d);
+            eval(sprintf('save test_Burgers_WSH12_d%d_withFD',dim));
             cd(oldd);
         end
     end

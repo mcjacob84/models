@@ -16,7 +16,7 @@ classdef Tests
     methods(Static)
         
         %% ---------------- 2D tests --------------------
-        function createWSH12Plots(m, mu)
+        function createWSH12Plots(r, mu)
             
             if nargin < 1
                 d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_2D_150_100_500s');
@@ -30,8 +30,8 @@ classdef Tests
             else
                 d = fullfile(KerMor.App.DataStoreDirectory,sprintf('tests_PCD_DEIM_2D_%d_%d_500s',m.System.Dims));
             end
-            r = m.buildReducedModel;
-%             mu = m.Data.ParamSamples(:,100);
+            m = r.FullModel;
+            mu = m.Data.ParamSamples(:,100);
             
 %             types = {'fig','pdf','jpg'};
 %             types = {'png','jpg'};

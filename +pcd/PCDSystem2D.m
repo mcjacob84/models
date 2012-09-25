@@ -46,7 +46,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
         end
         
         function varargout = plot(this, model, t, y, varargin)
-            if length(varargin) == 1 && isa(varargin{1},'tools.PlotManager')
+            if ~isempty(varargin) && isa(varargin{1},'tools.PlotManager')
                 pm = varargin{1};
             else
                 pm = tools.PlotManager(false,2,2);
