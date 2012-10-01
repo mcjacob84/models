@@ -28,6 +28,7 @@ classdef Burgers < models.BaseFullModel
     properties
         % Azimuth and elevation to use for model plotting.
         PlotAzEl = [];
+        SaveTag = 'models.burgers';
     end
     
     methods
