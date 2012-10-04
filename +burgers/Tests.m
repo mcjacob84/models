@@ -231,6 +231,28 @@ classdef Tests
             % Call with d500 version
             d = models.burgers.Tests.getMoRePasDir;
             
+%             types = {'fig','pdf','jpg'};
+%             types = {'png','jpg'};
+            types = {'jpg'};
+            pm = tools.PlotManager;
+            pm.NoTitlesOnSave = true;
+            pm.SingleSize = [720 540];
+            pm.LeaveOpen = false;
+            pm.UseFileTypeFolders = true;
+            
+            %% Different dimension m' plots (model independent)
+            load(fullfile(d,'minreqmdashorders.mat'));
+            models.burgers.Tests.morepas12_plotDiffMeanReqErrs([6 7],pm,v500,v1500,v500_maxorder,v1500_maxo);
+            h = legend(gca(pm.Figures(1)),'d=500','d=1500','d=500 (maxo)','d=1500 (maxo)');
+            set(h,'Location','Best');
+            h = legend(gca(pm.Figures(2)),'d=500','d=1500','d=500 (maxo)','d=1500 (maxo)');
+            set(h,'Location','Best');
+            pm.done;
+            pm.FilePrefix = 'burgers';
+            pm.savePlots(d,types,[],true);
+            return;
+            
+            %% Model preparations
             %m = r.FullModel;
             m.Approx.Order = [12 5];
             r = m.buildReducedModel(100);
@@ -239,15 +261,6 @@ classdef Tests
                 mu = .0400574;
             end
             inputidx = 1;
-%             types = {'fig','pdf','jpg'};
-%             types = {'png','jpg'};
-            types = {'jpg'};
-            
-            pm = tools.PlotManager;
-            pm.NoTitlesOnSave = true;
-            pm.SingleSize = [720 540];
-            pm.LeaveOpen = false;
-            pm.UseFileTypeFolders = true;
             
             %% Simulation pics
 %             m.PlotAzEl = [-49 34];
@@ -278,68 +291,44 @@ classdef Tests
 %             pm.done;
 %             pm.savePlots(d,types,[]);
 
-            %% Plot for different M,M' values
-            pm.FilePrefix = sprintf('%s_m_mdash_errors',m.SaveTag);
-            savefile = fullfile(d,pm.FilePrefix);
-            if exist([savefile '.mat'],'file')
-                load([savefile '.mat']);
-            else
-                errordata = testing.DEIM.computeDEIMErrors(...
-                    m.Approx, m.Data.ApproxTrainData);
-                relerrs = [1e-1 1e-2 1e-4 1e-6];
-                t = testing.DEIM.getMinReqErrorOrdersTable(errordata, relerrs, m.Data.ApproxTrainData.xi.m);
-                t.saveToFile([savefile '.tex']);
-                tmaxo = testing.DEIM.getMinReqErrorOrdersTable(errordata, relerrs, m.Data.ApproxTrainData.xi.m, m.Approx.MaxOrder);
-                tmaxo.saveToFile([savefile '_true.tex']);
-                save([savefile '.mat'],'errordata', 'relerrs', 't', 'tmaxo');
-            end
-            t.display;
-            tmaxo.display;
-            testing.DEIM.plotDEIMErrs(errordata, pm);
-            figure(3); view(54,30);
-            figure(6); view(-40,34);
-            pm.done;
-            pm.savePlots(d,types,[1 3 6],true);
-            
-% %             
-%             %% DEIM reduction error plots
-%             pm.FilePrefix = 'deim_rederr_m';
-%             [errs, relerrs, times, deim_orders] = testing.DEIM.getDEIMReducedModelErrors(r, mu, inputidx);
-%             testing.DEIM.getDEIMReducedModelErrors_plots(r, errs, relerrs, times, deim_orders, pm, 'estimated');
-%             eold = r.ErrorEstimator;
-%             r.ErrorEstimator = error.DefaultEstimator(r);
-%             [terrs, trelerrs, ttimes, deim_orders] = testing.DEIM.getDEIMReducedModelErrors(r, mu, inputidx);
-%             testing.DEIM.getDEIMReducedModelErrors_plots(r, terrs, trelerrs, ttimes, deim_orders, pm, 'true');
-%             % Errors between both
-%             testing.DEIM.getDEIMReducedModelErrors_plots(r, errs./terrs, relerrs./trelerrs, times-ttimes, deim_orders, pm, 'effectivity');
-%             DEIMerrororder = r.System.f.Order(2);%#ok
-%             save(fullfile(d,sprintf('reductionerrors_true_estimated_diffDEIMm_d%d',m.Dimension)),...
-%                 'terrs','errs','trelerrs','relerrs','ttimes','times','deim_orders','mu','inputidx','DEIMerrororder');
-%             %pm.savePlots(d,types,[1 2 5 6 9 10],true);
-%             pm.savePlots(d,types);
-%             pm.closeAll;
-%             r.ErrorEstimator = eold;
-% 
-%             %% Reduction process plots
-%             pm.FilePrefix = 'deim_approx';
-%             h = pm.nextPlot('singvals','Singular values of SVD for DEIM basis computation');
-%             semilogy(h, m.Approx.SingularValues);
-%             pm.savePlots(d,types,[],true);
+            % Plot for different M,M' values
+%             pm.FilePrefix = sprintf('%s_m_mdash_errors',m.SaveTag);
+%             savefile = fullfile(d,pm.FilePrefix);
+%             if exist([savefile '.mat'],'file')
+%                 load([savefile '.mat']);
+%             else
+%                 errordata = testing.DEIM.computeDEIMErrors(...
+%                     m.Approx, m.Data.ApproxTrainData);
+%                 relerrs = [1e-1 1e-2 1e-4 1e-6];
+%                 [t, valtrue] = testing.DEIM.getMinReqErrorOrdersTable(errordata, relerrs, m.Data.ApproxTrainData.xi.m);
+%                 t.saveToFile([savefile '.tex']);
+%                 [tmaxo, valmaxorder] = testing.DEIM.getMinReqErrorOrdersTable(errordata, relerrs, m.Data.ApproxTrainData.xi.m, m.Approx.MaxOrder);
+%                 tmaxo.saveToFile([savefile '_true.tex']);
+%                 save([savefile '.mat'],'errordata', 'relerrs', 't', 'tmaxo','valtrue','valmaxorder');
+%             end
+%             
+%             t.display;
+%             tmaxo.display;
+%             testing.DEIM.plotDEIMErrs(errordata, pm);
+%             figure(2); view(28,12);
+%             figure(6); view(-34,46);
+%             pm.done;
+%             pm.savePlots(d,types,[1 2 6],true);
 
             %% Estimator analysis
-            ea = tools.EstimatorAnalyzer(r);
-            ea.LineWidth = 2;
-            ea.MarkerSize = 12;
-            ea.NumMarkers = 4;
-            e = r.ErrorEstimator;
+%             ea = tools.EstimatorAnalyzer(r);
+%             ea.LineWidth = 2;
+%             ea.MarkerSize = 12;
+%             ea.NumMarkers = 4;
+%             ea.PlotStartIndex = 4;
+%             e = r.ErrorEstimator;
             
             %% Error estimator check for M,M' DEIM approx error est ---------------------------
             % Using true log lip const
-            %r.System.f.Order = 6;
 %             e.UseTrueLogLipConst = true;
 %             
 %             est = ea.getDefaultEstStruct;
-%             est(end+1).Name = 'Reference #1'; % Expensive versions
+%             est(end+1).Name = 'Ref: True local const'; % Expensive versions
 %             est(end).Estimator = e.clone;
 %             est(end).Estimator.UseTrueDEIMErr = true;
 %             est(end).MarkerStyle = 'p';
@@ -353,18 +342,17 @@ classdef Tests
 %             ea.createPlots(errs, relerrs, ctimes, pm);
 %             pm.createZoom(1,[.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
 %             pm.done;
-%             pm.FilePrefix = 'err_mdash_trueloglip';
+%             pm.FilePrefix = sprintf('%s_err_mdash_trueloglip',m.SaveTag);
 %             pm.savePlots(d,types,[1 4],true);
             
 %             %% Error estimator check for M,M' DEIM approx error est ---------------------------
 %             % Using full jac log norm
-%             r.System.f.Order = 6;
 %             e.UseTrueLogLipConst = false;
 %             e.UseFullJacobian = true;
 %             ea.SaveTexTables = fullfile(d,'table_mdash.tex');
 %             
 %             est = ea.getDefaultEstStruct;
-%             est(end+1).Name = 'Reference #2'; % Expensive versions
+%             est(end+1).Name = 'L_G[J(y)]'; % Expensive versions
 %             est(end).Estimator = e.clone;
 %             est(end).Estimator.UseTrueDEIMErr = true;
 %             est(end).MarkerStyle = 'p';
@@ -372,51 +360,40 @@ classdef Tests
 %             est(end).Color = [.9 .6 0];
 %             ref2 = est(end);
 %             est(end+1) = ref1; % Expensive versions
-%             est = testing.DEIM.getDEIMEstimators_ErrOrders(r, est, [1 2 3 5 10]);
+%             %est = testing.DEIM.getDEIMEstimators_ErrOrders(r, est, [1 2 3 5 10]);
 %             ea.Est = est;
 %             [errs, relerrs, ctimes] = ea.compute(mu,1);
 %             ea.createPlots(errs, relerrs, ctimes, pm);
 %             pm.createZoom(1,[.7 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
 %             pm.done;
-%             pm.FilePrefix = 'err_mdash_fulljac_lognorm';
+%             pm.FilePrefix = sprintf('%s_err_mdash_fulljac_lognorm',m.SaveTag);
 %             pm.savePlots(d,types,[1 4],true);
 % 
 %             
 %             %% JacMDEIM & SimTrans error plots ------------------------------------------------
-%             r.System.f.Order = [6 10];
-%             tmpest.UseTrueLogLipConst = false;
-%             tmpest.UseFullJacobian = false;
-%             tmpest.UseTrueDEIMErr = false;
+%             r.System.f.Order = [12 10];
+%             e.UseTrueLogLipConst = false;
+%             e.UseFullJacobian = false;
+%             e.UseTrueDEIMErr = false;
 %             
 %             % Expensive versions
 %             est = ea.getDefaultEstStruct;
 %             ref1.Estimator.UseTrueDEIMErr = false;
-%             ref1.Name = 'Reference #1 m''';
+%             %ref1.Name = 'Reference #1 m''';
 %             est(end+1) = ref1;
 %             ref2.Estimator.UseTrueDEIMErr = false;
-%             ref2.Name = 'Reference #2 m''';
+%             %ref2.Name = 'Reference #2 m''';
 %             est(end+1) = ref2;
 %             est = testing.DEIM.getDEIMEstimators_MDEIM_ST(r,est,[1 3 10],[1 3 10]);
 %             ea.Est = est;
 %             ea.NumMarkers = 3;
 %             ea.SaveTexTables = fullfile(d,'table_jac_st.tex');
-%             [~, ~, errs] = ea.start(mu,1,pm);
+%             [errs, relerrs, ctimes] = ea.compute(mu,1);
+%             ea.createPlots(errs, relerrs, ctimes, pm);
 %             pm.createZoom(1,[.65 1 .9*min(errs(:,end)) 1.1*max(errs(:,end))]);
 %             pm.done;
 %             pm.FilePrefix = 'err_jac_st';
 %             pm.savePlots(d,types,[1 4],true,[true false]);
-
-%             %% Efficiencies of error estimator
-%             ma = tools.ModelAnalyzer(r);
-%             orders = 1:15:60;
-%             for k=1:length(orders)
-%                 fprintf('Using DEIM order %d...\n',orders(k));
-%                 r.System.f.Order = [orders(k) 20];
-%                 [errors(:,:,k), details{k}] = ma.getRedErrForParamSamples(m.Data.ParamSamples,1);%#ok
-%                 [params, errors_rand(:,:,k), details_rand{k}] = ma.getRedErrForRandomParamSamples(200,1,1);%#ok
-%             end
-%             save(fullfile(d,sprintf('reduction_errors_d%d',m.Dimension)),...
-%                 'errors','details','errors_rand','details_rand','params');
         end
         
         function pm = wsh12_plotDiffMeanReqErrs(relerrs, orders, dims, varargin)
@@ -452,6 +429,29 @@ classdef Tests
                 end
             end
             pm.done;
+        end
+        
+        function morepas12_plotDiffMeanReqErrs(indices, pm, varargin)
+            % 
+            % load minreqmdashorders
+            % pm = models.burgers.Tests.morepas12_plotDiffMeanReqErrs(6,[100 500 101 501],v100,v500,v100_maxorder,v500_maxorder);
+            % 
+            for k = 1:length(indices)
+                idx = indices(k);
+                h = pm.nextPlot(sprintf('diffmeanreqerrs_%d',idx),...
+                        'Minimum/Mean required m'' values for relative errors',...
+                        'DEIM order m','m'' values');
+                hold(h,'on');
+                n = length(varargin);
+                l = tools.LineSpecIterator(n);
+                for i=1:n
+                    d = varargin{i};
+                    d = d(1:138,[1 idx]);
+                    sel = round(d(:,1)) == d(:,1);
+                    d = d(sel,:);
+                    plot(h,d(:,1),d(:,2),'Color',l.nextColor,'LineWidth',2);
+                end
+            end
         end
         
         function m = test_Burgers
