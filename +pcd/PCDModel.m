@@ -33,6 +33,10 @@ classdef PCDModel < models.BaseFullModel
         L = 1e-5; %[m]
     end
     
+    properties(Dependent)
+        Dimension;
+    end
+    
     methods
         function this = PCDModel(dim)
             % Creates a new instance of the PCDModel
@@ -120,6 +124,10 @@ classdef PCDModel < models.BaseFullModel
             % Overrides standard method and forwards to the system's plot
             % function. (they are 1D and 2D)
             this.System.plot(this, t, y, varargin{:});
+        end
+        
+        function value = get.Dimension(this)
+            value = this.System.Dims;
         end
     end
 end
