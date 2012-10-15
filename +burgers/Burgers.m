@@ -28,7 +28,6 @@ classdef Burgers < models.BaseFullModel
     properties
         % Azimuth and elevation to use for model plotting.
         PlotAzEl = [];
-        SaveTag = 'models.burgers';
     end
     
     methods
@@ -45,13 +44,15 @@ classdef Burgers < models.BaseFullModel
             if version == 1
                 this.System = models.burgers.BurgersSys(this);
                 this.ODESolver = solvers.ode.MLode15i;
-                this.Name = '1D unsteady Burgers equation (combined RHS)';
+                this.SaveTag = sprintf('burgers_1D_d%d_combRHS',dim);
+                this.Name = sprintf('1D-%dd unsteady Burgers equation (combined RHS)',dim);
             elseif version == 2
                 this.System = models.burgers.BurgersSys_A(this);
                 this.System.MaxTimestep = this.dt;
                 this.ODESolver = solvers.ode.SemiImplicitEuler(this);
                 this.System.MaxTimestep = this.dt;
-                this.Name = '1D unsteady Burgers equation';
+                this.SaveTag = sprintf('burgers_1D_d%d',dim);
+                this.Name = sprintf('1D-%dd unsteady Burgers equation',dim);
             end
             this.Dimension = dim;
             

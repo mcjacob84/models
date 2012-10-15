@@ -16,128 +16,7 @@ classdef Tests
     methods(Static)
         
         %% ---------------- 2D tests --------------------
-        function createWSH12Plots(r, mu)
-            
-            if nargin < 1
-                d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_2D_150_100_500s');
-                load(fullfile(d,'tests_PCD_DEIM_2D_500s.mat'));
-                
-%                 d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_2D_150_100');
-%                 load(fullfile(d,'tests_PCD_DEIM_2D.mat'));
-%                 load(fullfile(d,'tests_PCD_DEIM_2D_DEIM40000.mat'));
-                
-                load(fullfile(d,'mu.mat'));
-            else
-                d = fullfile(KerMor.App.DataStoreDirectory,sprintf('tests_PCD_DEIM_2D_%d_%d_500s',m.System.Dims));
-            end
-            m = r.FullModel;
-            mu = m.Data.ParamSamples(:,100);
-            
-%             types = {'fig','pdf','jpg'};
-%             types = {'png','jpg'};
-            types = {'jpg','fig'};
-            
-            pm = tools.PlotManager;
-            pm.SingleSize = [720 540];
-            pm.LeaveOpen = false;
-            pm.UseFileTypeFolders = true;
-            
-            r.ErrorEstimator.JacMatDEIMOrder = 100;
-            r.ErrorEstimator.JacSimTransSize = 50;
-            models.pcd.Tests.reductionErrorAnalysis2D(d, r, pm);
-            pm.FilePrefix = 'reduction_errors';
-            pm.savePlots(d,types,[],true);
-            
-%             %% DEIM approx for specific location
-%             x0 = m.System.x0.evaluate(mu) ./ m.System.StateScaling;
-%             %orders = [1 2 5 20 45 100];
-%             orders = 10;
-%             for k=1:length(orders)
-%                 m.Approx.Order = orders(k);
-%                 [mui,fxi,afxi] = testing.DEIM.getDEIMErrorsAtXForParams(m,x0,500);
-%                 testing.DEIM.getDEIMErrorsAtXForParams_plots(m,mui,fxi,afxi,pm);
-%                 pm.FilePrefix = sprintf('deimerr_x0_m%d',orders(k));
-%                 %pm.savePlots(d,types,[],true);
-%                 pm.done;
-%             end
-            
-%             pm.NoTitlesOnSave = true;
-%             
-%             %% DEIM approx analysis
-%             %[res, hlp] = testing.DEIM.computeDEIMErrors(m.Approx,m.Data.ApproxTrainData,1:m.Approx.MaxOrder,[]);
-%             s = load('datastore/kermor/tests_PCD_DEIM_2D_150_100/truedeimerrs.mat');
-%             h = pm.nextPlot('trueerrs','True DEIM approximation errors over training data',...
-%                 'DEIM order','error');
-%             semilogy(h,s.trueDEIMerrors_all');
-%             legend(h,'absolute','relative');
-%             pm.done;
-%             pm.FilePrefix = 'deimerr';
-%             pm.savePlots(d,types,[],true);
-%             
-%             
-%             %% Estimation analysis
-%             % Using true log norm
-%             ea = tools.EstimatorAnalyzer(r);
-%             ea.LineWidth = 2;
-%             
-%             est = ea.getDefaultEstStruct;
-%             tmpest = r.ErrorEstimator.clone;
-%             tmpest.UseTrueLogLipConst = false;
-%             tmpest.UseJacobianLogLipConst = false;
-%             tmpest.UseTrueDEIMErr = false;
-%             tmpest.UseFullJacobian = false;
-%             
-%             est(end+1).Name = 'TrueLogLipConst'; % Expensive versions
-%             est(end).Estimator = tmpest.clone;
-%             est(end).Estimator.UseTrueLogLipConst = true;
-%             est(end).MarkerStyle = 'p';
-%             est(end).LineStyle = '-';
-%             est(end).Color = [0 0.5 0];
-%             
-%             est(end+1).Name = 'TrueJacLogLipConst'; % Expensive versions
-%             est(end).Estimator = tmpest.clone;
-%             est(end).Estimator.UseJacobianLogLipConst = true;
-%             est(end).MarkerStyle = 'd';
-%             est(end).LineStyle = '-';
-%             est(end).Color = [.5 0 0];
-%             
-%             est(end+1).Name = 'MD/ST max'; % Expensive versions
-%             es = tmpest.clone;
-%             es.JacSimTransSize = es.JacSimTransMaxSize;
-%             es.JacMatDEIMOrder = es.JacMatDEIMMaxOrder;
-%             est(end).Estimator = es;
-%             est(end).MarkerStyle = 'h';
-%             est(end).LineStyle = '-';
-%             est(end).Color = [0 0 .5];
-%             
-%             est = testing.DEIM.getDEIMEstimators_MDEIM_ST(r,est,[1 3 10],[1 3 10]);
-%             ea.Est = est;
-%             ea.NumMarkers = 3;
-%             orders = [1 3 4 5 6 12 20 27 40 48 77];
-% %             orders = 10;
-% %             orders = [1 10 27];
-%             for i=1:length(orders)
-%                 o = orders(i);
-%                 fprintf('Using DEIM m=%d...\n',o);
-%                 r.System.f.Order = [o 25];
-%                 pm.FilePrefix = sprintf('err_jd-st_m%d',o);
-%                 ea.SaveTexTables = fullfile(d,sprintf('table_jd-st_m%d.tex',o));
-%                 [errs, relerrs, ctimes] = ea.compute(mu);
-% %                 load tmp;
-%                 ea.createPlots(errs, relerrs, ctimes, pm);
-%                 % Move legend to top right
-%                 %set(findobj(get(3,'Children'),'Tag','legend'),'Location','NorthEast');
-%                 set(gca,'XScale','log');
-%                 area = [2000 NaN .9*min(min(errs(:,401)),min(errs(:,end))) 1.1*max(errs(:,end))];
-%                 pm.createZoom(1,area,'end');
-%                 area = [1 500 NaN 1.1*max(errs(:,101))];
-%                 pm.createZoom(1,area,'begin');
-%                 pm.done;
-%                 pm.savePlots(d,types,[1 2 3 4 5],true,[true true true false false]);
-%             end
-        end
-        
-        function reductionErrorAnalysis2D(d, r, pm)
+        function reductionErrorAnalysis_2D(d, r, pm)
             % Reduction error analysis - computes the reduction errors for 
             % training parameters and random parameters
 
@@ -216,7 +95,8 @@ classdef Tests
 %                 end
 %             end
         end
-        
+      
+        %% Model creation functions
         function m = tests_PCD_DEIM_2D(dim)
             % Original setting for the large-scale reduction up to T=3000 with 200 lin-spaced
             % parameters and 120'DEIM, 80'JacMDEIM
@@ -361,8 +241,6 @@ classdef Tests
             save tests_PCD_DEIM_2D_500s;
             cd(oldd);
         end
-        
-        %% ---------------- 1D tests --------------------
         
         function m = tests_PCD_DEIM_1D(dim)
             m = models.pcd.PCDModel(1);

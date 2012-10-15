@@ -120,10 +120,16 @@ classdef PCDModel < models.BaseFullModel
             this.Approx = a;
         end
         
-        function plot(this, t, y, varargin)
+        function plot(this, varargin)
             % Overrides standard method and forwards to the system's plot
             % function. (they are 1D and 2D)
-            this.System.plot(this, t, y, varargin{:});
+            this.System.plot(this, varargin{:});
+        end
+        
+        function plotState(this, varargin)
+            % Overrides standard method and forwards to the system's plot
+            % function. (they are 1D and 2D)
+            this.System.plotState(this, varargin{:});
         end
         
         function value = get.Dimension(this)

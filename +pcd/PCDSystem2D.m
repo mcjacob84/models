@@ -45,7 +45,26 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
 %             this.addParam('rate_right', [rate_min, rate_max], 1); 
         end
         
-        function varargout = plot(this, model, t, y, varargin)
+        function varargout = plot(~, model, t, y, varargin)
+            if ~isempty(varargin) && isa(varargin{1},'tools.PlotManager')
+                pm = varargin{1};
+            else
+                pm = tools.PlotManager;
+                if nargout == 0
+                    pm.LeaveOpen = true;
+                else
+                    varargout{1} = pm;
+                end
+            end
+            h = pm.nextPlot([model.SaveTag '_outputplot'],...
+                sprintf('Output plot for model %s',model.Name),'Time','Caspase-3 Concentration');
+            plot(h,t,y,'r','LineWidth',2);
+            if isempty(varargin)
+                pm.done;
+            end
+        end
+        
+        function varargout = plotState(this, model, t, y, varargin)
             if ~isempty(varargin) && isa(varargin{1},'tools.PlotManager')
                 pm = varargin{1};
             else
@@ -57,9 +76,9 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
                 end
             end
             if this.Plot2D
-                this.plot2D(model, t, y, pm);
+                this.plot2DState(model, t, y, pm);
             else
-                this.plot1D(model, t, y, pm);
+                this.plot1DState(model, t, y, pm);
             end
             if isempty(varargin)
                 pm.done;
@@ -81,23 +100,23 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             this.A = dscomponents.LinearCoreFun(A);
             
             % Output extraction
-%             p = .1; % 10% of each dimensions span, centered in geometry.
-%             d = this.dim1;
-%             d1idx = find(abs((1:d) - d/2) <= d/2 * p);
-%             d = this.dim2;
-%             d2idx = find(abs((1:d) - d/2) <= d/2 * p);
-%             [d1,d2] = meshgrid(d1idx,d2idx);
-%             sel = reshape(sub2ind([this.dim1,this.dim2],d1,d2),1,[]);
-%             C = zeros(1,4*m);
-%             ca3 = m+1:2*m;
-%             C(ca3(sel)) = 1/length(sel);
-%             this.C = dscomponents.LinearOutputConv(C);
-            this.C = dscomponents.LinearOutputConv(1);
+            p = .1; % 10% of each dimensions span, centered in geometry.
+            d = this.Dims(1);
+            d1idx = find(abs((1:d) - d/2) <= d/2 * p);
+            d = this.Dims(2);
+            d2idx = find(abs((1:d) - d/2) <= d/2 * p);
+            [d1,d2] = meshgrid(d1idx,d2idx);
+            sel = reshape(sub2ind(this.Dims,d1,d2),1,[]);
+            C = sparse(1,4*m);
+            ca3 = m+1:2*m;
+            C(ca3(sel)) = 1/length(sel);
+            this.C = dscomponents.LinearOutputConv(C);
+%             this.C = dscomponents.LinearOutputConv(1);
         end
     end
     
     methods(Access=private)
-        function plot1D(this, model, t, y, pm)
+        function plot1DState(this, model, t, y, pm)
             m = prod(this.Dims);
             
             % Select cell center values
@@ -116,14 +135,13 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             states = {'alive','unstable','dead'};
             
             X = t;
-            Y = this.Omega(1,1):this.h:this.Omega(1,2);
-            doplot(y(1:m,:),'Caspase-8 (x_a)',1);
-            doplot(y(m+1:2*m,:),'Caspase-3 (y_a)',2);
-            doplot(y(2*m+1:3*m,:),'Pro-Caspase-8 (x_i)',3);
-            doplot(y(3*m+1:end,:),'Pro-Caspase-3 (y_i)',4);
-            pm.done;
+            Y = (this.Omega(1,1):this.h:this.Omega(1,2))/model.L;
+            doplot(y(1:m,:),'c8','Caspase-8 (x_a)',1);
+            doplot(y(m+1:2*m,:),'c3','Caspase-3 (y_a)',2);
+            doplot(y(2*m+1:3*m,:),'pc8','Pro-Caspase-8 (x_i)',3);
+            doplot(y(3*m+1:end,:),'pc3','Pro-Caspase-3 (y_i)',4);
             
-            function doplot(y, thetitle, pnr)
+            function doplot(y, tag, thetitle, pnr)
                 di = abs(this.SteadyStates(:,pnr)-y(end));
                 reldi = di ./ (this.SteadyStates(:,pnr)+eps);
                 reldistr = general.Utils.implode(reldi,', ','%2.3e');
@@ -134,21 +152,14 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
                 else
                     tit = sprintf('Model "%s", %s concentrations\n%s', model.Name, thetitle,reldistr);
                 end
-                h = pm.nextPlot(sprintf('PCD2D_plot1D_%d',pnr),tit,'Time [s]',...
+                h = pm.nextPlot(tag,tit,'Time [s]',...
                     sprintf('%.2g to %.2g: Cell slice top to bottom at %.2g [m]',Y(1),Y(end)));
-                mesh(h,X,Y,y);
-                %surf(X,Y,y,'EdgeColor','none');
-                %grid(h,'off')
-                mi = min(y(:));
-                Ma = max(y(:));
-                if abs((mi-Ma) / mi) < 1e-14
-                    mi = .999*mi; Ma=1.001*Ma;
-                end
-                axis(h,[0 max(t) this.Omega(1,:) mi Ma]);
+                surf(h,X,Y,y,'EdgeColor','none');
+                zlabel(h,thetitle);
             end
         end
 
-        function plot2D(this, model, t, v, pm)
+        function plot2DState(this, model, t, v, pm)
             % Performs a plot for this model's results.
             %
             % Parameters:
