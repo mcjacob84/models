@@ -123,15 +123,29 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
     end
     
     methods(Access=protected)
-        function fxj = evaluateComponents(this, J, ends, ~, ~, X, ~, mu)
+        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, ~, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into
             % the components x_a, y_a, x_i, y_i
+            %
+            % Parameters:
+            % pts: The components of `\vf` for which derivatives are required @type rowvec<integer>
+            % ends: At the `i`-th entry it contains the last position in the `\vx` vector that
+            % indicates an input value relevant for the `i`-th point evaluation, i.e.
+            % `f_i(\vx) = f_i(\vx(ends(i-1){:}ends(i)));` @type rowvec<integer>
+            % X: A matrix `\vX` with the state space locations `\vx_i` in its columns @type
+            % matrix<double>
+            % mu: The corresponding parameters `\mu_i` for each state `\vx_i`, as column matrix
+            % @type matrix<double>
+            %
+            % Return values:
+            % fxj: A matrix with pts-many component function evaluations `f_i(\vx)` as rows and as
+            % many columns as `\vX` had.
             m = this.nodes;
-            fxj = zeros(length(J),size(X,2));
+            fxj = zeros(length(pts),size(X,2));
             
             mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu];
-            for idx=1:length(J)
-                j = J(idx);
+            for idx=1:length(pts)
+                j = pts(idx);
                 if idx == 1
                     st = 0;
                 else

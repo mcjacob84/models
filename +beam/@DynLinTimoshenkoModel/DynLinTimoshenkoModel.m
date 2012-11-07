@@ -219,11 +219,11 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel
         function m = get.ColorMap(this)
             % col = colormap('hot');
             % Eigene Colormap erstellen (num_col Farben)
-            % blau -> grün -> rot 
+            % blau -> grï¿½n -> rot 
             % num_col = 128;
             % dc = [0:2/num_col:1]';
             % col = [0*dc dc 1-dc; dc 1-dc 0*dc];
-            % blau -> grün -> gelb -> rot
+            % blau -> grï¿½n -> gelb -> rot
             dc = [0:3/this.NumColors:1]';
             m = [0*dc dc 1-dc; dc 0*dc+1 0*dc; 0*dc+1 1-dc 0*dc];
         end
@@ -235,6 +235,8 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel
             %
             % Parameters:
             % f: A file handle to write the model xml @type handle
+            % folder: The target folder @type char
+            % export: The exporter instance. @type export.JaRMoSExport
             
             fprintf(f,'\t<dimension>3</dimension>\n');
             fprintf(f,'\t<nodes>%d</nodes>\n',size(this.Points,1));

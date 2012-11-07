@@ -67,6 +67,25 @@ classdef BurgersF < dscomponents.ACompEvalCoreFun
     methods(Access=protected)
         function fxj = evaluateComponents(this, pts, ends, argidx, self, X, ~, mu)
             % Evaluates the burgers nonlinearity pointwise.
+            %
+            % Parameters:
+            % pts: The components of `\vf` for which derivatives are required @type rowvec<integer>
+            % ends: At the `i`-th entry it contains the last position in the `\vx` vector that
+            % indicates an input value relevant for the `i`-th point evaluation, i.e.
+            % `f_i(\vx) = f_i(\vx(ends(i-1){:}ends(i)));` @type rowvec<integer>
+            % argidx: The indices of `\vx`-entries in the global `\vx` vector w.r.t the `i`-th
+            % point, e.g. `xglobal(i-1:i+1) = \vx(ends(i-1):ends(i))` @type rowvec<integer>
+            % self: The positions in the `\vx` vector that correspond to the `i`-th output
+            % dimension, if applicable (usually `f_i` depends on `x_i`, but not necessarily)
+            % @type rowvec<integer>
+            % X: A matrix `\vX` with the state space locations `\vx_i` in its columns @type
+            % matrix<double>
+            % mu: The corresponding parameters `\mu_i` for each state `\vx_i`, as column matrix
+            % @type matrix<double>
+            %
+            % Return values:
+            % fxj: A matrix with pts-many component function evaluations `f_i(\vx)` as rows and as
+            % many columns as `\vX` had.
             fxj = zeros(length(pts),size(X,2));
             for idx=1:length(pts)
                 pt = pts(idx);

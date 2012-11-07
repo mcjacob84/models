@@ -24,6 +24,9 @@ classdef Tests
         
         function createMoRePaSIIPlots(m, mu)
             % Call with d500 version
+            %
+            % Parameters:
+            % m: The model @type models.Burgers.Burgers
             d = models.burgers.Tests.getMoRePasDir;
             
 %             types = {'fig','pdf','jpg'};

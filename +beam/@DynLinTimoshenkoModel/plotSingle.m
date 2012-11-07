@@ -5,6 +5,7 @@ function plotSingle(model, t, u, h)
 % Parameters:
 % t: The times `t` @type double
 % u: The displacement and heat values at `t` @type colvec
+% h: The axes handle to plot to. @type handle
 %
 % @author Daniel Wirtz @date 2011-09-28
 %
@@ -18,7 +19,7 @@ function plotSingle(model, t, u, h)
 
 % nBeams = numel(this.Beams);
 % 
-% title_string = sprintf('Balkenwerk zur Zeit t = %2.2f (Verschiebungen um Faktor %2.0f vergrößert)', t, this.PlotFactor);
+% title_string = sprintf('Balkenwerk zur Zeit t = %2.2f (Verschiebungen um Faktor %2.0f vergrÃ¶ÃŸert)', t, this.PlotFactor);
 % title(title_string, 'FontSize', 12, 'FontWeight', 'bold');
 % 
 % %% Coloring
@@ -48,7 +49,7 @@ function plotSingle(model, t, u, h)
 %     % (End)Indizes der Anfangs- und Endpunkte des Elements im globalen
 %     % Verschiebungsvektor
 %     indices = 4*(this.data.knot_index(p)-1)+1;
-%     % (Verstärkte) Verschiebung der der Anfangs- u Endpunkte
+%     % (Verstï¿½rkte) Verschiebung der der Anfangs- u Endpunkte
 %     u_p = this.PlotFactor * [u(indices) u(indices+1) u(indices+2)];
 %     plot3(this.Points(p,1) + u_p(:,1), this.Points(p,2) + u_p(:,2),...
 %         this.Points(p,3) + u_p(:,3), '-+', 'LineWidth', ...
@@ -57,11 +58,11 @@ function plotSingle(model, t, u, h)
 % hold off;
 
     %% Plot Options
-    % Vergrößerung der Verschiebungen
+    % Vergrï¿½ï¿½erung der Verschiebungen
     plot_options.multiplier = model.PlotFactor;
     % Nummer der Figure, in der geplottet wird
     plot_options.figure = 11;                    
-    % Titel der Colorbar und gleichzeitig zu visualisierende Größe
+    % Titel der Colorbar und gleichzeitig zu visualisierende Grï¿½ï¿½e
     % Temperatur, Normalkraft, Querkraft y, Querkraft z, Torsionsmoment, 
     % Biegemoment y, Biegemoment z,
     % Gesamtquerkraft, Gesamtbiegemoment
@@ -78,8 +79,8 @@ function plotSingle(model, t, u, h)
     % "Spazierstock"-Testcase (Simpel2)
     % plot_options.axis = [-17 26 -1 1 -15 10];       % Grenzen der Achsen des Plots
 
-    plot_options.centerline = 3;                % Linienstärke der Mittellinie (0: keine, 1: dünn, 2: dick mit Endmarkierung)
-    plot_options.endmarker = 3;                 % Linienstärke der Endmarker
+    plot_options.centerline = 3;                % Linienstï¿½rke der Mittellinie (0: keine, 1: dï¿½nn, 2: dick mit Endmarkierung)
+    plot_options.endmarker = 3;                 % Linienstï¿½rke der Endmarker
     plot_options.crosssection = 0;              % Querschnitte (0: keine, 1: nach Theorie 1. Ordn, 2: Theorie 2. Ordn, sonst: exakt rotiert)
     plot_options.ref_config = 1;                % Plotten der Ausgangslage (0: nein, 1: ja)
 
@@ -121,7 +122,7 @@ function plotSingle(model, t, u, h)
     else
         cla;
     end
-    title_string = sprintf('Balkenwerk zur Zeit t = %2.2f (Verschiebungen um Faktor %2.0f vergrößert)', t, plot_options.multiplier);
+    title_string = sprintf('Balkenwerk zur Zeit t = %2.2f (Verschiebungen um Faktor %2.0f vergrï¿½ï¿½ert)', t, plot_options.multiplier);
     title(title_string, 'FontSize', 15, 'FontWeight', 'bold');
 
     %% Ausgangslage
@@ -157,8 +158,8 @@ function plotSingle(model, t, u, h)
         end
     end
 
-    %% Berechnung der zu visualisierenden Größen
-    % VARIANTE 1: Visualisierung nach Normalkräften
+    %% Berechnung der zu visualisierenden Grï¿½ï¿½en
+    % VARIANTE 1: Visualisierung nach Normalkrï¿½ften
     % -------------------------------------------------------------------------
     % N = zeros(num_elem_RO + num_elem_KR, 1);
     % offset = 0;
@@ -223,7 +224,7 @@ function plotSingle(model, t, u, h)
         end
     end
     % Reduce to actually assigned temperatures (excluding trusses)
-    % N(i) entspricht Farbe für this.Elements{idx(i)}
+    % N(i) entspricht Farbe fï¿½r this.Elements{idx(i)}
     N = N(idx);
   
     N_min = 0;
@@ -232,11 +233,11 @@ function plotSingle(model, t, u, h)
     %% Colormaps und Farbindexing
     % col = colormap('hot');
     % Eigene Colormap erstellen (num_col Farben)
-    % blau -> grün -> rot 
+    % blau -> grï¿½n -> rot 
     % num_col = 128;
     % dc = [0:2/num_col:1]';
     % col = [0*dc dc 1-dc; dc 1-dc 0*dc];
-    % blau -> grün -> gelb -> rot
+    % blau -> grï¿½n -> gelb -> rot
     num_col = 128;
     dc = [0:3/num_col:1]';
     col = [0*dc dc 1-dc; dc 0*dc+1 0*dc; 0*dc+1 1-dc 0*dc];
@@ -264,7 +265,7 @@ function plotSingle(model, t, u, h)
             % (End)Indizes der Anfangs- und Endpunkte des Elements im globalen
             % Verschiebungsvektor
             indices = 7*knoten_index(e.PointsIdx(:));
-            % (Verstärkte) Verschiebung der der Anfangs- u Endpunkte
+            % (Verstï¿½rkte) Verschiebung der der Anfangs- u Endpunkte
             %     u_p = plot_options.multiplier * [u(indices-6) u(indices-5) u(indices-4)];
 
             %     plot3( p(e.p(:),1) + u_p(:,1), p(e.p(:),2) + u_p(:,2), p(e.p(:),3) + u_p(:,3), '-+', 'LineWidth', 3, 'Color', col(col_index(i),:) );
@@ -366,7 +367,7 @@ function plotSingle(model, t, u, h)
             u1 = [u1_lok; t1_lok];
             u2 = [u2_lok; t2_lok];
 
-            % d/ds(u) - theta x e_1 (Querkräfte ohne Stoffkonstanten)
+            % d/ds(u) - theta x e_1 (Querkrï¿½fte ohne Stoffkonstanten)
             Q_temp = e.B3*[u1; u2];
             % d/ds(theta) (Momente ohne Stoffkonstanten)
             M_temp = e.B4*[u1; u2];
@@ -375,7 +376,7 @@ function plotSingle(model, t, u, h)
                 % Temperatur
                 val1 = u(7*knoten_index(e.PointsIdx(1)));
                 val2 = u(7*knoten_index(e.PointsIdx(2)));
-            % Schnittgrößen über Element konstant!
+            % Schnittgrï¿½ï¿½en ï¿½ber Element konstant!
             elseif ( strcmpi(plot_options.colorbar, 'Normalkraft') )
                 % Normalenkraft
                 val1 = e.c(3) * Q_temp(1);
@@ -484,7 +485,7 @@ function plotSingle(model, t, u, h)
     %val_min
     %val_max
 
-    % Frame für Video speichern und anhängen
+    % Frame fï¿½r Video speichern und anhï¿½ngen
     if (video)
         frame = getframe(gcf);
     else

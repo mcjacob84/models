@@ -272,12 +272,26 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
     end
     
     methods(Access=protected)
-        function fxj = evaluateComponents(this, J, ends, ~, ~, X, ~, mu)
+        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, ~, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into
             % the components x_a, y_a, x_i, y_i
+            %
+            % Parameters:
+            % pts: The components of `\vf` for which derivatives are required @type rowvec<integer>
+            % ends: At the `i`-th entry it contains the last position in the `\vx` vector that
+            % indicates an input value relevant for the `i`-th point evaluation, i.e.
+            % `f_i(\vx) = f_i(\vx(ends(i-1){:}ends(i)));` @type rowvec<integer>
+            % X: A matrix `\vX` with the state space locations `\vx_i` in its columns @type
+            % matrix<double>
+            % mu: The corresponding parameters `\mu_i` for each state `\vx_i`, as column matrix
+            % @type matrix<double>
+            %
+            % Return values:
+            % fxj: A matrix with pts-many component function evaluations `f_i(\vx)` as rows and as
+            % many columns as `\vX` had.
             m = this.nodes;
             nd = size(X,2);
-            fxj = zeros(length(J),nd);
+            fxj = zeros(length(pts),nd);
             
             mu = [this.sys.ReacCoeff(:,ones(1,size(mu,2))); mu([1 1 1 1 2 2 2 2],:)];
             if nd > 1
@@ -292,7 +306,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 left = this.hlp.yd <= this.hlp.yr*mu(11)/2;
             end
             % Get matrix indices
-            J2 = mod(J,m);
+            J2 = mod(pts,m);
             J2(J2==0) = m;
             
             %[row2, col2] = ind2sub([this.hlp.d1 this.hlp.d2],J2);
@@ -300,8 +314,8 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             row = rem(J2-1, this.hlp.d1)+1;
             col = (J2-row)/this.hlp.d1+1;
            
-            for idx=1:length(J)
-                j = J(idx);
+            for idx=1:length(pts)
+                j = pts(idx);
                 if idx == 1
                     st = 0;
                 else
@@ -374,22 +388,18 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
         end
         
         function dfx = evaluateComponentPartialDerivatives(this, pts, ends, ~, deriv, ~, X, ~, mu, ~)
+            % See dscomponents.ACompEvalCoreFun for more details.
+            %
             % Parameters:
-            % pts: The output dimensions of f for which derivatives are required
-            % ends: At the `i`-th entry it contains the last position in the 'x' vector that
+            % pts: The components of `f` for which derivatives are required @type
+            % rowvec<integer>
+            % ends: At the `i`-th entry it contains the last position in the `\vx` vector that
             % indicates an input value relevant for the `i`-th point evaluation, i.e.
-            % 'f_i(x) = f_i(x(ends(i-1):ends(i)));'
-            % idx: The indices of x entries in the global x vector w.r.t the i-th point, e.g.
-            % 'xglobal(i-1:i+1) = x(ends(i-1):ends(i))'
-            % deriv: The indices within x that derivatives are required for.
-            % self: The positions in the x vector that correspond to the i-th output dimension,
-            % if applicable (usually f_i depends on x_i, but not necessarily)
-            % x: The required x values to evaluate all points pts
-            % t: The current time
-            % mu: the current parameter
-            % dfxsel: A derivative selection matrix. Contains the mapping for each row of x to
-            % the output points pts. As deriv might contain less than 'size(x,1)' values, use
-            % 'dfxsel(:,deriv)' to select the mapping for the actually computed derivatives.
+            % `f_i(\vx) = f_i(\vx(ends(i-1){:}ends(i)));` @type rowvec<integer>
+            % deriv: The indices within `\vx` that derivatives are required for.
+            % @type rowvec<integer>
+            % X: The state space location `\vx` @type colvec<double>
+            % mu: The corresponding parameter `\mu` for the state `\vx` @type colvec<double>
             %
             % Return values:
             % dfx: A column vector with 'numel(deriv)' rows containing the derivatives at all
