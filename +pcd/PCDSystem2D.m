@@ -58,7 +58,8 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             end
             h = pm.nextPlot([model.SaveTag '_outputplot'],...
                 sprintf('Output plot for model %s',model.Name),'Time','Caspase-3 Concentration');
-            plot(h,t,y,'r','LineWidth',2);
+            %plot(h,t,y,'r','LineWidth',2);
+            semilogy(h,t,y,'r','LineWidth',2);
             if isempty(varargin)
                 pm.done;
             end

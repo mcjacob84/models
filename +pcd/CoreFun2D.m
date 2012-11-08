@@ -97,7 +97,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             error('dont call me (direct overload of evaluate for efficiency');
         end
         
-        function fx = evaluate(this, x, ~, mu)
+        function fx = evaluate(this, x, t, mu)
             
             % If this has been projected, restore full size and compute values.
             if ~isempty(this.V)
@@ -110,9 +110,10 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             m = this.nodes;
             
             % Compile boundary conditions
-            %to = this.sys.Model.tau*t;
+            to = this.sys.Model.tau*t;
+            ud = to < 600;
             %ud = (to < 10)*1 + (to >= 10)*max(0,(2-to/10));
-            ud = 1;
+            %ud = 1;
             
             if size(x,2) == 1
                 % Uncomment if reaction coeffs become real params again
