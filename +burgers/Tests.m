@@ -32,7 +32,7 @@ classdef Tests
 %             types = {'fig','pdf','jpg'};
 %             types = {'png','jpg'};
             types = {'jpg'};
-            pm = tools.PlotManager;
+            pm = PlotManager;
             pm.NoTitlesOnSave = true;
             pm.SingleSize = [720 540];
             pm.LeaveOpen = false;

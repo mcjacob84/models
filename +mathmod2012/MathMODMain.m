@@ -19,14 +19,14 @@ function [m, r, d] = MathMODMain(dim)
     d.EstimatorIterations = [1 2 5];
     d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
     d.setModel(r);
-    pm = tools.PlotManager(false,2,2);
+    pm = PlotManager(false,2,2);
     pm.FilePrefix = 'mmod_noinput_';
     %d.start([.5; 5; -.2],[],pm);
     d.start([.5; 1; -.2],[],pm);
     pm.done;
 %     pm.savePlots(loc,{'fig','pdf','jpg'});
     
-%     pm = tools.PlotManager(false,2,2);
+%     pm = PlotManager(false,2,2);
 %     pm.FilePrefix = 'mmod12';
 %     pm.SingleSize = [800 500];
 %     % Pure inner dynamics without inputs and initial value -.2

@@ -46,10 +46,10 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
         end
         
         function varargout = plot(~, model, t, y, varargin)
-            if ~isempty(varargin) && isa(varargin{1},'tools.PlotManager')
+            if ~isempty(varargin) && isa(varargin{1},'PlotManager')
                 pm = varargin{1};
             else
-                pm = tools.PlotManager;
+                pm = PlotManager;
                 if nargout == 0
                     pm.LeaveOpen = true;
                 else
@@ -66,10 +66,10 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
         end
         
         function varargout = plotState(this, model, t, y, varargin)
-            if ~isempty(varargin) && isa(varargin{1},'tools.PlotManager')
+            if ~isempty(varargin) && isa(varargin{1},'PlotManager')
                 pm = varargin{1};
             else
-                pm = tools.PlotManager(false,2,2);
+                pm = PlotManager(false,2,2);
                 if nargout == 0
                     pm.LeaveOpen = true;
                 else
@@ -128,8 +128,8 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             m = length(sel)/4;
             y = y(sel,:);
             
-            if length(t) > 700
-                idx = round(linspace(1,length(t),700));
+            if length(t) > 150
+                idx = round(linspace(1,length(t),150));
                 t = t(idx);
                 y = y(:,idx);
             end
@@ -153,8 +153,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
                 else
                     tit = sprintf('Model "%s", %s concentrations\n%s', model.Name, thetitle,reldistr);
                 end
-                h = pm.nextPlot(tag,tit,'Time [s]',...
-                    sprintf('%.2g to %.2g: Cell slice top to bottom at %.2g [m]',Y(1),Y(end)));
+                h = pm.nextPlot(tag,tit,'Time [s]','Cell slice');
                 surf(h,X,Y,y,'EdgeColor','none');
                 zlabel(h,thetitle);
             end
