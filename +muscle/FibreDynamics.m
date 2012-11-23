@@ -15,33 +15,40 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
     
     properties
         system;
-        neuropara;
+        % neuropara;
+
     end
     
     properties(SetAccess=private)
         sarcoConst;
+        spindleConst;
+        motoneuroConst;
     end
     
     methods
         function this = MuscleCoreFun(system)
             this.system = system;
             % Init neuro params -> in eigene initMotoConst private methode packen
-            para = 0;
+            %             para = 0;
+            %
+            %             this.neuropara = para;
             
-            this.neuropara = para;
-            
+            this.initMotoConst;
+            this.initSpindleConst;
             this.initSarcoConst;
         end
         
         function dy = evaluate(this, y, t, mu)
-            dm = 6; % Dimension of motoneuron part
-            ds = 9; % Dimension of spindle part
-            dsa = 58; % Dimension of single sarcomer cell part
+            dm = this.system.dm;
+            ds = this.system.ds;
+            dsa = this.system.dsa;
             N = this.system.N;
             
             % todo anpassen fÃ¼r matrix-wertiges y, also 58Nx1000 -> 58 x 1000N und zurÃ¼ck
             SarcoRates=this.SarcomerRates(reshape(y(dm+ds+1:end,:),dsa,N)', t, mu);
-            % + reshape back
+            % SarcoRates =
+            % this.SarcomerRates(reshape(y(dm+ds+1:end,:,dsa,[])), t, mu);
+            % SarcoRates = reshape(SarcoRates, dsa*N,[]);
             
             %% Inner dynamics (with partial nonlinear linking)
             dy = [this.NeuroRates(y(1:dm,:), t, mu);
@@ -51,7 +58,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             %% Link of motoneuron to sarcomer cell
             % Fix link moto-sarcomer for to middle cell
             n_link=round(N/2);
-            dy(dm+ds+n_link*dsa+1,:) = dy(dm+ds+n_link*dsa+1,:) + y(2,:)/this.sarcoConst(1);
+            dy(dm+ds+n_link*dsa+1,:) = dy(dm+ds+n_link*dsa+1,:) + 1.3*y(2,:)/this.sarcoConst(1);
         end
         
         function dy = evaluateCoreFun(this, y, t, mu)
@@ -135,23 +142,23 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
     end
     
     methods(Access=private)
-        function dy = NeuroRates(y, t, mu)
+        function dy = NeuroRates(this, y, t, mu)
             
             % adapted from combined_cell_model.m, line 738 - 745
-            para = this.neuropara;
+            para = this.motoneuroConst;
             statesSize = size(y);
-            statesColumnCount = statesSize(2);
-            statesRowCount = statesSize(1);
             dy=zeros(statesSize);
-            if ( statesRowCount == 1)
+            if ( statesSize(1) == 1)
                 y = y';
                 dy=dy';
             end
             
+%             if size(dy)(1) ~= this.dm   ?????
+%                 error('y has wrong dimension')
+%             end
+            
             dy(1,:) = (-para.Gld*(y(1,:)-para.Vl)-para.Gc*(y(1,:)-y(2,:)))/para.Cd;
-            % (inpu(1)-para.Gls*(y(2)-para.Vl)-para.Gc*(y(2)-y(1))-para.Gna*y(3)^3*y(4)*(y(2)-para.Vna)-para.Gkf*y(5)^4*(y(2)-para.Vk)-para.Gks*y(6)^2*(y(2)-para.Vk))/para.Cs
             dy(2,:) = (-para.Gls*(y(2,:)-para.Vl)-para.Gc*(y(2,:)-y(1,:))-para.Gna*y(3,:).^3.*y(4,:)*(y(2,:)-para.Vna)-para.Gkf*y(5,:).^4.*(y(2,:)-para.Vk)-para.Gks*y(6,:).^2.*(y(2,:)-para.Vk))/para.Cs;
-            %  dy(2,:) = dy(2,:)+inpu(1)/para.Cs;  % external input via B*u
             % the four gating variables
             dy(3,:) = 0.32*(13-y(2,:))./(exp((13-y(2,:))/5)-1).*(1-y(3,:))-0.28*(y(2,:)-40)./(exp((y(2,:)-40)/5)-1).*(y(3,:));
             dy(4,:) = 0.128*(exp((17-y(2,:))/18)).*(1-y(4,:))-4/(exp((40-y(2,:))/5)+1).*(y(4,:));
@@ -159,23 +166,90 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             dy(6,:) = 3.5/(exp((55-y(2,:))/4)+1).*(1-y(6,:))-0.025*(y(6,:));
         end
         
-        function dy = SarcomerRates(y, t, mu, beta)
-            % beta=STATES(2) (linkage to Neuro Modell)
+        function dy=spindlerates(this, y, t, mu)
+            % adapted from spindle_whole_2012_10_11.m, line 319 - 356
+            
+            % mit übergeben? gamma später aus Zustand y bekannt, L aus
+            % Mechanik?
+            gamma_dyn=0;
+            gamma_sta=0;
+            L_ddot=0;
+            L_dot=0;  % velocity
+            if (L_dot>=0)
+                C=1;
+            else
+                C=0.42;
+            end
             
             statesSize = size(y);
+            dy=zeros(statesSize);
+            if ( statesSize(1) == 1)
+                y = y';
+                dy=dy';
+            end
+            
+            %    dy(:,10) = 0; %acceleration
+            %    dy(:,9) = y(:,10); %velocity
+            c = this.spindleConst;
+            
+            
+            dy(1,:) = (gamma_dyn^c(:,22)./(gamma_dyn^c(:,22)+c(:,21).^c(:,22)) - y(1,:))./c(:,20); % f_dyn_b1
+            dy(2,:) = (gamma_sta^c(:,52)./(gamma_sta^c(:,52)+c(:,51).^c(:,52)) - y(2,:))./c(:,20); % f_stat_b2
+            f_sta_chain = gamma_sta^c(:,82)./(gamma_sta^c(:,82)+c(:,81).^c(:,82)); % f_stat_chain
+            
+            % bag1
+            beta_bag1  = c(:,4)+c(:,5).*y(1,:); %Beta
+            gamma_bag1 = c(:,7).*y(1,:); %Gamma
+            dy(3,:) = c(:,1)./c(:,3).*(C.*beta_bag1.*sign(L_dot-y(3,:)./c(:,1))*abs(L_dot-y(3,:)./c(:,1)).^c(15,:).*(y(9,:)-c(:,17)-y(6,:)./c(:,1)-c(:,16))+c(:,2).*(y(9,:)-c(:,17)-y(6,:)./c(:,1)-c(:,18))+c(:,3).*L_ddot+gamma_bag1-y(6,:));
+            dy(6,:) = y(3,:);
+            
+            % bag2
+            beta_bag2  = c(:,34)+c(:,35).*y(1,:)+c(:,36).*y(2,:); %Beta
+            gamma_bag2 = c(:,37).*y(1,:)+c(:,38).*y(2,:); %Gamma
+            dy(4,:) = c(:,31)./c(:,33).*(C.*beta_bag2.*sign(L_dot-y(4,:)./c(:,31))*abs(L_dot-y(4,:)./c(:,31)).^c(:,45).*(y(9,:)-c(:,47)-y(7,:)./c(:,31)-c(:,46))+c(:,32).*(y(9,:)-c(:,47)-y(7,:)./c(:,31)-c(:,48))+c(:,33).*L_ddot+gamma_bag2-y(7,:));
+            dy(7,:) = y(4,:);
+            
+            % chain
+            beta_chain  = c(:,64)+c(:,65).*y(1,:)+c(:,66).*f_sta_chain ; %Beta
+            gamma_chain = c(:,67).*y(1,:)+c(:,68).*f_sta_chain; %Gamma
+            dy(5,:)  = c(:,61)./c(:,63).*(C.*beta_chain.*sign(L_dot-y(5,:)./c(:,61))*abs(L_dot-y(5,:)./c(:,61)).^c(:,75).*(y(9,:)-c(:,77)-y(8,:)./c(:,61)-c(:,76))+c(:,62).*(y(9,:)-c(:,77)-y(8,:)./c(:,61)-c(:,78))+c(:,63).*L_ddot+gamma_chain-y(8,:));
+            dy(8,:)  = y(5,:);
+            
+            dy(9,:) = L_dot; %velocity
+        end
+        
+        
+        function dy = SarcomerRates(this, y, t, mu)
+            % beta=STATES(2) (link to Neuro Modell)
+            
+            statesSize = size(y);
+            dy = zeros(statesSize);
+            %alg = zeros(76,statesSize(2));
+            
             statesColumnCount = statesSize(2);
             if ( statesColumnCount == 1)
                 y = y';
                 alg = zeros(1, 76);
+                dy = dy';
             else
                 statesRowCount = statesSize(1);
                 alg = zeros(statesRowCount, 76);
-                dy = zeros(statesRowCount, statesColumnCount);
             end
+            
+            
+            a=0; b=1; % ursprünglich in initSarcoConsts() in Sarco Modell
+                      % a = velocity, welche? ist die in Zustand y?
+                            % used in line ~412
+                      % b in mu übergeben?   used in line ~260 and ~268
+            
+      %             if size(dy)(2) ~= this.dsa   ?????
+      %                 error('y has wrong dimension')
+      %             end
+            
             c = this.sarcoConst;
             
             % ALGEBRAIC(:,33) = 1.3*STATES(:,60);
-            alg(:,33) = 1.3*beta;
+            % alg(:,33) = 1.3*beta; % neuro-sarco link now in evaluate
             % tomo
             % L_S = L_S_0
             alg(:,73) = c(:,66);
@@ -184,13 +258,16 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             
             % sigma: if x_2 > x_0: 8 , otherwise: 1
             %    ALGEBRAIC(:,76) = piecewise({STATES(:,58)>CONSTANTS(:,106) , CONSTANTS(:,110) } , CONSTANTS(:,111));
-            alg(:,76) = c(:,110);
+            sigma_vals = [0 0 1000 2000];
+            alg(:,76) = sigma_vals(b);  % old:  c(:,110) = sigma_vals(b) in initConsts;
             %    ALGEBRAIC(:,76) = 0;
             % g = g_0 * exp{ sigma * (x_2-x_0)^2 }
             alg(:,75) = c(:,93).*exp(alg(:,76).*(y(:,58)-c(:,106)).^2);
             %    ALGEBRAIC(:,75) = CONSTANTS(:,93);
             % f_new = f_o { 1 + lambda_A1 * [exp(x_1/x_0 * (nu-1)) - 1] + lambda_A2 * [exp(x_2/x_0*(nu-1)) - 1]}^2
             %    ALGEBRAIC(:,77) = CONSTANTS(:,89) .* (1 + STATES(:,52)./CONSTANTS(:,70) .* (exp(STATES(:,57)./CONSTANTS(:,106).*(CONSTANTS(:,109)-1))-1) + STATES(:,53)./CONSTANTS(:,70) .* (exp(STATES(:,58)./CONSTANTS(:,106).*(CONSTANTS(:,109)-1))-1)).^2;
+            
+            % TODO: replace c(:,109) by nu_vals(b), nu_vals = [1 3.4 3.4 3.4];
             alg(:,77) = c(:,89) .* (1 + y(:,52)./alg(:,74) .* (exp(y(:,57)./c(:,106).*(c(:,109)-1))-1) + y(:,53)./alg(:,74) .* (exp(y(:,58)./c(:,106).*(c(:,109)-1))-1)).^2;
             %    ALGEBRAIC(:,77) = CONSTANTS(:,89);
             
@@ -297,7 +374,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             alg(:,36) =  c(:,38).*(alg(:,34) .^ 4.00000);
             alg(:,37) =  alg(:,36).*(alg(:,35)./45.0000);
             
-            alg(:,52) = alg(:,37)+alg(:,42)+alg(:,44)+alg(:,47)+alg(:,51)+ - alg(:,33);
+            alg(:,52) = alg(:,37)+alg(:,42)+alg(:,44)+alg(:,47)+alg(:,51);  % + - alg(:,33);  % neuro-sarco link now in evaluate 
             dy(:,1) =  - ((alg(:,52)+alg(:,1))./c(:,1));
             alg(:,32) =  y(:,2).*((y(:,4) -  y(:,3).*(exp((( -1.00000.*c(:,7).*y(:,2))./( c(:,36).*c(:,37))))))./(1.00000 - (exp((( -1.00000.*c(:,7).*y(:,2))./( c(:,36).*c(:,37)))))));
             alg(:,26) =  (( c(:,36).*c(:,37))./c(:,7)).*(log((y(:,3)./y(:,4))));
@@ -329,16 +406,18 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             dy(:,2) =  - ((alg(:,71) - alg(:,1)./c(:,2))./c(:,1));
             % tomo
             % d/dt(x_1) = -(f_0*D_2/A_1 + h_p*A_2/A_1)*x_1 + h_p*A_2/A_1*(x_2-x_0) + velo/2
-            dy(:,57) = -(alg(:,77).*y(:,51)./y(:,52)+c(:,92).*y(:,53)./y(:,52)).*y(:,57) + c(:,92).*y(:,53)./y(:,52).*(y(:,58)-c(:,106)) + c(:,108)./2;
+            dy(:,57) = -(alg(:,77).*y(:,51)./y(:,52)+c(:,92).*y(:,53)./y(:,52)).*y(:,57) + c(:,92).*y(:,53)./y(:,52).*(y(:,58)-c(:,106));% replaced by a + c(:,108)./2;
             % d/dt(x_2) = -h_0*A_1/A_2*(x_2-(x_1+x_0))  + velo/2
-            dy(:,58) = -c(:,91).*y(:,52)./y(:,53).*(y(:,58)-(y(:,57)+c(:,106))) + c(:,108)./2;
+            dy(:,58) = -c(:,91).*y(:,52)./y(:,53).*(y(:,58)-(y(:,57)+c(:,106)));% replaces by a  + c(:,108)./2;
             % Force = eta*(A_1/T_tot_0*x_1 + A_2/T_tot_0*x_2)
             alg(:,72) = c(:,107).*(y(:,52)./c(:,70).*y(:,57)+y(:,53)./c(:,70).*y(:,58));
             % tomo end
+            dy(:,57) = dy(:,57) - a/2;
+            dy(:,58) = dy(:,58) - a/2;
             dy = dy';
             
             function x = piecewise(cases, default)
-                set = [0];
+                set = 0;
                 for i = 1:2:length(cases)
                     if (length(cases{i+1}) == 1)
                         x(cases{i} & ~set,:) = cases{i+1};
@@ -358,6 +437,68 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
     end
     
     methods(Access=private)
+        
+        function initMotoConst(this)
+            MU = 1;
+            NTOTAL = 1;   % number of Motoneurons
+            Cm=1;
+            Ri=70/1000;
+            vector=expdistribution(6.05,14.4,NTOTAL);  % cf. Cisi and Kohn 2008, Table 2, page 7
+            vector=14.4+6.05-vector;
+            Rmd=vector(MU); %14.4 - 6.05
+            vector=expdistribution(0.65,1.15,NTOTAL);
+            vector=1.15+0.65-vector;
+            Rms=vector(MU); %1.15 - 0.65
+            vector=expdistribution(0.55,1.06,NTOTAL);
+            ld=vector(MU); %0.55 - 1.06
+            vector=expdistribution(77.5e-6*100,113e-6*100,NTOTAL);
+            ls=vector(MU); %77.5e-6*100 - 113e-6*100
+            vector=expdistribution(41.5e-6*100,92.5e-6*100,NTOTAL);
+            rd=vector(MU)/2; %41.5e-6*100 - 92.5e-6*100
+            vector=expdistribution(77.5e-6*100,113e-6*100,NTOTAL);
+            rs=vector(MU)/2; %77.5e-6*100 - 113e-6*100
+            para.Gld=2*pi*rd*ld/(Rmd);
+            para.Gkf=4*2*pi*rs*ls;
+            para.Gks=16*2*pi*rs*ls;
+            para.Gna=30*2*pi*rs*ls;
+            para.Gc=2/(Ri*ld/(pi*rd^2)+Ri*ls/(pi*rs^2));
+            para.Gls=2*pi*rs*ls/(Rms);
+            para.Cd=2*pi*rd*ld*Cm;
+            para.Cs=2*pi*rs*ls*Cm;
+            para.Vna=120;
+            para.Vk=-10;
+            para.Vl=0;
+            
+            this.motoneuroConst = para;
+            
+            function vector=expdistribution(LL,UP,N)
+                RR=UP-LL;
+                a = log(100)/N;
+                vector = exp(a*(1:N))/100*RR+LL;
+            end
+        end
+        
+        function initSpindleConst(this)
+            
+            % copied from spindle_whole_2012_10_11.m, line 217 - 291
+            c = zeros(1,83); %y = [];
+            
+            %Non-existant for Bag_1: c(6), c(8), c(11), c(13), c(19)
+            % c(9) replaced with C as an input parameter
+            c(1:11) = [10.4649, 0.15, 0.0002, 0.0605, 0.2592, 0, 0.0289, 0, 0, 0, 0];
+            c(12:22) = [0.0423, 0, 20000, 0.3, 0.46, 0.04, 0.76, 0, 0.149, 60, 2];
+            
+            %Non-existant for Bag_2: c(35), c(37); c(39) replaced with C as an input parameter 
+            c(31:42) = [10.4649, 0.15, 0.0002, 0.0822, 0, -0.046, 0, 0.0636, 0, 0, 0.7, 0.0423];
+            c(43:53) = [0.89, 10000, 0.3, 0.46, 0.04, 0.76, 0.04, 0.205, 60, 2, 7250];
+            
+            %Non-existant for Chain: c(65), c(67),c(80); c(69) replaced with C as an input parameter            
+            c(61:72) = [10.4649, 0.15, 0.0002, 0.0822, 0, -0.069, 0, 0.0954, 0, 0, 0.7, 0.0423];
+            c(73:83) = [0.89, 10000, 0.3, 0.46, 0.04, 0.76, 0.04, 0, 90, 2, 7250];
+            
+            this.spindleConst=c;
+        end
+
         function initSarcoConst(this)
             c = zeros(1,111);
             
@@ -369,121 +510,29 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             a = 0;
             b = 1;
             
-            c(1:5) = [0.58, 2.79, 150, 0.000001, 0.0025];
-            % TODO etwas komprimieren!
-            c(:,6) = 0.0005;
-            c(:,7) = 96485;
-            c(:,8) = 559;
-            c(:,9) = 559;
-            c(:,10) = 0.00174;
-            c(:,11) = 40229.885;
-            c(:,12) = 40229.885;
-            c(:,13) = 0.34;
-            c(:,14) = -0.43;
-            c(:,15) = 0.0081;
-            c(:,16) = 0.288;
-            c(:,17) = 0.0131;
-            c(:,18) = 4.38;
-            c(:,19) = 1.38;
-            c(:,20) = 0.067;
-            c(:,21) = -46;
-            c(:,22) = -40;
-            c(:,23) = -45;
-            c(:,24) = 70;
-            c(:,25) = -68;
-            c(:,26) = -40;
-            c(:,27) = 150;
-            c(:,28) = 7.1;
-            c(:,29) = 7.5;
-            c(:,30) = 14.7;
-            c(:,31) = 9;
-            c(:,32) = 10;
-            c(:,33) = 7;
-            c(:,34) = 18;
-            c(:,35) = 40;
-            c(:,36) = 8314.41;
-            c(:,37) = 293;
-            c(:,38) = 3.275;
-            c(:,39) = 10.8;
-            c(:,40) = 134;
-            c(:,41) = 1.85;
-            c(:,42) = 0.4;
-            c(:,43) = 950;
-            c(:,44) = 1;
-            c(:,45) = 1;
-            c(:,46) = 13;
-            c(:,47) = 10;
-            c(:,48) = 0.0001656;
-            c(:,49) = 70;
-            c(:,50) = 0.1;
-            c(:,51) = 1.0;
-            c(:,52) = 0.45;
-            c(:,53) = 0.1;
-            c(:,54) = 0.1;
-            c(:,55) = 0.002;
-            c(:,56) = 1000;
-            c(:,57) = 0.2;
-            c(:,58) = 0.2;
-            c(:,59) = 4.5;
-            c(:,60) = -20;
-            c(:,61) = 2.4375;
-            c(:,62) = 1;
-            c(:,63) = 0.00004;
-            c(:,64) = 0.75;
-            c(:,65) = 0.75;
-            c(:,66) = 1.1;
-            c(:,67) = 0.5;
-            c(:,68) = 0.0885;
-            c(:,69) = 0.115;
-            c(:,70) = 140;
-            c(:,71) = 0;
-            c(:,72) = 0;
-            c(:,73) = 1500;
-            c(:,74) = 0;
-            c(:,75) = 0;
-            c(:,76) = 0.000004;
-            c(:,77) = 0.005;
-            c(:,78) = 31000;
-            c(:,79) = 0.15;
-            c(:,80) = 30;
-            c(:,81) = 0.0015;
-            c(:,82) = 0.15;
-            c(:,83) = 0.375;
-            c(:,84) = 1.5;
-            c(:,85) = 0;
-            c(:,86) = 0.15;
-            c(:,87) = 0.15;
-            c(:,88) = 0.05;
-            c(:,89) = 0.5*scale_param;
-            %    CONSTANTS(:,89) = 3.0; % tomo ????
-            c(:,90) = 5*scale_param;
-            c(:,91) = 0.08*scale_param;
-            c(:,92) = 0.06*scale_param;
-            c(:,93) = 0.04*scale_param;
-            c(:,94) = 0.00000394;
-            c(:,95) = 0.00000362;
-            c(:,96) = 1;
-            c(:,97) = 0.0001;
-            c(:,98) = 6;
-            c(:,99) = 60;
-            c(:,100) =  0.950000.*c(:,66).* pi.*(c(:,67) .^ 2.00000);
-            c(:,101) =  0.0500000.*c(:,66).* pi.*(c(:,67) .^ 2.00000);
-            c(:,102) =  0.0100000.*c(:,100);
-            c(:,103) =  0.990000.*c(:,100);
-            c(:,104) =  0.0100000.*c(:,101);
-            c(:,105) =  0.990000.*c(:,101);
+            c(1:10)  = [0.58, 2.79, 150, 0.000001, 0.0025, 0.0005, 96485, 559, 559, 0.00174];
+            c(11:20) = [40229.885, 40229.885, 0.34, -0.43, 0.0081, 0.288, 0.0131, 4.38, 1.38, 0.067];
+            c(21:30) = [-46, -40, -45, 70, -68, -40, 150, 7.1, 7.5, 14.7];
+            c(31:40) = [9, 10, 7, 18, 40, 8314.41, 293, 3.275, 10.8, 134];
+            c(41:50) = [1.85, 0.4, 950, 1, 1, 13, 10, 0.0001656, 70, 0.1];
+            c(51:60) = [1.0, 0.45, 0.1, 0.1, 0.002, 1000, 0.2, 0.2, 4.5, -20];
+            c(61:70) = [2.4375, 1, 0.00004, 0.75, 0.75, 1.1, 0.5, 0.0885, 0.115, 140];
+            c(71:80) = [0, 0, 1500, 0, 0, 0.000004, 0.005, 31000, 0.15, 30];
+            c(81:90) = [0.0015, 0.15, 0.375, 1.5, 0, 0.15, 0.15, 0.05, 0.5*scale_param, 5*scale_param];    %    CONSTANTS(:,89) = 3.0; % tomo ????
+            c(91:100) = [0.08*scale_param, 0.06*scale_param, 0.04*scale_param, 0.00000394, 0.00000362, 1, 0.0001, 6, 60, 0.950000.*c(66).* pi.*(c(67) .^ 2.00000)];
+            c(101:105) = [0.0500000.*c(66).* pi.*(c(67) .^ 2.00000), 0.0100000.*c(100), 0.990000.*c(100), 0.0100000.*c(101), 0.990000.*c(101)];
             % tomo
-            c(:,106) = 0.05;     % x_0 [micrometre]
-            c(:,107) = 1.E4;     % eta [micronewton_per_micrometre]
-            c(:,108) = -a;       %-0.001;      % velo [micrometre_per_millisecond] %-0.001
+            c(106) = 0.05;     % x_0 [micrometre]
+            c(107) = 1.E4;     % eta [micronewton_per_micrometre]
+            c(108) = 0; %  old: c(108) = -a;       %-0.001;      % velo [micrometre_per_millisecond] %-0.001
             %EKIN 27/06/12
             nu_vals = [1 3.4 3.4 3.4];
             %    CONSTANTS(:,109) = 3.4;        % nu >= 1, if no cooperative influence --> nu = 1
-            c(:,109) = nu_vals(b);        % nu >= 1, if no cooperative influence --> nu = 1
-            sigma_vals = [0 0 1000 2000];
-            c(:,110) = sigma_vals(b);        % sigma: if x_2 > x_0: CONSTANTS(:,110)   % 800
+            c(109) = 0; % now in SarcoRates(): = nu_vals(b);        % nu >= 1, if no cooperative influence --> nu = 1
+            % sigma_vals = [0 0 1000 2000];
+            c(110) = 0;% now in SarcoRates(): = sigma_vals(b);        % sigma: if x_2 > x_0: CONSTANTS(:,110)   % 800
             %    CONSTANTS(:,110) = 2000;
-            c(:,111) = 100.0;        %           otherwise: CONSTANTS(:,111)   % 100
+            c(111) = 100.0;
             % tomo end
             
             this.sarcoConst = c;
