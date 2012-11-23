@@ -34,13 +34,13 @@ classdef MuscleFibreSystem < models.BaseDynSystem
             
             %% Set system components
             % Core nonlinearity
-            this.f = models.muscle.FibreDynamics(N);
+            this.f = models.muscle.FibreDynamics(this);
             
             % Linear diffusion part
             this.A = dscomponents.LinearCoreFun(this.assembleA);
             
             % Linear input B for motoneuron
-            this.B = dscomponents.LinearInputConv(self.assembleB);
+            this.B = dscomponents.LinearInputConv(this.assembleB);
             
             % Constant initial values
             this.x0 = dscomponents.ConstInitialValue(this.initStates);
@@ -65,7 +65,7 @@ classdef MuscleFibreSystem < models.BaseDynSystem
         end
         
         function x0 = initStates(this)
-             % x0 = 0; noch nötig?
+             % x0 = 0; noch nï¿½tig?
              % return;
              x0 = [this.initNeuroStates;...
                 this.initSpindleStates;...

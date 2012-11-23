@@ -20,22 +20,18 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
     end
     
     properties(SetAccess=private)
-        sarcoConst;
         spindleConst;
-        motoneuroConst;
     end
     
     methods
-        function this = MuscleCoreFun(system)
+        function this = FibreDynamics(system)
             this.system = system;
             % Init neuro params -> in eigene initMotoConst private methode packen
             %             para = 0;
             %
             %             this.neuropara = para;
             
-            this.initMotoConst;
             this.initSpindleConst;
-            this.initSarcoConst;
         end
         
         function dy = evaluate(this, y, t, mu)
@@ -145,7 +141,8 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
         function dy = NeuroRates(this, y, t, mu)
             
             % adapted from combined_cell_model.m, line 738 - 745
-            para = this.motoneuroConst;
+            para = this.motoneuroParams(mu);
+            
             statesSize = size(y);
             dy=zeros(statesSize);
             if ( statesSize(1) == 1)
@@ -157,19 +154,24 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
 %                 error('y has wrong dimension')
 %             end
             
-            dy(1,:) = (-para.Gld*(y(1,:)-para.Vl)-para.Gc*(y(1,:)-y(2,:)))/para.Cd;
-            dy(2,:) = (-para.Gls*(y(2,:)-para.Vl)-para.Gc*(y(2,:)-y(1,:))-para.Gna*y(3,:).^3.*y(4,:)*(y(2,:)-para.Vna)-para.Gkf*y(5,:).^4.*(y(2,:)-para.Vk)-para.Gks*y(6,:).^2.*(y(2,:)-para.Vk))/para.Cs;
+            dy(1,:) = (-para.Gld.*(y(1,:)-para.Vl)-para.Gc.*(y(1,:)-y(2,:)))/para.Cd;
+            dy(2,:) = (-para.Gls.*(y(2,:)-para.Vl)-para.Gc.*(y(2,:)-y(1,:))...
+                        -para.Gna.*y(3,:).^3.*y(4,:)*(y(2,:)-para.Vna)...
+                        -para.Gkf*y(5,:).^4.*(y(2,:)-para.Vk)...
+                        -para.Gks*y(6,:).^2.*(y(2,:)-para.Vk))./para.Cs;
             % the four gating variables
-            dy(3,:) = 0.32*(13-y(2,:))./(exp((13-y(2,:))/5)-1).*(1-y(3,:))-0.28*(y(2,:)-40)./(exp((y(2,:)-40)/5)-1).*(y(3,:));
+            dy(3,:) = 0.32*(13-y(2,:))./(exp((13-y(2,:))/5)-1).*(1-y(3,:))...
+                      -0.28*(y(2,:)-40)./(exp((y(2,:)-40)/5)-1).*(y(3,:));
             dy(4,:) = 0.128*(exp((17-y(2,:))/18)).*(1-y(4,:))-4/(exp((40-y(2,:))/5)+1).*(y(4,:));
-            dy(5,:) = 0.032*(15-y(2,:))./(exp((15-y(2,:))/5)-1).*(1-y(5,:))-0.5*(exp((10-y(2,:))/40)).*(y(5,:));
+            dy(5,:) = 0.032*(15-y(2,:))./(exp((15-y(2,:))/5)-1).*(1-y(5,:))...
+                      -0.5*(exp((10-y(2,:))/40)).*(y(5,:));
             dy(6,:) = 3.5/(exp((55-y(2,:))/4)+1).*(1-y(6,:))-0.025*(y(6,:));
         end
         
         function dy=spindlerates(this, y, t, mu)
             % adapted from spindle_whole_2012_10_11.m, line 319 - 356
             
-            % mit übergeben? gamma später aus Zustand y bekannt, L aus
+            % mit ï¿½bergeben? gamma spï¿½ter aus Zustand y bekannt, L aus
             % Mechanik?
             gamma_dyn=0;
             gamma_sta=0;
@@ -237,16 +239,15 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             end
             
             
-            a=0; b=1; % ursprünglich in initSarcoConsts() in Sarco Modell
+            a=0; b=1; % ursprÃ¼nglich in initSarcoConsts() in Sarco Modell
                       % a = velocity, welche? ist die in Zustand y?
                             % used in line ~412
-                      % b in mu übergeben?   used in line ~260 and ~268
+                      % b in mu Ã¼bergeben?   used in line ~260 and ~268
             
       %             if size(dy)(2) ~= this.dsa   ?????
       %                 error('y has wrong dimension')
       %             end
-            
-            c = this.sarcoConst;
+            c = this.getSarcoParams(mu);
             
             % ALGEBRAIC(:,33) = 1.3*STATES(:,60);
             % alg(:,33) = 1.3*beta; % neuro-sarco link now in evaluate
@@ -436,45 +437,41 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
         end
     end
     
-    methods(Access=private)
+    methods%(Access=private)
         
-        function initMotoConst(this)
-            MU = 1;
-            NTOTAL = 1;   % number of Motoneurons
+        function para = motoneuroParams(this, mu)
             Cm=1;
             Ri=70/1000;
-            vector=expdistribution(6.05,14.4,NTOTAL);  % cf. Cisi and Kohn 2008, Table 2, page 7
-            vector=14.4+6.05-vector;
-            Rmd=vector(MU); %14.4 - 6.05
-            vector=expdistribution(0.65,1.15,NTOTAL);
-            vector=1.15+0.65-vector;
-            Rms=vector(MU); %1.15 - 0.65
-            vector=expdistribution(0.55,1.06,NTOTAL);
-            ld=vector(MU); %0.55 - 1.06
-            vector=expdistribution(77.5e-6*100,113e-6*100,NTOTAL);
-            ls=vector(MU); %77.5e-6*100 - 113e-6*100
-            vector=expdistribution(41.5e-6*100,92.5e-6*100,NTOTAL);
-            rd=vector(MU)/2; %41.5e-6*100 - 92.5e-6*100
-            vector=expdistribution(77.5e-6*100,113e-6*100,NTOTAL);
-            rs=vector(MU)/2; %77.5e-6*100 - 113e-6*100
-            para.Gld=2*pi*rd*ld/(Rmd);
-            para.Gkf=4*2*pi*rs*ls;
-            para.Gks=16*2*pi*rs*ls;
-            para.Gna=30*2*pi*rs*ls;
-            para.Gc=2/(Ri*ld/(pi*rd^2)+Ri*ls/(pi*rs^2));
-            para.Gls=2*pi*rs*ls/(Rms);
-            para.Cd=2*pi*rd*ld*Cm;
-            para.Cs=2*pi*rs*ls*Cm;
-            para.Vna=120;
-            para.Vk=-10;
-            para.Vl=0;
+            Rmd = 14.4+6.05-coolExp(6.05,14.4,mu);  % cf. Cisi and Kohn 2008, Table 2, page 7
+            Rms=1.15+0.65-coolExp(0.65,1.15,mu);
             
-            this.motoneuroConst = para;
+            ld=coolExp(0.55,1.06,mu);
+            ls=coolExp(77.5e-6*100,113e-6*100,mu);
+
+            rd=coolExp(41.5e-6*100,92.5e-6*100,mu)/2; 
+            rs=coolExp(77.5e-6*100,113e-6*100,mu)/2;
             
-            function vector=expdistribution(LL,UP,N)
-                RR=UP-LL;
-                a = log(100)/N;
-                vector = exp(a*(1:N))/100*RR+LL;
+            para.Gld=2*pi*rd.*ld./Rmd;
+            para.Gkf=4*2*pi*rs.*ls;
+            para.Gks=16*2*pi*rs.*ls;
+            para.Gna=30*2*pi*rs.*ls;
+            para.Gc=2./(Ri*ld./(pi*rd.^2)+Ri*ls./(pi*rs.^2));
+            para.Gls=2*pi*rs.*ls./Rms;
+            para.Cd=2*pi*rd.*ld*Cm;
+            para.Cs=2*pi*rs.*ls*Cm;
+            s = ones(size(mu));
+            para.Vna=120*s;
+            para.Vk=-10*s;
+            para.Vl=0*s;
+            
+%             function vector=expdistribution(LL,UP,N)
+%                 RR=UP-LL;
+%                 a = log(100)/N;
+%                 vector = exp(a*(1:N))/100*RR+LL;
+%             end
+            
+            function v = coolExp(a,b,mu)
+                v = exp(log(100)*mu)*b/100 + a;
             end
         end
         
@@ -499,7 +496,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             this.spindleConst=c;
         end
 
-        function initSarcoConst(this)
+        function c = getSarcoParams(this, mu)
             c = zeros(1,111);
             
             scale_param = 0.1;
@@ -534,8 +531,6 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             %    CONSTANTS(:,110) = 2000;
             c(111) = 100.0;
             % tomo end
-            
-            this.sarcoConst = c;
         end
     end
     

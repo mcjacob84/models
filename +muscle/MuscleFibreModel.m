@@ -22,8 +22,10 @@ classdef MuscleFibreModel < models.BaseFullModel
             if nargin < 1
                 N = 100;
             end
-            this.System = models.muscle.MuscleFibreSystem(this, N);
+            this.System = models.muscle.MuscleFibreSystem(this,N);
             
+            this.T = .5;
+            this.dt = 1e-5;
         end
     end
     
