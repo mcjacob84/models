@@ -92,7 +92,6 @@ classdef MuscleFibreSystem < models.BaseDynSystem
         end
         
         function y = initSarcomerStates(~,N)
-            % tomo - new
             y=zeros(58,N);
             y(1,:) = -79.974;
             y(2,:) = -80.2;

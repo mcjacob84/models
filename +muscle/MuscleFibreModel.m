@@ -24,8 +24,8 @@ classdef MuscleFibreModel < models.BaseFullModel
             end
             this.System = models.muscle.MuscleFibreSystem(this,N);
             
-            this.T = .5;
-            this.dt = 1e-5;
+            this.T = .5; % [ms]
+            this.dt = 1e-5; % [ms]
         end
     end
     

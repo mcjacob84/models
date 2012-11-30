@@ -154,11 +154,14 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
 %                 error('y has wrong dimension')
 %             end
             
+            % dendrites
             dy(1,:) = (-para.Gld.*(y(1,:)-para.Vl)-para.Gc.*(y(1,:)-y(2,:)))/para.Cd;
+            % soma
             dy(2,:) = (-para.Gls.*(y(2,:)-para.Vl)-para.Gc.*(y(2,:)-y(1,:))...
                         -para.Gna.*y(3,:).^3.*y(4,:)*(y(2,:)-para.Vna)...
                         -para.Gkf*y(5,:).^4.*(y(2,:)-para.Vk)...
                         -para.Gks*y(6,:).^2.*(y(2,:)-para.Vk))./para.Cs;
+ %tomo: where is input???
             % the four gating variables
             dy(3,:) = 0.32*(13-y(2,:))./(exp((13-y(2,:))/5)-1).*(1-y(3,:))...
                       -0.28*(y(2,:)-40)./(exp((y(2,:)-40)/5)-1).*(y(3,:));
@@ -173,10 +176,14 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             
             % mit �bergeben? gamma sp�ter aus Zustand y bekannt, L aus
             % Mechanik?
-            gamma_dyn=0;
+            %tomo: TODO Berechnung aus Parametern 
+            gamma_dyn=0; 
             gamma_sta=0;
-            L_ddot=0;
+            
+            %tomo TODO length/velocity/acceleration mapping
+            L_ddot=0; % acceleration
             L_dot=0;  % velocity
+            
             if (L_dot>=0)
                 C=1;
             else
@@ -190,10 +197,12 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
                 dy=dy';
             end
             
-            %    dy(:,10) = 0; %acceleration
-            %    dy(:,9) = y(:,10); %velocity
             c = this.spindleConst;
             
+            %tomo
+            %    dy(:,10) = 0; %acceleration
+            %    dy(:,9) = y(:,10); %velocity
+            dy(9,:) = L_dot; %velocity
             
             dy(1,:) = (gamma_dyn^c(:,22)./(gamma_dyn^c(:,22)+c(:,21).^c(:,22)) - y(1,:))./c(:,20); % f_dyn_b1
             dy(2,:) = (gamma_sta^c(:,52)./(gamma_sta^c(:,52)+c(:,51).^c(:,52)) - y(2,:))./c(:,20); % f_stat_b2
@@ -202,22 +211,24 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             % bag1
             beta_bag1  = c(:,4)+c(:,5).*y(1,:); %Beta
             gamma_bag1 = c(:,7).*y(1,:); %Gamma
-            dy(3,:) = c(:,1)./c(:,3).*(C.*beta_bag1.*sign(L_dot-y(3,:)./c(:,1))*abs(L_dot-y(3,:)./c(:,1)).^c(15,:).*(y(9,:)-c(:,17)-y(6,:)./c(:,1)-c(:,16))+c(:,2).*(y(9,:)-c(:,17)-y(6,:)./c(:,1)-c(:,18))+c(:,3).*L_ddot+gamma_bag1-y(6,:));
+            dy(3,:) = c(:,1)./c(:,3).*(C.*beta_bag1.*sign(L_dot-y(3,:)./c(:,1))*abs(L_dot-y(3,:)./c(:,1)).^c(15,:).*(y(9,:) ...
+              -c(:,17)-y(6,:)./c(:,1)-c(:,16))+c(:,2).*(y(9,:)-c(:,17)-y(6,:)./c(:,1)-c(:,18))+c(:,3).*L_ddot+gamma_bag1-y(6,:));
             dy(6,:) = y(3,:);
             
             % bag2
             beta_bag2  = c(:,34)+c(:,35).*y(1,:)+c(:,36).*y(2,:); %Beta
             gamma_bag2 = c(:,37).*y(1,:)+c(:,38).*y(2,:); %Gamma
-            dy(4,:) = c(:,31)./c(:,33).*(C.*beta_bag2.*sign(L_dot-y(4,:)./c(:,31))*abs(L_dot-y(4,:)./c(:,31)).^c(:,45).*(y(9,:)-c(:,47)-y(7,:)./c(:,31)-c(:,46))+c(:,32).*(y(9,:)-c(:,47)-y(7,:)./c(:,31)-c(:,48))+c(:,33).*L_ddot+gamma_bag2-y(7,:));
+            dy(4,:) = c(:,31)./c(:,33).*(C.*beta_bag2.*sign(L_dot-y(4,:)./c(:,31))*abs(L_dot-y(4,:)./c(:,31)).^c(:,45).*(y(9,:)- ...
+              c(:,47)-y(7,:)./c(:,31)-c(:,46))+c(:,32).*(y(9,:)-c(:,47)-y(7,:)./c(:,31)-c(:,48))+c(:,33).*L_ddot+gamma_bag2-y(7,:));
             dy(7,:) = y(4,:);
             
             % chain
             beta_chain  = c(:,64)+c(:,65).*y(1,:)+c(:,66).*f_sta_chain ; %Beta
             gamma_chain = c(:,67).*y(1,:)+c(:,68).*f_sta_chain; %Gamma
-            dy(5,:)  = c(:,61)./c(:,63).*(C.*beta_chain.*sign(L_dot-y(5,:)./c(:,61))*abs(L_dot-y(5,:)./c(:,61)).^c(:,75).*(y(9,:)-c(:,77)-y(8,:)./c(:,61)-c(:,76))+c(:,62).*(y(9,:)-c(:,77)-y(8,:)./c(:,61)-c(:,78))+c(:,63).*L_ddot+gamma_chain-y(8,:));
+            dy(5,:)  = c(:,61)./c(:,63).*(C.*beta_chain.*sign(L_dot-y(5,:)./c(:,61))*abs(L_dot-y(5,:)./c(:,61)).^c(:,75).*(y(9,:)- ...
+              c(:,77)-y(8,:)./c(:,61)-c(:,76))+c(:,62).*(y(9,:)-c(:,77)-y(8,:)./c(:,61)-c(:,78))+c(:,63).*L_ddot+gamma_chain-y(8,:));
             dy(8,:)  = y(5,:);
-            
-            dy(9,:) = L_dot; %velocity
+
         end
         
         
@@ -226,53 +237,43 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             
             statesSize = size(y);
             dy = zeros(statesSize);
-            %alg = zeros(76,statesSize(2));
+            %alg = zeros(77,statesSize(2));
             
             statesColumnCount = statesSize(2);
             if ( statesColumnCount == 1)
                 y = y';
-                alg = zeros(1, 76);
+                alg = zeros(1, 77);
                 dy = dy';
             else
                 statesRowCount = statesSize(1);
-                alg = zeros(statesRowCount, 76);
+                alg = zeros(statesRowCount, 77);
             end
             
-            
-            a=0; b=1; % ursprünglich in initSarcoConsts() in Sarco Modell
-                      % a = velocity, welche? ist die in Zustand y?
-                            % used in line ~412
-                      % b in mu übergeben?   used in line ~260 and ~268
+            %tomo
+            a=0; % ursprünglich in initSarcoConsts() in Sarco Modell
+                 % a = velocity, welche? ist die in Zustand y?
+                 % used in line ~412
             
       %             if size(dy)(2) ~= this.dsa   ?????
       %                 error('y has wrong dimension')
       %             end
+      
             c = this.getSarcoParams(mu);
             
             % ALGEBRAIC(:,33) = 1.3*STATES(:,60);
             % alg(:,33) = 1.3*beta; % neuro-sarco link now in evaluate
-            % tomo
+
+            % tomo TODO - when coupling to mechanics --> velocity mapping
             % L_S = L_S_0
             alg(:,73) = c(:,66);
+            
             % T_tot = (a*L_S^4+b*L_S^3+c*L_S^2+d*L_S+e)*T_tot_0 --- a fourth order polynomial --- cf. mod_num_of_XB.m
             alg(:,74) = piecewise({alg(:,73)>=0.4&alg(:,73)<2.0,(0.073164682539683.*(2*alg(:,73)).^4-0.702380952380952.*(2*alg(:,73)).^3+1.950644841269842.*(2*alg(:,73)).^2-1.271666666666668.*(2*alg(:,73))+0.098571428571430).*c(:,70)},0.0);
-            
-            % sigma: if x_2 > x_0: 8 , otherwise: 1
-            %    ALGEBRAIC(:,76) = piecewise({STATES(:,58)>CONSTANTS(:,106) , CONSTANTS(:,110) } , CONSTANTS(:,111));
-            sigma_vals = [0 0 1000 2000];
-            alg(:,76) = sigma_vals(b);  % old:  c(:,110) = sigma_vals(b) in initConsts;
-            %    ALGEBRAIC(:,76) = 0;
             % g = g_0 * exp{ sigma * (x_2-x_0)^2 }
-            alg(:,75) = c(:,93).*exp(alg(:,76).*(y(:,58)-c(:,106)).^2);
-            %    ALGEBRAIC(:,75) = CONSTANTS(:,93);
+            alg(:,75) = c(:,93).*exp(c(:,110).*(y(:,58)-c(:,106)).^2);
             % f_new = f_o { 1 + lambda_A1 * [exp(x_1/x_0 * (nu-1)) - 1] + lambda_A2 * [exp(x_2/x_0*(nu-1)) - 1]}^2
-            %    ALGEBRAIC(:,77) = CONSTANTS(:,89) .* (1 + STATES(:,52)./CONSTANTS(:,70) .* (exp(STATES(:,57)./CONSTANTS(:,106).*(CONSTANTS(:,109)-1))-1) + STATES(:,53)./CONSTANTS(:,70) .* (exp(STATES(:,58)./CONSTANTS(:,106).*(CONSTANTS(:,109)-1))-1)).^2;
-            
-            % TODO: replace c(:,109) by nu_vals(b), nu_vals = [1 3.4 3.4 3.4];
             alg(:,77) = c(:,89) .* (1 + y(:,52)./alg(:,74) .* (exp(y(:,57)./c(:,106).*(c(:,109)-1))-1) + y(:,53)./alg(:,74) .* (exp(y(:,58)./c(:,106).*(c(:,109)-1))-1)).^2;
-            %    ALGEBRAIC(:,77) = CONSTANTS(:,89);
             
-            % tomo end
             dy(:,29) = (((( ( c(:,99).*(y(:,19)+y(:,20)+y(:,21)+y(:,22)+y(:,23))).*((y(:,30) - y(:,29))./c(:,102)) -  c(:,61).*((y(:,29)./(y(:,29)+c(:,62)))./c(:,102)))+ c(:,63).*((y(:,30) - y(:,29))./c(:,102)))+  - c(:,64).*((y(:,29) - y(:,31))./c(:,102)))+ - ( ( c(:,71).*y(:,29)).*((c(:,73)+ - y(:,34))+ - y(:,36))+  - c(:,72).*y(:,34)))+ - ( ( c(:,79).*y(:,29)).*y(:,44)+  - c(:,80).*y(:,40));
             dy(:,30) = (((  - ( c(:,99).*(y(:,19)+y(:,20)+y(:,21)+y(:,22)+y(:,23))).*((y(:,30) - y(:,29))./c(:,104))+ c(:,61).*((y(:,29)./(y(:,29)+c(:,62)))./c(:,104)))+  - c(:,63).*((y(:,30) - y(:,29))./c(:,104)))+  - c(:,65).*((y(:,30) - y(:,32))./c(:,104)))+ - ( ( c(:,76).*y(:,30)).*(c(:,78) - y(:,38))+  - c(:,77).*y(:,38));
             dy(:,32) = ((( c(:,61).*((y(:,31)./(y(:,31)+c(:,62)))./c(:,105))+  - c(:,63).*((y(:,32)+ ...
@@ -300,10 +301,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             dy(:,54) =  (0.00100000./1.00000).*( c(:,91).*y(:,52) -  c(:,92).*y(:,53))+ -1.00000.*c(:,94).*y(:,54)+ -1.00000.*c(:,95).*((y(:,54) - y(:,55))./c(:,103));
             dy(:,55) =  c(:,95).*((y(:,54) - y(:,55))./c(:,105)) -  1.00000.*( c(:,96).*( y(:,55).*(0.00100000./1.00000).*y(:,32) - c(:,98)).*(piecewise({ y(:,55).*(0.00100000./1.00000).*y(:,32) - c(:,98)>0.00000, 1.00000 }, 0.00000)).*(0.00100000./1.00000).*y(:,55).*y(:,32) -  c(:,97).*y(:,56).*(c(:,98) -  y(:,55).*(0.00100000./1.00000).*y(:,32)).*(piecewise({c(:,98) -  y(:,55).*(0.00100000./1.00000).*y(:,32)>0.00000, 1.00000 }, 0.00000)));
             dy(:,56) =  1.00000.*( c(:,96).*( y(:,55).*(0.00100000./1.00000).*y(:,32) - c(:,98)).*(piecewise({ y(:,55).*(0.00100000./1.00000).*y(:,32) - c(:,98)>0.00000, 1.00000 }, 0.00000)).*(0.00100000./1.00000).*y(:,55).*y(:,32) -  c(:,97).*y(:,56).*(c(:,98) -  y(:,55).*(0.00100000./1.00000).*y(:,32)).*(piecewise({c(:,98) -  y(:,55).*(0.00100000./1.00000).*y(:,32)>0.00000, 1.00000 }, 0.00000)));
-            % tomo
-            %    ALGEBRAIC(:,13) = ALGEBRAIC(:,74)+ - STATES(:,33)+ - STATES(:,48)+ - STATES(:,49)+ - STATES(:,50)+ - STATES(:,51)+ - STATES(:,52)+ - STATES(:,53);
             alg(:,13) = piecewise({alg(:,74)+ - y(:,33)+ - y(:,48)+ - y(:,49)+ - y(:,50)+ - y(:,51)+ - y(:,52)+ - y(:,53)>=0.00000, alg(:,74)+ - y(:,33)+ - y(:,48)+ - y(:,49)+ - y(:,50)+ - y(:,51)+ - y(:,52)+ - y(:,53) }, 0.00000);
-            % tomo end
             dy(:,31) = ((((  - c(:,61).*((y(:,31)./(y(:,31)+c(:,62)))./c(:,103))+ c(:,63).*((y(:,32)+ - y(:,31))./c(:,103)))+ c(:,64).*((y(:,29) - y(:,31))./c(:,103)))+ - ((((((( c(:,68).*y(:,31).*alg(:,13)+  - c(:,69).*y(:,33))+ c(:,68).*y(:,31).*y(:,33))+  - c(:,69).*y(:,48))+ c(:,68).*y(:,31).*y(:,49))+  - c(:,69).*y(:,50))+ c(:,68).*y(:,31).*y(:,50))+  - c(:,69).*y(:,51)))+ - ( ( c(:,71).*y(:,31)).*(c(:,73)+ - y(:,35)+ - y(:,37))+  - c(:,72).*y(:,35)))+ - ( ( c(:,79).*y(:,31)).*y(:,45)+  - c(:,80).*y(:,41));
             dy(:,33) = (((( ( c(:,68).*y(:,31)).*alg(:,13)+  - c(:,69).*y(:,33))+ (  - c(:,68).*y(:,31)).*y(:,33))+ c(:,69).*y(:,48))+  - c(:,85).*y(:,33))+ c(:,86).*y(:,50);
             dy(:,49) = (( (  - c(:,68).*y(:,31)).*y(:,49)+ c(:,69).*y(:,50))+ c(:,85).*alg(:,13))+  - c(:,86).*y(:,49);
@@ -405,16 +403,20 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             alg(:,56) =  c(:,50).*alg(:,55).*(alg(:,54)./45.0000);
             alg(:,71) = alg(:,56)+alg(:,61)+alg(:,63)+alg(:,66)+alg(:,70);
             dy(:,2) =  - ((alg(:,71) - alg(:,1)./c(:,2))./c(:,1));
-            % tomo
             % d/dt(x_1) = -(f_0*D_2/A_1 + h_p*A_2/A_1)*x_1 + h_p*A_2/A_1*(x_2-x_0) + velo/2
             dy(:,57) = -(alg(:,77).*y(:,51)./y(:,52)+c(:,92).*y(:,53)./y(:,52)).*y(:,57) + c(:,92).*y(:,53)./y(:,52).*(y(:,58)-c(:,106));% replaced by a + c(:,108)./2;
             % d/dt(x_2) = -h_0*A_1/A_2*(x_2-(x_1+x_0))  + velo/2
             dy(:,58) = -c(:,91).*y(:,52)./y(:,53).*(y(:,58)-(y(:,57)+c(:,106)));% replaces by a  + c(:,108)./2;
+
+            %tomo USELESS HERE - ALG(:,72) is the active stress/force (we are interested in this component) - compute outside
             % Force = eta*(A_1/T_tot_0*x_1 + A_2/T_tot_0*x_2)
-            alg(:,72) = c(:,107).*(y(:,52)./c(:,70).*y(:,57)+y(:,53)./c(:,70).*y(:,58));
-            % tomo end
-            dy(:,57) = dy(:,57) - a/2;
-            dy(:,58) = dy(:,58) - a/2;
+            %alg(:,72) = c(:,107).*(y(:,52)./c(:,70).*y(:,57)+y(:,53)./c(:,70).*y(:,58));
+
+            %tomo TODO - for coupling to mechanics, the velocity has to be included
+            % I think you can not have two equations with the same dy(i) on the left hand side !?!
+            %dy(:,57) = dy(:,57) - a/2;
+            %dy(:,58) = dy(:,58) - a/2;
+            
             dy = dy';
             
             function x = piecewise(cases, default)
@@ -497,40 +499,49 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
         end
 
         function c = getSarcoParams(this, mu)
-            c = zeros(1,111);
+            %slow twitch fibres
+            c1 = zeros(1,110);
+            c1(1:10)  = [0.58, 2.79, 150, 0.000001, 0.0025, 0.0005, 96485, 559, 559, 0.00174];
+            c1(11:20) = [40229.885, 40229.885, 0.34, -0.43, 0.0081, 0.288, 0.0131, 4.38, 1.38, 0.067];
+            c1(21:30) = [-46, -40, -45, 70, -68, -40, 150, 7.1, 7.5, 14.7];
+            c1(31:40) = [9, 10, 7, 18, 40, 8314.41, 293, 3.275, 10.8, 134];
+            c1(41:50) = [1.85, 0.4, 950, 1, 1, 13, 10, 0.0001656, 70, 0.1];
+            c1(51:60) = [1.0, 0.45, 0.1, 0.1, 0.002, 1000, 0.2, 0.2, 4.5, -20];
+            c1(61:70) = [2.4375, 1, 0.00004, 0.75, 0.75, 1.1, 0.5, 0.0885, 0.115, 50]; %tomo 2012/11/29: changed C(:,70) from 140 to 50
+            c1(71:80) = [0, 0, 1500, 0, 0, 0.000004, 0.005, 31000, 0.15, 30];
+            c1(81:90) = [0.0015, 0.15, 0.375, 1.5, 0, 0.15, 0.15, 0.05, 0.5, 5];    %    CONSTANTS(:,89) = 3.0; % tomo ????
+            c1(91:100) = [0.08, 0.06, 0.04, 0.00000394, 0.00000362, 1, 0.0001, 6, 60, 0.950000.*c1(66).* pi.*(c1(67).^2.00000)];
+            c1(101:105) = [0.0500000.*c1(66).* pi.*(c1(67).^2.00000), 0.0100000.*c1(100), 0.990000.*c1(100), 0.0100000.*c1(101), 0.990000.*c1(101)];
+            c1(106) = 0.05;     % x_0 [micrometre]
+            c1(107) = 1.E4;     % eta [micronewton_per_micrometre] tomo: NOT USED
+            %tomo TODO - velocity mapping --> coupling to mechanics
+            c1(108) = 0; %  old: c(108) = -a;       %-0.001;      % velo [micrometre_per_millisecond] %-0.001
+            c1(109) = 3.4;  % nu >= 1.   nu = 1 --> no cooperative effects
+            c1(110) = 1000; % sigma
+
+            %fast twitch fibres
+            c2 = zeros(1,110);
+            c2(1:10)  = [1., 4.8, 150, 0.000001, 0.0025, 0.0005, 96485, 350, 350, 0.0032];
+            c2(11:20) = [21875., 21875., 1.02, -1.29, 0.0081, 0.288, 0.0131, 4.38, 1.38, 0.067];
+            c2(21:30) = [-46, -40, -45, 70, -78, -40, 150, 5.8, 7.5, 14.7];
+            c2(31:40) = [9, 10, 7, 18, 40, 8314.41, 293, 19.65, 64.8, 804];
+            c2(41:50) = [11.1, 0.4, 950, 1, 1, 13, 10, 0.000621, 90, 0.1];
+            c2(51:60) = [1.0, 0.45, 0.1, 0.1, 0.002, 1000, 0.2, 0.2, 4.5, -20];
+            c2(61:70) = [4.875, 1, 0.00002, 0.75, 0.75, 1.1, 0.5, 0.04425, 0.115, 140];
+            c2(71:80) = [0.0417, 0.0005, 1500, 0.000033, 0.003, 0.000004, 0.005, 31000, 0.15, 30];
             
-            scale_param = 0.1;
-            %    scale_param = 1.0;
-            % Parameter von Thomas, die ursprünglich mit übergeben wurden.
-            % Schau mal nach wo die herkommen und ob man die nicht direkt hier korrekt setzen
-            % kann.
-            a = 0;
-            b = 1;
-            
-            c(1:10)  = [0.58, 2.79, 150, 0.000001, 0.0025, 0.0005, 96485, 559, 559, 0.00174];
-            c(11:20) = [40229.885, 40229.885, 0.34, -0.43, 0.0081, 0.288, 0.0131, 4.38, 1.38, 0.067];
-            c(21:30) = [-46, -40, -45, 70, -68, -40, 150, 7.1, 7.5, 14.7];
-            c(31:40) = [9, 10, 7, 18, 40, 8314.41, 293, 3.275, 10.8, 134];
-            c(41:50) = [1.85, 0.4, 950, 1, 1, 13, 10, 0.0001656, 70, 0.1];
-            c(51:60) = [1.0, 0.45, 0.1, 0.1, 0.002, 1000, 0.2, 0.2, 4.5, -20];
-            c(61:70) = [2.4375, 1, 0.00004, 0.75, 0.75, 1.1, 0.5, 0.0885, 0.115, 140];
-            c(71:80) = [0, 0, 1500, 0, 0, 0.000004, 0.005, 31000, 0.15, 30];
-            c(81:90) = [0.0015, 0.15, 0.375, 1.5, 0, 0.15, 0.15, 0.05, 0.5*scale_param, 5*scale_param];    %    CONSTANTS(:,89) = 3.0; % tomo ????
-            c(91:100) = [0.08*scale_param, 0.06*scale_param, 0.04*scale_param, 0.00000394, 0.00000362, 1, 0.0001, 6, 60, 0.950000.*c(66).* pi.*(c(67) .^ 2.00000)];
-            c(101:105) = [0.0500000.*c(66).* pi.*(c(67) .^ 2.00000), 0.0100000.*c(100), 0.990000.*c(100), 0.0100000.*c(101), 0.990000.*c(101)];
-            % tomo
-            c(106) = 0.05;     % x_0 [micrometre]
-            c(107) = 1.E4;     % eta [micronewton_per_micrometre]
-            c(108) = 0; %  old: c(108) = -a;       %-0.001;      % velo [micrometre_per_millisecond] %-0.001
-            %EKIN 27/06/12
-            nu_vals = [1 3.4 3.4 3.4];
-            %    CONSTANTS(:,109) = 3.4;        % nu >= 1, if no cooperative influence --> nu = 1
-            c(109) = 0; % now in SarcoRates(): = nu_vals(b);        % nu >= 1, if no cooperative influence --> nu = 1
-            % sigma_vals = [0 0 1000 2000];
-            c(110) = 0;% now in SarcoRates(): = sigma_vals(b);        % sigma: if x_2 > x_0: CONSTANTS(:,110)   % 800
-            %    CONSTANTS(:,110) = 2000;
-            c(111) = 100.0;
-            % tomo end
+            c2(81:90) = [0.0015, 0.15, 0.375, 1.5, 0, 0.15, 0.15, 0.05, 1.5, 15];    %    CONSTANTS(:,89) = 3.0; % tomo ????
+            c2(91:100) = [0.24, 0.18, 0.12, 0.00002867, 0.00000362, 1, 0.0001, 6, 300, 0.950000.*c2(66).* pi.*(c2(67) .^ 2.00000)];
+            c2(101:105) = [0.0500000.*c2(66).* pi.*(c2(67) .^ 2.00000), 0.0100000.*c2(100), 0.990000.*c2(100), 0.0100000.*c2(101), 0.990000.*c2(101)];
+            c2(106) = 0.05;     % x_0 [micrometre]
+            c2(107) = 1.E4;     % eta [micronewton_per_micrometre] tomo: NOT USED
+            %tomo
+            c2(108) = 0; %  old: c(108) = -a;       %-0.001;      % velo [micrometre_per_millisecond] %-0.001
+            c2(109) = 3.4;  % nu >= 1.   nu = 1 --> no cooperative effects
+            c2(110) = 1000; % sigma
+
+            %linear interpolation - small MUs are slow twtich type, large MUs are fast twitch type
+            c = (1-mu)*c1 + mu*c2;
         end
     end
     
