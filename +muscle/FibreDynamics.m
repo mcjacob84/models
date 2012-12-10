@@ -56,7 +56,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             %% Link of motoneuron to sarcomer cell
             % Fix link moto-sarcomer for to middle cell
             n_link=round(N/2);
-            dy(dm+ds+n_link*dsa+1,:) = dy(dm+ds+n_link*dsa+1,:) + 1.3*y(2,:)/this.sarcoConst(1);
+            dy(dm+ds+n_link*dsa+1,:) = dy(dm+ds+n_link*dsa+1,:) + 1.3*y(2,:)/this.SarcoConst(1);
         end
         
         function dy = evaluateCoreFun(this, y, t, mu)
@@ -173,7 +173,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             dy(6,:) = 3.5/(exp((55-y(2,:))/4)+1).*(1-y(6,:))-0.025*(y(6,:));
         end
         
-        function dy=spindlerates(this, y, t, mu)
+        function dy = spindlerates(this, y, t, mu, y_moto)
             % adapted from spindle_whole_2012_10_11.m, line 319 - 356
             
             % mit �bergeben? gamma sp�ter aus Zustand y bekannt, L aus
@@ -213,7 +213,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             % bag1
             beta_bag1  = c(:,4)+c(:,5).*y(1,:); %Beta
             gamma_bag1 = c(:,7).*y(1,:); %Gamma
-            dy(3,:) = c(:,1)./c(:,3).*(C.*beta_bag1.*sign(L_dot-y(3,:)./c(:,1))*abs(L_dot-y(3,:)./c(:,1)).^c(15,:).*(y(9,:) ...
+            dy(3,:) = c(:,1)./c(:,3).*(C.*beta_bag1.*sign(L_dot-y(3,:)./c(:,1))*abs(L_dot-y(3,:)./c(:,1)).^c(:,15).*(y(9,:) ...
               -c(:,17)-y(6,:)./c(:,1)-c(:,16))+c(:,2).*(y(9,:)-c(:,17)-y(6,:)./c(:,1)-c(:,18))+c(:,3).*L_ddot+gamma_bag1-y(6,:));
             dy(6,:) = y(3,:);
             
@@ -232,7 +232,6 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             dy(8,:)  = y(5,:);
 
         end
-        
         
         function dy = SarcomerRates(this, y, t, mu)
             % beta=STATES(2) (link to Neuro Modell)
@@ -509,7 +508,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             this.spindleConst=c;
         end
 
-        function c = getSarcoConst(this, mu)
+        function initSarcoConst(this, mu)
             %slow twitch fibres
             c1 = zeros(1,110);
             c1(1:10)  = [0.58, 2.79, 150, 0.000001, 0.0025, 0.0005, 96485, 559, 559, 0.00174];
