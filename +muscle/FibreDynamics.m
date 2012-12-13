@@ -18,33 +18,29 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
     end
     
     properties(SetAccess=private)
-        MotoConst;
         spindleConst;
-        SarcoConst;
+        SarcoConst_slow;
+        SarcoConst_fast;
     end
     
     methods
         function this = FibreDynamics(system)
             this.system = system;
-            % Init neuro params -> in eigene initMotoConst private methode packen
-            %             para = 0;
-            %
-            %             this.neuropara = para;
-            
-            this.initMotoConst;
+          
+            % this.initMotoConst; now in NeuroRates
             this.initSpindleConst;
-            mu = 0;  % fast and slow twitch fibers
-            this.initSarcoConst(mu);
+            this.initSarcoConst; %(mu);
         end
         
         function dy = evaluate(this, y, t, mu)
+            % mu(1,:) parameter for MotoNeuron
+            % mu(2,:) parameter for Sarcomer (slow-fast-twitch fibres)
+            
             dm = this.system.dm;
             ds = this.system.ds;
             dsa = this.system.dsa;
             N = this.system.N;
             
-            % todo anpassen für matrix-wertiges y, also 58Nx1000 -> 58 x 1000N und zurück
-            % SarcoRates=this.SarcomerRates(reshape(y(dm+ds+1:end,:),dsa,N)', t, mu);
             SarcoRates = this.SarcomerRates(reshape(y(dm+ds+1:end,:),dsa,[]), t, mu);
             SarcoRates = reshape(SarcoRates, dsa*N,[]);
             
@@ -56,7 +52,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             %% Link of motoneuron to sarcomer cell
             % Fix link moto-sarcomer for to middle cell
             n_link=round(N/2);
-            dy(dm+ds+n_link*dsa+1,:) = dy(dm+ds+n_link*dsa+1,:) + 1.3*y(2,:)/this.SarcoConst(1);
+            dy(dm+ds+n_link*dsa+1,:) = dy(dm+ds+n_link*dsa+1,:) + 1.3*y(2,:)./((1-mu(2,:))'*this.SarcoConst_slow(1) + mu(2,:)'*this.SarcoConst_fast(1)); %this.SarcoConst(1);
         end
         
         function dy = evaluateCoreFun(this, y, t, mu)
@@ -143,7 +139,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
         function dy = NeuroRates(this, y, t, mu)
             
             % adapted from combined_cell_model.m, line 738 - 745
-            para = this.MotoConst;
+            c = this.getMotoConst(mu(1,:));
             
             statesSize = size(y);
             dy=zeros(statesSize);
@@ -157,13 +153,15 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
 %             end
             
             % dendrites
-            dy(1,:) = (-para.Gld.*(y(1,:)-para.Vl)-para.Gc.*(y(1,:)-y(2,:)))./para.Cd;
+            dy(1,:) = (-c(:,1).*(y(1,:)-c(:,11))-c(:,5).*(y(1,:)-y(2,:)))./c(:,7);
             % soma
-            dy(2,:) = (-para.Gls.*(y(2,:)-para.Vl)-para.Gc.*(y(2,:)-y(1,:))...
-                       -para.Gna.*y(3,:).^3.*y(4,:).*(y(2,:)-para.Vna)...
-                       -para.Gkf.*y(5,:).^4.*(y(2,:)-para.Vk)...
-                       -para.Gks.*y(6,:).^2.*(y(2,:)-para.Vk))./para.Cs;
- %tomo: where is input???
+            dy(2,:) = (-c(:,6).*(y(2,:)-c(:,11))-c(:,5).*(y(2,:)-y(1,:))...
+                       -c(:,4).*y(3,:).^3.*y(4,:).*(y(2,:)-c(:,9))...
+                       -c(:,2).*y(5,:).^4.*(y(2,:)-c(:,10))...
+                       -c(:,3).*y(6,:).^2.*(y(2,:)-c(:,10)))./c(:,8);
+            %tomo: where is input???
+            %daniel @ tomo: input comes in from B component (-> see
+            %evaluate)
             % the four gating variables
             dy(3,:) = 0.32*(13-y(2,:))./(exp((13-y(2,:))/5)-1).*(1-y(3,:))...
                       -0.28*(y(2,:)-40)./(exp((y(2,:)-40)/5)-1).*(y(3,:));
@@ -236,6 +234,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
         function dy = SarcomerRates(this, y, t, mu)
             % beta=STATES(2) (link to Neuro Modell)
             
+            y = y';
             statesSize = size(y);
             dy = zeros(statesSize);
             %alg = zeros(77,statesSize(2));
@@ -259,7 +258,10 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
       %                 error('y has wrong dimension')
       %             end
       
-            c = this.SarcoConst;
+             c1 = this.SarcoConst_slow;
+             c2 = this.SarcoConst_fast;
+             c = repmat((1-mu(2,:)'),1,110).*repmat(c1,length(mu(2,:)),1)+repmat(mu(2,:)',1,110).*repmat(c2,length(mu(2,:)),1);
+             % c = (1-mu)*c1 + mu*c2;
             
             % ALGEBRAIC(:,33) = 1.3*STATES(:,60);
             % alg(:,33) = 1.3*beta; % neuro-sarco link now in evaluate
@@ -415,8 +417,8 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
 
             %tomo TODO - for coupling to mechanics, the velocity has to be included
             % I think you can not have two equations with the same dy(i) on the left hand side !?!
-            %dy(:,57) = dy(:,57) - a/2;
-            %dy(:,58) = dy(:,58) - a/2;
+            dy(:,57) = dy(:,57) - a/2;
+            dy(:,58) = dy(:,58) - a/2;
             
             dy = dy';
             
@@ -442,34 +444,33 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
     
     methods%(Access=private)
         
-        function para = initMotoConst(this) %, mu)
-            N = this.system.N_neuro;
-            mu = 1:N;
+        function c = getMotoConst(this, moto_mu)
+            % mu in [0,1]
+            
             Cm=1;
             Ri=70/1000;
-            Rmd = 14.4+6.05-coolExp(6.05,14.4,mu);  % cf. Cisi and Kohn 2008, Table 2, page 7
-            Rms=1.15+0.65-coolExp(0.65,1.15,mu);
+            c = zeros(length(moto_mu),11);
+            Rmd = 14.4+6.05-coolExp(6.05,14.4,moto_mu);  % cf. Cisi and Kohn 2008, Table 2, page 7
+            Rms=1.15+0.65-coolExp(0.65,1.15,moto_mu);
             
-            ld=coolExp(0.55,1.06,mu);
-            ls=coolExp(77.5e-6*100,113e-6*100,mu);
+            ld=coolExp(0.55,1.06,moto_mu);
+            ls=coolExp(77.5e-6*100,113e-6*100,moto_mu);
 
-            rd=coolExp(41.5e-6*100,92.5e-6*100,mu)/2; 
-            rs=coolExp(77.5e-6*100,113e-6*100,mu)/2;
+            rd=coolExp(41.5e-6*100,92.5e-6*100,moto_mu)/2; 
+            rs=coolExp(77.5e-6*100,113e-6*100,moto_mu)/2;
             
-            para.Gld=2*pi*rd.*ld./Rmd;
-            para.Gkf=4*2*pi*rs.*ls;
-            para.Gks=16*2*pi*rs.*ls;
-            para.Gna=30*2*pi*rs.*ls;
-            para.Gc=2./(Ri*ld./(pi*rd.^2)+Ri*ls./(pi*rs.^2));
-            para.Gls=2*pi*rs.*ls./Rms;
-            para.Cd=2*pi*rd.*ld*Cm;
-            para.Cs=2*pi*rs.*ls*Cm;
-            s = ones(size(mu));
-            para.Vna=120*s;
-            para.Vk=-10*s;
-            para.Vl=0*s;
-            
-            this.MotoConst = para;
+            c(:,1) = 2*pi*rd.*ld./Rmd;   % para.Gld
+            c(:,2) = 4*2*pi*rs.*ls;      % para.Gkf
+            c(:,3) = 16*2*pi*rs.*ls;     % para.Gks
+            c(:,4) = 30*2*pi*rs.*ls;     % para.Gna
+            c(:,5) = 2./(Ri*ld./(pi*rd.^2)+Ri*ls./(pi*rs.^2));     % para.Gc
+            c(:,6) = 2*pi*rs.*ls./Rms;   % para.Gls
+            c(:,7) = 2*pi*rd.*ld*Cm;     % para.Cd
+            c(:,8) = 2*pi*rs.*ls*Cm;     % para.Cs
+            s = ones(size(moto_mu));
+            c(:,9) = 120*s;     % para.Vna
+            c(:,10) = -10*s;     % para.Vk
+            c(:,11) = 0*s;     % para.Vl
             
 %             function vector=expdistribution(LL,UP,N)
 %                 RR=UP-LL;
@@ -477,15 +478,11 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
 %                 vector = exp(a*(1:N))/100*RR+LL;
 %             end
             
-%             function v = coolExp(a,b,mu)
-%                 v = exp(log(100)*mu)*b/100 + a;     % fehlt da ein
-%                 /NTOTAL in exp()?
-%             end
-            function v = coolExp(a,b,mu)
-                v = exp(log(100)*mu/N)*b/100 + a;
-            end
-        
+             function v = coolExp(a,b,mu)
+                 v = exp(log(100)*mu)*b/100 + a;
+             end
         end
+        
         
         function initSpindleConst(this)
             
@@ -508,7 +505,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             this.spindleConst=c;
         end
 
-        function initSarcoConst(this, mu)
+        function initSarcoConst(this) % , mu)
             %slow twitch fibres
             c1 = zeros(1,110);
             c1(1:10)  = [0.58, 2.79, 150, 0.000001, 0.0025, 0.0005, 96485, 559, 559, 0.00174];
@@ -520,8 +517,9 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             c1(61:70) = [2.4375, 1, 0.00004, 0.75, 0.75, 1.1, 0.5, 0.0885, 0.115, 50]; %tomo 2012/11/29: changed C(:,70) from 140 to 50
             c1(71:80) = [0, 0, 1500, 0, 0, 0.000004, 0.005, 31000, 0.15, 30];
             c1(81:90) = [0.0015, 0.15, 0.375, 1.5, 0, 0.15, 0.15, 0.05, 0.5, 5];    %    CONSTANTS(:,89) = 3.0; % tomo ????
-            c1(91:100) = [0.08, 0.06, 0.04, 0.00000394, 0.00000362, 1, 0.0001, 6, 60, 0.950000.*c1(66).* pi.*(c1(67).^2.00000)];
-            c1(101:105) = [0.0500000.*c1(66).* pi.*(c1(67).^2.00000), 0.0100000.*c1(100), 0.990000.*c1(100), 0.0100000.*c1(101), 0.990000.*c1(101)];
+            c1(91:100) = [0.08, 0.06, 0.04, 0.00000394, 0.00000362, 1, 0.0001, 6, 60, 0.95*c1(66)* pi*(c1(67)^2)];
+            c1(101:103) = [0.05*c1(66)*pi*(c1(67)^2), 0.01*c1(100), 0.99*c1(100)];
+            c1(104:105) = [0.01*c1(101), 0.99*c1(101)];
             c1(106) = 0.05;     % x_0 [micrometre]
             c1(107) = 1.E4;     % eta [micronewton_per_micrometre] tomo: NOT USED
             %tomo TODO - velocity mapping --> coupling to mechanics
@@ -541,8 +539,9 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             c2(71:80) = [0.0417, 0.0005, 1500, 0.000033, 0.003, 0.000004, 0.005, 31000, 0.15, 30];
             
             c2(81:90) = [0.0015, 0.15, 0.375, 1.5, 0, 0.15, 0.15, 0.05, 1.5, 15];    %    CONSTANTS(:,89) = 3.0; % tomo ????
-            c2(91:100) = [0.24, 0.18, 0.12, 0.00002867, 0.00000362, 1, 0.0001, 6, 300, 0.950000.*c2(66).* pi.*(c2(67) .^ 2.00000)];
-            c2(101:105) = [0.0500000.*c2(66).* pi.*(c2(67) .^ 2.00000), 0.0100000.*c2(100), 0.990000.*c2(100), 0.0100000.*c2(101), 0.990000.*c2(101)];
+            c2(91:100) = [0.24, 0.18, 0.12, 0.00002867, 0.00000362, 1, 0.0001, 6, 300, 0.95*c2(66)* pi*(c2(67)^2)];
+            c2(101:103) = [0.05*c2(66)* pi*(c2(67)^2), 0.01*c2(100), 0.99*c2(100)];
+            c2(104:105) = [0.01*c2(101), 0.99*c2(101)];
             c2(106) = 0.05;     % x_0 [micrometre]
             c2(107) = 1.E4;     % eta [micronewton_per_micrometre] tomo: NOT USED
             %tomo
@@ -551,9 +550,10 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             c2(110) = 1000; % sigma
 
             %linear interpolation - small MUs are slow twtich type, large MUs are fast twitch type
-            c = (1-mu)*c1 + mu*c2;
+            % c = (1-mu)*c1 + mu*c2; % in getsacromere rates mit repmat
             
-            this.SarcoConst = c;
+            this.SarcoConst_slow = c1;
+            this.SarcoConst_fast = c2;
         end
     end
     

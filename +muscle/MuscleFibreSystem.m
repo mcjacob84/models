@@ -35,6 +35,9 @@ classdef MuscleFibreSystem < models.BaseDynSystem
             % Set local variables
             this.N = N;
             
+            this.addParam('sacromere_switch', [0 1], 10);
+            this.addParam('moto_param', [0 1], 10);
+            
             %% Set system components
             % Core nonlinearity
             this.f = models.muscle.FibreDynamics(this);
@@ -43,7 +46,7 @@ classdef MuscleFibreSystem < models.BaseDynSystem
             this.A = dscomponents.LinearCoreFun(this.assembleA);
             
             % Linear input B for motoneuron
-            this.B = dscomponents.LinearInputConv(this.assembleB);
+            this.B = this.assembleB; %dscomponents.LinearInputConv(this.assembleB);
             
             % Constant initial values
             this.x0 = dscomponents.ConstInitialValue(this.initStates);
@@ -63,21 +66,27 @@ classdef MuscleFibreSystem < models.BaseDynSystem
         end
         
         function B = assembleB(this)
-            B = zeros(this.dm+this.ds+this.dsa*this.N,this.N_neuro);
+            B = dscomponents.AffLinInputConv;
+%             for i=1:this.N_neuro
+%                 B.addMatrix('1/(pi*(exp(log(100)*mu(1,i))*113e-6 + 77.5e-6*100)^2)',sparse(2,i,1,this.dm+this.ds+this.dsa*this.N,this.N_neuro));
+%             end
+            B.addMatrix('1./(pi*(exp(log(100)*mu(1,:))*113e-6 + 77.5e-6*100).^2)',sparse(2*ones(this.N_neuro,1),1:this.N_neuro,ones(this.N_neuro,1),this.dm+this.ds+this.dsa*this.N,this.N_neuro));
+            
+            
+            %% old:
+            %B = zeros(this.dm+this.ds+this.dsa*this.N,this.N_neuro);
 %             Cm = 1;
 %             ls=coolExp(77.5e-6*100,113e-6*100,1:this.N_neuro);
 %             rs=coolExp(77.5e-6*100,113e-6*100,1:this.N_Neuro)/2;
 %             Cs = 2*pi*rs.*ls*Cm;
 %             B(2,:) = 1./Cs;
-            B(2,:) = 1./(pi*(exp(log(100)*(1:this.N_neuro)/this.N_neuro)*113e-6 + 77.5e-6*100).^2);
+            %B(2,:) = 1./(pi*(exp(log(100)*(1:this.N_neuro)/this.N_neuro)*113e-6 + 77.5e-6*100).^2);
 %             function v = coolExp(a,b,mu)
-%                 v = exp(log(100)*mu/this.N_neuro)*b/100 + a;
+%                 v = exp(log(100)*mu)*b/100 + a;
 %             end
         end
         
         function x0 = initStates(this)
-             % x0 = 0; noch n�tig?
-             % return;
              x0 = [this.initNeuroStates(this.N_neuro);...
                 this.initSpindleStates(this.N_spindle);...
                 this.initSarcomerStates(this.N)];
