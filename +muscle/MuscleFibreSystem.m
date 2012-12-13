@@ -70,7 +70,9 @@ classdef MuscleFibreSystem < models.BaseDynSystem
 %             for i=1:this.N_neuro
 %                 B.addMatrix('1/(pi*(exp(log(100)*mu(1,i))*113e-6 + 77.5e-6*100)^2)',sparse(2,i,1,this.dm+this.ds+this.dsa*this.N,this.N_neuro));
 %             end
-            B.addMatrix('1./(pi*(exp(log(100)*mu(1,:))*113e-6 + 77.5e-6*100).^2)',sparse(2*ones(this.N_neuro,1),1:this.N_neuro,ones(this.N_neuro,1),this.dm+this.ds+this.dsa*this.N,this.N_neuro));
+            B.addMatrix('1./(pi*(exp(log(100)*mu)*113e-6 + 77.5e-6*100).^2)',...
+            sparse(2*ones(this.N_neuro,1),1:this.N_neuro,ones(this.N_neuro,1),...
+                this.dm+this.ds+this.dsa*this.N,this.N_neuro));
             
             
             %% old:
@@ -98,7 +100,7 @@ classdef MuscleFibreSystem < models.BaseDynSystem
         
         function y = initSpindleStates(~,N)
             % copied from spindle_whole_2012_10_11.m, line 305 - 313
-            y=zeros(9,N);
+            y=zeros(9);
             y(1,:) = 0; %0.5*0.735;
             y(2,:) = 0; %0.5*0.735;
             y(3,:) = 0.000634066218078;
