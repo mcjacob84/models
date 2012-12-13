@@ -22,10 +22,14 @@ classdef MuscleFibreModel < models.BaseFullModel
             if nargin < 1
                 N = 100;
             end
+            this.Name = sprintf('Muscle fibre model (%d cells)',N);
             this.System = models.muscle.MuscleFibreSystem(this,N);
             
             this.T = .5; % [ms]
             this.dt = 1e-5; % [ms]
+            
+            this.ODESolver = solvers.ode.SemiImplicitEuler(this);
+            
         end
     end
     

@@ -52,7 +52,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             %% Link of motoneuron to sarcomer cell
             % Fix link moto-sarcomer for to middle cell
             n_link=round(N/2);
-            dy(dm+ds+n_link*dsa+1,:) = dy(dm+ds+n_link*dsa+1,:) + 1.3*y(2,:)./((1-mu(2,:))'*this.SarcoConst_slow(1) + mu(2,:)'*this.SarcoConst_fast(1)); %this.SarcoConst(1);
+            dy(dm+ds+n_link*dsa+1,:) = dy(dm+ds+n_link*dsa+1,:) + 1.3*y(2,:)./((1-mu(1,:))'*this.SarcoConst_slow(1) + mu(1,:)'*this.SarcoConst_fast(1)); %this.SarcoConst(1);
         end
         
         function dy = evaluateCoreFun(this, y, t, mu)
@@ -139,7 +139,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
         function dy = NeuroRates(this, y, t, mu)
             
             % adapted from combined_cell_model.m, line 738 - 745
-            c = this.getMotoConst(mu(1,:))';
+            c = this.getMotoConst(mu(1,:));
             
             statesSize = size(y);
             dy=zeros(statesSize);
@@ -153,7 +153,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
 %             end
 
             % dendrites
-            dy(1,:) = (-c(1,:).*(y(1,:)-c(11,:))-c(5,:).*(y(1,:)-y(2,:)))./c(7,:);
+            dy(1,:) = (-c(:,1).*(y(1,:)-c(:,11))-c(:,5).*(y(1,:)-y(2,:)))./c(:,7);
             % soma
             dy(2,:) = (-c(:,6).*(y(2,:)-c(:,11))-c(:,5).*(y(2,:)-y(1,:))...
                        -c(:,4).*y(3,:).^3.*y(4,:).*(y(2,:)-c(:,9))...
@@ -260,7 +260,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
       
              c1 = this.SarcoConst_slow;
              c2 = this.SarcoConst_fast;
-             c = repmat((1-mu(2,:)'),1,110).*repmat(c1,length(mu(2,:)),1)+repmat(mu(2,:)',1,110).*repmat(c2,length(mu(2,:)),1);
+             c = repmat((1-mu(1,:)'),1,110).*repmat(c1,length(mu(1,:)),1)+repmat(mu(1,:)',1,110).*repmat(c2,length(mu(1,:)),1);
              % TODO für mehr als einen inputvektor
              %c = c(repmat([1 2],100,1),:);
              

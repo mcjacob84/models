@@ -34,9 +34,12 @@ classdef MuscleFibreSystem < models.BaseDynSystem
             this = this@models.BaseDynSystem(model);
             % Set local variables
             this.N = N;
+            this.MaxTimestep = model.dt;
             
             this.addParam('sacromere_switch', [0 1], 10);
-            this.addParam('moto_param', [0 1], 10);
+            %this.addParam('moto_param', [0 1], 10);
+            
+            this.Inputs{1} = @(t).2;
             
             %% Set system components
             % Core nonlinearity
@@ -100,7 +103,7 @@ classdef MuscleFibreSystem < models.BaseDynSystem
         
         function y = initSpindleStates(~,N)
             % copied from spindle_whole_2012_10_11.m, line 305 - 313
-            y=zeros(9);
+            y=zeros(9,1);
             y(1,:) = 0; %0.5*0.735;
             y(2,:) = 0; %0.5*0.735;
             y(3,:) = 0.000634066218078;
