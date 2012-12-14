@@ -17,9 +17,9 @@ classdef MuscleFibreSystem < models.BaseDynSystem
     properties
         N;  % The number of sarcomer cells in this fibre model
         
-        % N_neuro;  % Number of motoneuron cells
-        N_neuro = 1;
-        N_spindle = 1;   % Number of spindles
+%         % N_neuro;  % Number of motoneuron cells
+%         N_neuro = 1;
+%         N_spindle = 1;   % Number of spindles
     end
     
     properties (Constant)
@@ -74,8 +74,7 @@ classdef MuscleFibreSystem < models.BaseDynSystem
 %                 B.addMatrix('1/(pi*(exp(log(100)*mu(1,i))*113e-6 + 77.5e-6*100)^2)',sparse(2,i,1,this.dm+this.ds+this.dsa*this.N,this.N_neuro));
 %             end
             B.addMatrix('1./(pi*(exp(log(100)*mu)*113e-6 + 77.5e-6*100).^2)',...
-            sparse(2*ones(this.N_neuro,1),1:this.N_neuro,ones(this.N_neuro,1),...
-                this.dm+this.ds+this.dsa*this.N,this.N_neuro));
+            sparse(2,1,1,this.dm+this.ds+this.dsa*this.N,1));
             
             
             %% old:
@@ -92,27 +91,27 @@ classdef MuscleFibreSystem < models.BaseDynSystem
         end
         
         function x0 = initStates(this)
-             x0 = [this.initNeuroStates(this.N_neuro);...
-                this.initSpindleStates(this.N_spindle);...
+             x0 = [this.initNeuroStates;...
+                this.initSpindleStates;...
                 this.initSarcomerStates(this.N)];
         end
         
-        function y = initNeuroStates(~,N)
-            y = zeros(6,N);
+        function y = initNeuroStates(~)
+            y = zeros(6,1);
         end
         
-        function y = initSpindleStates(~,N)
+        function y = initSpindleStates(~)
             % copied from spindle_whole_2012_10_11.m, line 305 - 313
             y=zeros(9,1);
-            y(1,:) = 0; %0.5*0.735;
-            y(2,:) = 0; %0.5*0.735;
-            y(3,:) = 0.000634066218078;
-            y(4,:) = 0.000634066218078;
-            y(5,:) = 0.000634066218078;
-            y(6,:) = 0.020731324015575;
-            y(7,:) = 0.020731324015575;
-            y(8,:) = 0.020731324015575;
-            y(9,:) = 0.95; %length
+            y(1) = 0; %0.5*0.735;
+            y(2) = 0; %0.5*0.735;
+            y(3) = 0.000634066218078;
+            y(4) = 0.000634066218078;
+            y(5) = 0.000634066218078;
+            y(6) = 0.020731324015575;
+            y(7) = 0.020731324015575;
+            y(8) = 0.020731324015575;
+            y(9) = 0.95; %length
             %    y(:,10) = 0.0;  %velo
         end
         

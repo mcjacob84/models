@@ -33,8 +33,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
         end
         
         function dy = evaluate(this, y, t, mu)
-            % mu(1,:) parameter for MotoNeuron
-            % mu(2,:) parameter for Sarcomer (slow-fast-twitch fibres)
+            % mu: row vector: 0 = slow twitch fibre, 1 = fast twitch fibre
             
             dm = this.system.dm;
             ds = this.system.ds;
@@ -52,7 +51,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             %% Link of motoneuron to sarcomer cell
             % Fix link moto-sarcomer for to middle cell
             n_link=round(N/2);
-            dy(dm+ds+n_link*dsa+1,:) = dy(dm+ds+n_link*dsa+1,:) + 1.3*y(2,:)./((1-mu(1,:))'*this.SarcoConst_slow(1) + mu(1,:)'*this.SarcoConst_fast(1)); %this.SarcoConst(1);
+            dy(dm+ds+n_link*dsa+1,:) = dy(dm+ds+n_link*dsa+1,:) + 1.3*y(2,:)./((1-mu)*this.SarcoConst_slow(1) + mu*this.SarcoConst_fast(1)); %this.SarcoConst(1);
         end
         
         function dy = evaluateCoreFun(this, y, t, mu)
@@ -139,26 +138,26 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
         function dy = NeuroRates(this, y, t, mu)
             
             % adapted from combined_cell_model.m, line 738 - 745
-            c = this.getMotoConst(mu(1,:));
+            c = this.getMotoConst(mu);
             
             statesSize = size(y);
             dy=zeros(statesSize);
-            if ( statesSize(1) == 1)
-                y = y';
-                dy=dy';
-            end
+%             if ( statesSize(1) == 1)
+%                 y = y';
+%                 dy=dy';
+%             end
             
 %             if size(dy)(1) ~= this.dm   ?????
 %                 error('y has wrong dimension')
 %             end
 
             % dendrites
-            dy(1,:) = (-c(:,1).*(y(1,:)-c(:,11))-c(:,5).*(y(1,:)-y(2,:)))./c(:,7);
+            dy(1,:) = (-c(1,:).*(y(1,:)-c(11,:))-c(5,:).*(y(1,:)-y(2,:)))./c(7,:);
             % soma
-            dy(2,:) = (-c(:,6).*(y(2,:)-c(:,11))-c(:,5).*(y(2,:)-y(1,:))...
-                       -c(:,4).*y(3,:).^3.*y(4,:).*(y(2,:)-c(:,9))...
-                       -c(:,2).*y(5,:).^4.*(y(2,:)-c(:,10))...
-                       -c(:,3).*y(6,:).^2.*(y(2,:)-c(:,10)))./c(:,8);
+            dy(2,:) = (-c(6,:).*(y(2,:)-c(11,:))-c(5,:).*(y(2,:)-y(1,:))...
+                       -c(4,:).*y(3,:).^3.*y(4,:).*(y(2,:)-c(9))...
+                       -c(2,:).*y(5,:).^4.*(y(2,:)-c(10,:))...
+                       -c(3,:).*y(6,:).^2.*(y(2,:)-c(10,:)))./c(8,:);
             %tomo: where is input???
             %daniel @ tomo: input comes in from B component (-> see
             %evaluate)
@@ -168,7 +167,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             dy(4,:) = 0.128*(exp((17-y(2,:))/18)).*(1-y(4,:))-4./(exp((40-y(2,:))/5)+1).*(y(4,:));
             dy(5,:) = 0.032*(15-y(2,:))./(exp((15-y(2,:))/5)-1).*(1-y(5,:))...
                       -0.5*(exp((10-y(2,:))/40)).*(y(5,:));
-            dy(6,:) = 3.5/(exp((55-y(2,:))/4)+1).*(1-y(6,:))-0.025*(y(6,:));
+            dy(6,:) = 3.5./(exp((55-y(2,:))/4)+1).*(1-y(6,:))-0.025*(y(6,:));
         end
         
         function dy = spindlerates(this, y, t, mu, y_moto)
@@ -192,10 +191,10 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             
             statesSize = size(y);
             dy=zeros(statesSize);
-            if ( statesSize(1) == 1)
-                y = y';
-                dy=dy';
-            end
+%             if ( statesSize(1) == 1)
+%                 y = y';
+%                 dy=dy';
+%             end
             
             c = this.spindleConst;
             
@@ -211,21 +210,21 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             % bag1
             beta_bag1  = c(:,4)+c(:,5).*y(1,:); %Beta
             gamma_bag1 = c(:,7).*y(1,:); %Gamma
-            dy(3,:) = c(:,1)./c(:,3).*(C.*beta_bag1.*sign(L_dot-y(3,:)./c(:,1))*abs(L_dot-y(3,:)./c(:,1)).^c(:,15).*(y(9,:) ...
+            dy(3,:) = c(:,1)./c(:,3).*(C.*beta_bag1.*sign(L_dot-y(3,:)./c(:,1)).*abs(L_dot-y(3,:)./c(:,1)).^c(:,15).*(y(9,:) ...
               -c(:,17)-y(6,:)./c(:,1)-c(:,16))+c(:,2).*(y(9,:)-c(:,17)-y(6,:)./c(:,1)-c(:,18))+c(:,3).*L_ddot+gamma_bag1-y(6,:));
             dy(6,:) = y(3,:);
             
             % bag2
             beta_bag2  = c(:,34)+c(:,35).*y(1,:)+c(:,36).*y(2,:); %Beta
             gamma_bag2 = c(:,37).*y(1,:)+c(:,38).*y(2,:); %Gamma
-            dy(4,:) = c(:,31)./c(:,33).*(C.*beta_bag2.*sign(L_dot-y(4,:)./c(:,31))*abs(L_dot-y(4,:)./c(:,31)).^c(:,45).*(y(9,:)- ...
+            dy(4,:) = c(:,31)./c(:,33).*(C.*beta_bag2.*sign(L_dot-y(4,:)./c(:,31)).*abs(L_dot-y(4,:)./c(:,31)).^c(:,45).*(y(9,:)- ...
               c(:,47)-y(7,:)./c(:,31)-c(:,46))+c(:,32).*(y(9,:)-c(:,47)-y(7,:)./c(:,31)-c(:,48))+c(:,33).*L_ddot+gamma_bag2-y(7,:));
             dy(7,:) = y(4,:);
             
             % chain
             beta_chain  = c(:,64)+c(:,65).*y(1,:)+c(:,66).*f_sta_chain ; %Beta
             gamma_chain = c(:,67).*y(1,:)+c(:,68).*f_sta_chain; %Gamma
-            dy(5,:)  = c(:,61)./c(:,63).*(C.*beta_chain.*sign(L_dot-y(5,:)./c(:,61))*abs(L_dot-y(5,:)./c(:,61)).^c(:,75).*(y(9,:)- ...
+            dy(5,:)  = c(:,61)./c(:,63).*(C.*beta_chain.*sign(L_dot-y(5,:)./c(:,61)).*abs(L_dot-y(5,:)./c(:,61)).^c(:,75).*(y(9,:)- ...
               c(:,77)-y(8,:)./c(:,61)-c(:,76))+c(:,62).*(y(9,:)-c(:,77)-y(8,:)./c(:,61)-c(:,78))+c(:,63).*L_ddot+gamma_chain-y(8,:));
             dy(8,:)  = y(5,:);
 
@@ -239,30 +238,27 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             dy = zeros(statesSize);
             %alg = zeros(77,statesSize(2));
             
-            statesColumnCount = statesSize(2);
-            if ( statesColumnCount == 1)
-                y = y';
-                alg = zeros(1, 77);
-                dy = dy';
-            else
-                statesRowCount = statesSize(1);
-                alg = zeros(statesRowCount, 77);
-            end
+%             statesColumnCount = statesSize(2);
+%             statesRowCount = statesSize(1);
+%             if ( statesColumnCount == 1)
+%                 y = y';
+%                 alg = zeros(1, 77);
+%                 dy = dy';
+%             else
+%                 
+            alg = zeros(statesSize(1), 77);
+%             end
             
             %tomo
             a=0; % ursprünglich in initSarcoConsts() in Sarco Modell
                  % a = velocity, welche? ist die in Zustand y?
                  % used in line ~412
-            
-      %             if size(dy)(2) ~= this.dsa   ?????
-      %                 error('y has wrong dimension')
-      %             end
       
              c1 = this.SarcoConst_slow;
              c2 = this.SarcoConst_fast;
-             c = repmat((1-mu(1,:)'),1,110).*repmat(c1,length(mu(1,:)),1)+repmat(mu(1,:)',1,110).*repmat(c2,length(mu(1,:)),1);
+             c = repmat((1-mu'),1,110).*repmat(c1,length(mu),1)+repmat(mu',1,110).*repmat(c2,length(mu),1);
              % TODO für mehr als einen inputvektor
-             %c = c(repmat([1 2],100,1),:);
+             c = c(repmat(1:length(mu),this.system.N,1),:);
              
              % c = (1-mu)*c1 + mu*c2;
             
@@ -452,7 +448,7 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             
             Cm=1;
             Ri=70/1000;
-            c = zeros(length(moto_mu),11);
+            c = zeros(11,length(moto_mu));
             Rmd = 14.4+6.05-coolExp(6.05,14.4,moto_mu);  % cf. Cisi and Kohn 2008, Table 2, page 7
             Rms=1.15+0.65-coolExp(0.65,1.15,moto_mu);
             
@@ -462,18 +458,18 @@ classdef FibreDynamics < dscomponents.ACompEvalCoreFun
             rd=coolExp(41.5e-6*100,92.5e-6*100,moto_mu)/2; 
             rs=coolExp(77.5e-6*100,113e-6*100,moto_mu)/2;
             
-            c(:,1) = 2*pi*rd.*ld./Rmd;   % para.Gld
-            c(:,2) = 4*2*pi*rs.*ls;      % para.Gkf
-            c(:,3) = 16*2*pi*rs.*ls;     % para.Gks
-            c(:,4) = 30*2*pi*rs.*ls;     % para.Gna
-            c(:,5) = 2./(Ri*ld./(pi*rd.^2)+Ri*ls./(pi*rs.^2));     % para.Gc
-            c(:,6) = 2*pi*rs.*ls./Rms;   % para.Gls
-            c(:,7) = 2*pi*rd.*ld*Cm;     % para.Cd
-            c(:,8) = 2*pi*rs.*ls*Cm;     % para.Cs
+            c(1,:) = 2*pi*rd.*ld./Rmd;   % para.Gld
+            c(2,:) = 4*2*pi*rs.*ls;      % para.Gkf
+            c(3,:) = 16*2*pi*rs.*ls;     % para.Gks
+            c(4,:) = 30*2*pi*rs.*ls;     % para.Gna
+            c(5,:) = 2./(Ri*ld./(pi*rd.^2)+Ri*ls./(pi*rs.^2));     % para.Gc
+            c(6,:) = 2*pi*rs.*ls./Rms;   % para.Gls
+            c(7,:) = 2*pi*rd.*ld*Cm;     % para.Cd
+            c(8,:) = 2*pi*rs.*ls*Cm;     % para.Cs
             s = ones(size(moto_mu));
-            c(:,9) = 120*s;     % para.Vna
-            c(:,10) = -10*s;     % para.Vk
-            c(:,11) = 0*s;     % para.Vl
+            c(9,:) = 120*s;     % para.Vna
+            c(10,:) = -10*s;     % para.Vk
+            c(11,:) = 0*s;     % para.Vl
             
 %             function vector=expdistribution(LL,UP,N)
 %                 RR=UP-LL;
