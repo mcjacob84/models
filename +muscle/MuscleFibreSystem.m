@@ -26,6 +26,8 @@ classdef MuscleFibreSystem < models.BaseDynSystem
         dm = 6; % Dimension of motoneuron part
         ds = 9; % Dimension of spindle part
         dsa = 58; % Dimension of single sarcomer cell part
+        D = 1; % Diffusionskoeffizient sigma/(A_m*C_m)
+        % c_m ist erster von konstanten, sigma und A_m
     end
     
     methods
@@ -65,7 +67,7 @@ classdef MuscleFibreSystem < models.BaseDynSystem
             i=[n0+1+sar:sar:size,n0+1:sar:size,n0+1:sar:size-sar];    % row index
             j=[n0+1:sar:size-sar,n0+1:sar:size,n0+1+sar:sar:size];   % column index
             s=[ones(1,this.N-1),-1,-2*ones(1,this.N-2),-1,ones(1,this.N-1)];   % values
-            A=sparse(i,j,s,size,size);
+            A = this.D * sparse(i,j,s,size,size);
         end
         
         function B = assembleB(this)
