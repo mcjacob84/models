@@ -90,7 +90,7 @@ classdef PCDModel < models.BaseFullModel
 %             this.SpaceReducer = [];
             
             % Core Approximation
-%             a = approx.algorithms.DefaultCompWiseKernelApprox;
+%             a = approx.algorithms.FixedCompWiseKernelApprox;
 %             a.CoeffComp = general.regression.KernelLS;
 %             a.TimeKernel = kernels.GaussKernel;
 %             a.Kernel = kernels.GaussKernel(2);
@@ -109,7 +109,7 @@ classdef PCDModel < models.BaseFullModel
             s.Size = 15000;
             a.TrainDataSelector = s;
             
-            aa = approx.algorithms.VectorialKernelOMP;
+            aa = approx.algorithms.VKOGA;
             aa.MaxExpansionSize = 200;
             aa.MaxRelErr = 1e-5;
             aa.MaxAbsErrFactor = 1e-5;

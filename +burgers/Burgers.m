@@ -65,7 +65,7 @@ classdef Burgers < models.BaseFullModel
             
             this.ErrorEstimator = error.DEIMEstimator;
 %             a.ParamKernel = kernels.GaussKernel;
-%             al = approx.algorithms.VectorialKernelOMP;
+%             al = approx.algorithms.VKOGA;
 %             al.UseOGA = true;
 %             al.NumGammas = 30;
 %             al.MaxExpansionSize = 400;
