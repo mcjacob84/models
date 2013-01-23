@@ -23,10 +23,10 @@ classdef WH10Experiment < models.BaseFullModel
             % to the this.Ma property for the error estimator.
             this.Approx = [];
             
-            %s = solvers.ode.MLWrapper(@ode45);
-            s = solvers.ode.ExplEuler;
+            %s = solvers.MLWrapper(@ode45);
+            s = solvers.ExplEuler;
             s.MaxStep = [];
-            %s = solvers.ode.Heun;
+            %s = solvers.Heun;
             this.ODESolver = s;
             
             %% System settings

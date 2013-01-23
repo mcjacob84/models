@@ -51,9 +51,9 @@ classdef AffParamKernelTest < models.BaseFullModel
             s.Value = 1;
             this.SpaceReducer = s;
             
-            %this.ODESolver = solvers.ode.MLWrapper(@ode45);
-            this.ODESolver = solvers.ode.ExplEuler;
-            %this.ODESolver = solvers.ode.Heun;
+            %this.ODESolver = solvers.MLWrapper(@ode45);
+            this.ODESolver = solvers.ExplEuler;
+            %this.ODESolver = solvers.Heun;
             this.ODESolver.MaxStep = [];
             
             %% System settings

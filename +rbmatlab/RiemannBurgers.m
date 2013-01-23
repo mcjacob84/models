@@ -43,7 +43,7 @@ classdef RiemannBurgers < models.rbmatlab.RBMatlabModel
             this.System = models.rbmatlab.RiemBurgSys_Fun(this);
             
             % Solver
-            this.ODESolver = solvers.ode.ExplEuler(this.dt);
+            this.ODESolver = solvers.ExplEuler(this.dt);
             
             % Sampling
             this.Sampler = sampling.GridSampler;

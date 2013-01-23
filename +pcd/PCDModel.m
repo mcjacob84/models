@@ -62,9 +62,9 @@ classdef PCDModel < models.BaseFullModel
             s.Spacing = 'log';
             this.Sampler = s;
             
-%             this.ODESolver = solvers.ode.MLWrapper(@ode23);
-%             this.ODESolver = solvers.ode.ExplEuler(this.dt);
-            o = solvers.ode.MLode15i;
+%             this.ODESolver = solvers.MLWrapper(@ode23);
+%             this.ODESolver = solvers.ExplEuler(this.dt);
+            o = solvers.MLode15i;
             o.AbsTol = 1e-6;
             o.RelTol = 1e-5;
             o.MaxStep = [];

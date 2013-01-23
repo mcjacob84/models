@@ -43,13 +43,13 @@ classdef Burgers < models.BaseFullModel
             this.dt = .01;
             if version == 1
                 this.System = models.burgers.BurgersSys(this);
-                this.ODESolver = solvers.ode.MLode15i;
+                this.ODESolver = solvers.MLode15i;
                 this.SaveTag = sprintf('burgers_1D_d%d_combRHS',dim);
                 this.Name = sprintf('1D-%dd unsteady Burgers equation (combined RHS)',dim);
             elseif version == 2
                 this.System = models.burgers.BurgersSys_A(this);
                 this.System.MaxTimestep = this.dt;
-                this.ODESolver = solvers.ode.SemiImplicitEuler(this);
+                this.ODESolver = solvers.SemiImplicitEuler(this);
                 this.System.MaxTimestep = this.dt;
                 this.SaveTag = sprintf('burgers_1D_d%d',dim);
                 this.Name = sprintf('1D-%dd unsteady Burgers equation',dim);

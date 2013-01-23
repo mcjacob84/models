@@ -185,7 +185,7 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             m.T = T; %[s]
             m.dt = dt; %[s]
             m.System.h = m.L/6;
-            o = solvers.ode.MLode15i;
+            o = solvers.MLode15i;
             o.AbsTol = 1e-6;
             o.RelTol = 1e-5;
             o.MaxStep = [];

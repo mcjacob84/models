@@ -77,7 +77,7 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
             s.UseSVDS = false;
             this.SpaceReducer = s;
             
-            s = solvers.ode.ExplEuler;
+            s = solvers.ExplEuler;
             s.MaxStep = .005; % Stability constraint due to diffusion term
             this.ODESolver = s;
         end

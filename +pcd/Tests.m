@@ -136,7 +136,7 @@ classdef Tests
             m.Approx.TrainDataSelector = s;
             
             m.System.MaxTimestep = m.dt;
-            m.ODESolver = solvers.ode.SemiImplicitEuler(m);
+            m.ODESolver = solvers.SemiImplicitEuler(m);
             
             e = error.DEIMEstimator;
             e.JacMatDEIMMaxOrder = 80;
@@ -207,7 +207,7 @@ classdef Tests
             m.Approx.TrainDataSelector = s;
             
             m.System.MaxTimestep = m.dt;
-            m.ODESolver = solvers.ode.SemiImplicitEuler(m);
+            m.ODESolver = solvers.SemiImplicitEuler(m);
             
             e = error.DEIMEstimator;
             e.JacMatDEIMMaxOrder = 200;
@@ -267,7 +267,7 @@ classdef Tests
             m.Approx.TrainDataSelector = s;
             
             m.System.MaxTimestep = m.dt;
-            m.ODESolver = solvers.ode.SemiImplicitEuler(m);
+            m.ODESolver = solvers.SemiImplicitEuler(m);
             
             e = error.DEIMEstimator;
             e.JacMatDEIMMaxOrder = 60;
