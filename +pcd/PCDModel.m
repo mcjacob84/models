@@ -87,16 +87,7 @@ classdef PCDModel < models.BaseFullModel
             sr = spacereduction.PODGreedy;
             sr.Eps = 1e-10;
             this.SpaceReducer = sr;
-%             this.SpaceReducer = [];
             
-            % Core Approximation
-%             a = approx.algorithms.FixedCompWiseKernelApprox;
-%             a.CoeffComp = general.regression.KernelLS;
-%             a.TimeKernel = kernels.GaussKernel;
-%             a.Kernel = kernels.GaussKernel(2);
-%             a.ParamKernel = kernels.LinearKernel;
-%             a.lambda = 2;
-
             a = approx.KernelApprox;
             a.TimeKernel = kernels.NoKernel;%kernels.GaussKernel(1);
             %a.TimeKernel.G = 1;
@@ -108,16 +99,6 @@ classdef PCDModel < models.BaseFullModel
             s = data.selection.LinspaceSelector;
             s.Size = 15000;
             a.TrainDataSelector = s;
-            
-            aa = approx.algorithms.VKOGA;
-            aa.MaxExpansionSize = 200;
-            aa.MaxRelErr = 1e-5;
-            aa.MaxAbsErrFactor = 1e-5;
-            aa.MaxGFactor = 50;
-            aa.MinGFactor = .01;
-            aa.NumGammas = 40;
-            a.Algorithm = aa; 
-            this.Approx = a;
         end
         
         function plot(this, varargin)

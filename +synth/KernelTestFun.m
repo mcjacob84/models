@@ -33,6 +33,10 @@ classdef KernelTestFun < dscomponents.ParamTimeKernelCoreFun
                 pos_flag = false;
             end
             
+            % Set props
+            this.fDim = dim;
+            this.xDim = dim;
+            
             % Sample bases
             this.svNum = 20;
             this.Centers.xi = repmat(linspace(-24,24,this.svNum),dim,1);

@@ -55,7 +55,7 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
             this.Sampler = [];
             
             app = approx.KernelApprox;
-            a = approx.algorithms.AdaptiveCompWiseKernelApprox;
+            a = approx.algorithms.VKOGA;
             a.MaxRelErr = 1e-5;
             a.MaxAbsErrFactor = 1e-3;
             a.NumGammas = 10;
@@ -127,7 +127,7 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
             m.SpaceReducer.Mode = 'abs';
             m.SpaceReducer.Value = 10;
             %m.SpaceReducer = [];
-            a = approx.algorithms.FixedCompWiseKernelApprox;
+            a = approx.algorithms.Componentwise;
             a.Gammas = logspace(log10(.01),log10(10),30);
             c = general.regression.ScalarNuSVR;
             c.C = 500;

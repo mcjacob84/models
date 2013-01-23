@@ -48,7 +48,7 @@ classdef RiemannBurgers < models.rbmatlab.RBMatlabModel
             % Sampling
             this.Sampler = sampling.GridSampler;
             
-            aa = approx.algorithms.FixedCompWiseKernelApprox;
+            aa = approx.algorithms.Componentwise;
             aa.ComputeParallel = false;
             a = approx.KernelApprox;
             a.Algorithm = aa;
