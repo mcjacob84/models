@@ -39,16 +39,16 @@ classdef Tests
             pm.UseFileTypeFolders = true;
             
             %% Different dimension m' plots (model independent)
-            load(fullfile(d,'minreqmdashorders.mat'));
-            models.burgers.Tests.morepas12_plotDiffMeanReqErrs([6 7],pm,v500,v1500,v500_maxorder,v1500_maxo);
-            h = legend(gca(pm.Figures(1)),'d=500','d=1500','d=500 (maxo)','d=1500 (maxo)');
-            set(h,'Location','Best');
-            h = legend(gca(pm.Figures(2)),'d=500','d=1500','d=500 (maxo)','d=1500 (maxo)');
-            set(h,'Location','Best');
-            pm.done;
-            pm.FilePrefix = 'burgers';
-            pm.savePlots(d,types,[],true);
-            return;
+%             load(fullfile(d,'minreqmdashorders.mat'));
+%             models.burgers.Tests.morepas12_plotDiffMeanReqErrs([6 7],pm,v500,v1500,v500_maxorder,v1500_maxo);
+%             h = legend(gca(pm.Figures(1)),'d=500','d=1500','d=500 (maxo)','d=1500 (maxo)');
+%             set(h,'Location','Best');
+%             h = legend(gca(pm.Figures(2)),'d=500','d=1500','d=500 (maxo)','d=1500 (maxo)');
+%             set(h,'Location','Best');
+%             pm.done;
+%             pm.FilePrefix = 'burgers';
+%             pm.savePlots(d,types,[],true);
+%             return;
             
             %% Model preparations
             %m = r.FullModel;
@@ -217,41 +217,37 @@ classdef Tests
             end
         end
         
-        function m = test_Burgers_DEIM_versions(dim, version)
+        function [res, m] = test_Burgers_DEIM_versions(dim, version)
             if nargin < 2
                 version = 1;
                 if nargin < 1
-                    dim = 2000;
+                    dim = 20;
                 end
             end
             m = models.burgers.Burgers(dim, version);
             
             if dim < 1000
-                m.ModelData.TrajectoryData = data.MemoryTrajectoryData;
+                m.Data.TrajectoryData = data.MemoryTrajectoryData;
             else
-                m.ModelData.TrajectoryData = data.FileTrajectoryData(m.ModelData);
+                m.Data.TrajectoryData = data.FileTrajectoryData(m.Data);
             end
             
             %% Sampling - manual
             s = sampling.ManualSampler;
-            s.Samples = logspace(log10(0.04),log10(0.08),100);
+            s.Samples = logspace(log10(0.04),log10(0.08),10);
             m.Sampler = s;
             
             %% Approx
             a = approx.DEIM;
-            a.MaxOrder = 80;
+            a.MaxOrder = 40;
             m.Approx = a;
             
-            offline_times = m.offlineGenerations;
-            gitbranch = KerMor.getGitBranch;
-            
-            clear a s;
-            d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_DEIM');
-            mkdir(d);
-            oldd = pwd;
-            cd(d);
-            eval(sprintf('save test_Burgers_DEIM_d%d_v%d',dim,version));
-            cd(oldd);
+            m.offlineGenerations;
+            a.Order = [5 2];
+            r = m.buildReducedModel;
+            [t,y] = r.simulate(r.getRandomParam);
+            m.plot(t,y);
+            res = true;
         end
     end
     

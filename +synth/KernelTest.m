@@ -62,13 +62,15 @@ classdef KernelTest < models.BaseFullModel
             s.Value = 1;
             this.SpaceReducer = s;
             
+            %% System settings
+            this.System = models.synth.KernelTestSys(this, pos_flag);
+            this.System.MaxTimestep = this.dt;
+            
+            %% ODE Solver
             %this.ODESolver = solvers.MLWrapper(@ode45);
             this.ODESolver = solvers.ExplEuler;
             %this.ODESolver = solvers.Heun;
             this.ODESolver.MaxStep = [];
-            
-            %% System settings
-            this.System = models.synth.KernelTestSys(this, pos_flag);
             
             %% Error estimator
             this.ErrorEstimator = error.IterationCompLemmaEstimator;
