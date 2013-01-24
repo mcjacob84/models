@@ -69,6 +69,9 @@ classdef KernelTest < models.BaseFullModel
             
             %% System settings
             this.System = models.synth.KernelTestSys(this, pos_flag);
+            
+            %% Error estimator
+            this.ErrorEstimator = error.IterationCompLemmaEstimator;
         end
         
         function set.dim(this,value)
