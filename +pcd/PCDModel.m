@@ -44,7 +44,6 @@ classdef PCDModel < models.BaseFullModel
             % Parameters:
             % dim: The dimension to use @default 1
             
-            % Use the PCDSystem
             if nargin == 0
                 dim = 1;
             end
@@ -85,20 +84,10 @@ classdef PCDModel < models.BaseFullModel
             
             % Space reduction setup
             sr = spacereduction.PODGreedy;
-            sr.Eps = 1e-10;
+            sr.Eps = 1e-5;
             this.SpaceReducer = sr;
             
-            a = approx.KernelApprox;
-            a.TimeKernel = kernels.NoKernel;%kernels.GaussKernel(1);
-            %a.TimeKernel.G = 1;
-            a.Kernel = kernels.GaussKernel(1);
-            a.Kernel.G = 1;
-            a.ParamKernel = kernels.GaussKernel(1);
-            a.ParamKernel.G = 1;
-            
-            s = data.selection.LinspaceSelector;
-            s.Size = 15000;
-            a.TrainDataSelector = s;
+            this.Approx = [];
         end
         
         function plot(this, varargin)

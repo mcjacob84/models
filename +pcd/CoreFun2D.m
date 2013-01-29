@@ -178,22 +178,22 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 % bottom
                 pos = bsxfun(@lt,xd,this.hlp.xr*mu(10,:)/2);
                 idx = this.idxmat(:,1);
-                rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(14,:)*ud));
+                rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(14,:).*ud));
                 % top
                 pos = bsxfun(@lt,xd,this.hlp.xr*mu(9,:)/2);
                 idx = this.idxmat(:,end);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(13,:)*ud));
+                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(13,:).*ud));
                 
                 %% Left & Right
                 yd = repmat(this.hlp.yd,1,nd);
                 % right
                 pos = bsxfun(@lt,yd,this.hlp.yr*mu(12,:)/2);
                 idx = this.idxmat(end,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(16,:)*ud));
+                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(16,:).*ud));
                 % left
                 pos = bsxfun(@lt,yd,this.hlp.yr*mu(11,:)/2);
                 idx = this.idxmat(1,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(15,:)*ud));
+                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(15,:).*ud));
                 
                 fx(1:m,:) = bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xa,mu(3,:)) + rb/this.hlp.hs;
                 fx(m+1:2*m,:) = bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,ya,mu(4,:));
