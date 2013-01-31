@@ -28,6 +28,8 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
         hlp;
         
         idxmat;
+        
+        activationFun;
     end
     
     methods
@@ -38,6 +40,9 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             this.MultiArgumentEvaluations = true;
             this.TimeDependent = false;
             this.hlp.n = this.sys.n;
+            k = kernels.GaussKernel;
+            k.setGammaForDistance(150,.4);
+            this.activationFun = k;
         end
         
         function copy = clone(this)
@@ -111,7 +116,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             
             % Compile boundary conditions
             to = this.sys.Model.tau*t;
-            ud = to < 600;
+            ud = (this.activationFun.evaluateScalar(to-150)-.4)*(to<=300)/.6;
             %ud = (to < 10)*1 + (to >= 10)*max(0,(2-to/10));
             %ud = 1;
             
