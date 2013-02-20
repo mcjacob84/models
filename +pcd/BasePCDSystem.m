@@ -155,7 +155,7 @@ classdef BasePCDSystem < models.BaseDynSystem
         function set.h(this, value)
             if any(value >= this.fOmega(:,2))
                 error('Cannot choose a step size h=%e value larger or equal to the geometry [%s].',...
-                    value,general.Utils.implode(this.fOmega(:),', ','%g'));
+                    value,Utils.implode(this.fOmega(:),', ','%g'));
             end
             this.fh = value;
             this.hs = value / this.Model.L;

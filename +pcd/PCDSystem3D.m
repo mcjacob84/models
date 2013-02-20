@@ -227,8 +227,8 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             t3 = m.off3_computeReducedSpace;
             t4 = m.off4_genApproximationTrainData;
             
-            %factors = general.Utils.createCombinations([5 10 15 20], [1 2 3 4 5],[.1 .01 .001]);
-            factors = general.Utils.createCombinations(3, 10, 2);
+            %factors = Utils.createCombinations([5 10 15 20], [1 2 3 4 5],[.1 .01 .001]);
+            factors = Utils.createCombinations(3, 10, 2);
             n = size(factors,2);
             K = approx.KernelApprox.empty;
             t5 = zeros(1,n);

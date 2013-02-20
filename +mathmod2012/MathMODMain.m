@@ -15,7 +15,7 @@ function [m, r, d] = MathMODMain(dim)
     m.offlineGenerations;
     r = m.buildReducedModel;
     
-    d = tools.EstimatorAnalyzer;
+    d = EstimatorAnalyzer;
     d.EstimatorIterations = [1 2 5];
     d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
     d.setModel(r);
@@ -30,17 +30,17 @@ function [m, r, d] = MathMODMain(dim)
 %     pm.FilePrefix = 'mmod12';
 %     pm.SingleSize = [800 500];
 %     % Pure inner dynamics without inputs and initial value -.2
-%     tools.ParamSweep(r, [0; 10; -.2], [], 2, 0:1:10, ...
+%     ParamSweep(r, [0; 10; -.2], [], 2, 0:1:10, ...
 %         pm.nextPlot('mmod_noinput_ps_exppar'));
 %     
 %     % Pure inner dynamics without inputs and initial value -.2
-%     tools.ParamSweep(r, [0; 3; -.2], 1, 1, 0:.1:1, ...
+%     ParamSweep(r, [0; 3; -.2], 1, 1, 0:.1:1, ...
 %         pm.nextPlot('mmod_ps_inputpar'));
 %     
-%     tools.ParamSweep(r, [0; 4; -.2], 2, 1, 0:.1:1, ...
+%     ParamSweep(r, [0; 4; -.2], 2, 1, 0:.1:1, ...
 %         pm.nextPlot('mmod_ps_inputpar2'));
 %     
-%     tools.ParamSweep2D(r, [0; 3; -.2], 1, [1 2], -.5:.2:1.5,-8:1.5:8, ...
+%     ParamSweep2D(r, [0; 3; -.2], 1, [1 2], -.5:.2:1.5,-8:1.5:8, ...
 %         pm.nextPlot('mmod_ps2d_in_exp'));
 %     pm.done;
 %     

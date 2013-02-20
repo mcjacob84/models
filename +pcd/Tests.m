@@ -21,7 +21,7 @@ classdef Tests
             % training parameters and random parameters
 
             m = r.FullModel;
-            ma = tools.ModelAnalyzer(r);
+            ma = ModelAnalyzer(r);
             %orders = [3 15 35 55 100]; % orders for old large 3000s model
             orders = [1   5   20  97 102 107 145;...
                       149 145 130 53 48  43  5];
@@ -57,10 +57,10 @@ classdef Tests
 %             function directplot(errors, tag, str)
 %                 h = pm.nextPlot([tag '_abs'],['Absolute Linf-L2 reduction errors' str],...
 %                 'DEIM order m','param sample nr');
-%                 tools.LogPlot.logsurf(h, orders, 1:size(errors,2), squeeze(errors(1,:,:)));
+%                 LogPlot.logsurf(h, orders, 1:size(errors,2), squeeze(errors(1,:,:)));
 %                 h = pm.nextPlot([tag '_rel'],['Relative Linf-L2 reduction errors' str],...
 %                     'DEIM order m','param sample nr');
-%                 tools.LogPlot.logsurf(h, orders, 1:size(errors,2), squeeze(errors(2,:,:)));
+%                 LogPlot.logsurf(h, orders, 1:size(errors,2), squeeze(errors(2,:,:)));
 %             end
 %             
 %             function paramplot(errors, tag, str, params, orderidx)

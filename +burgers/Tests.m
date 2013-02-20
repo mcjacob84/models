@@ -114,7 +114,7 @@ classdef Tests
 %             pm.savePlots(d,types,[1 2 6],true);
 
             %% Estimator analysis
-%             ea = tools.EstimatorAnalyzer(r);
+%             ea = EstimatorAnalyzer(r);
 %             ea.LineWidth = 2;
 %             ea.MarkerSize = 12;
 %             ea.NumMarkers = 4;
@@ -206,7 +206,7 @@ classdef Tests
                         'DEIM order m','m'' values');
                 hold(h,'on');
                 n = length(varargin);
-                l = tools.LineSpecIterator(n);
+                l = LineSpecIterator(n);
                 for i=1:n
                     d = varargin{i};
                     d = d(1:138,[1 idx]);

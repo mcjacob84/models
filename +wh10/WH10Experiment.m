@@ -69,7 +69,7 @@ classdef WH10Experiment < models.BaseFullModel
             s.Dims = 100;
             m.SpaceReducer = s;
             
-            d = tools.EstimatorAnalyzer;
+            d = EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
             d.SingleFigures = true;
@@ -96,21 +96,21 @@ classdef WH10Experiment < models.BaseFullModel
                     a = gca(f);
                     axis(a,[0 m.T md.MinErr*.9 min(1e4,absmax)]); 
                     set(legend(a),'Location','NorthEast');
-                    general.Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_errors',idx,s.Degree),'fig');
+                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_errors',idx,s.Degree),'fig');
                     title(a,'');
-                    general.Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_errors',idx,s.Degree));
+                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_errors',idx,s.Degree));
 
                     f = d.Figures{2}; a = gca(f);
                     axis(a,[0 m.T md.MinRelErr*.9 min(1,relmax)]);
                     set(legend(a),'Location','NorthEast');
-                    general.Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_relerr',idx,s.Degree),'fig');
+                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_relerr',idx,s.Degree),'fig');
                     title(a,'');
-                    general.Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_relerr',idx,s.Degree));
+                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_relerr',idx,s.Degree));
 
                     f = d.Figures{3}; a = gca(f);
-                    general.Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_ctimes',idx,s.Degree),'fig');
+                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_ctimes',idx,s.Degree),'fig');
                     title(a,'');
-                    general.Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_ctimes',idx,s.Degree));
+                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_ctimes',idx,s.Degree));
                     
                     close([d.Figures{:}]);
                 end
@@ -133,7 +133,7 @@ classdef WH10Experiment < models.BaseFullModel
             r = rmodels(3);
             h = ma.analyze(r,[],3);
             title(h(2),'');
-            general.Utils.saveFigure(f,'Sys_U3','eps');
+            Utils.saveFigure(f,'Sys_U3','eps');
         end
         
         function d = Experiment4(dim)
@@ -169,7 +169,7 @@ classdef WH10Experiment < models.BaseFullModel
             m.Name = 'Sinus input, mean output mapping, larger error';
             m.System.C = dscomponents.LinearOutputConv(ones(1,m.dim)/m.dim);
             
-            d = tools.EstimatorAnalyzer;
+            d = EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 0 0 1 0 0 1 1];
             d.SingleFigures = true;
@@ -180,23 +180,23 @@ classdef WH10Experiment < models.BaseFullModel
             a = gca(f);
             axis(a,[0 m.T 0 10]); 
             set(legend(a),'Location','NorthEast');
-            general.Utils.saveFigure(f,'WH10_e1_errors','fig');
+            Utils.saveFigure(f,'WH10_e1_errors','fig');
             title(a,'');
-            general.Utils.saveFigure(f,'WH10_e1_errors');
+            Utils.saveFigure(f,'WH10_e1_errors');
             close(f);
             
             f = d.Figures{2}; a = gca(f);
             axis(a,[0 m.T 5e-5 1]);
             set(legend(a),'Location','NorthEast');
-            general.Utils.saveFigure(f,'WH10_e1_relerrors','fig');
+            Utils.saveFigure(f,'WH10_e1_relerrors','fig');
             title(a,'');
-            general.Utils.saveFigure(f,'WH10_e1_relerrors');
+            Utils.saveFigure(f,'WH10_e1_relerrors');
             close(f);
             
             f = d.Figures{3}; a = gca(f);
-            general.Utils.saveFigure(f,'WH10_e1_ctimes','fig');
+            Utils.saveFigure(f,'WH10_e1_ctimes','fig');
             title(a,'');
-            general.Utils.saveFigure(f,'WH10_e1_ctimes');
+            Utils.saveFigure(f,'WH10_e1_ctimes');
             close(f);
         end
         
@@ -231,7 +231,7 @@ classdef WH10Experiment < models.BaseFullModel
             s.UseSVDS = dim > 10000;
             m.SpaceReducer = s;
             
-            d = tools.EstimatorAnalyzer;
+            d = EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
             d.SingleFigures = true;
@@ -250,21 +250,21 @@ classdef WH10Experiment < models.BaseFullModel
                 a = gca(f);
                 axis(a,[0 m.T md.ErrT(1)*.9 min(1e4,absmax)]); 
                 set(legend(a),'Location','NorthEast');
-                general.Utils.saveFigure(f,sprintf('WH10_POD4_in%d_errors',idx),'fig');
+                Utils.saveFigure(f,sprintf('WH10_POD4_in%d_errors',idx),'fig');
                 title(a,'');
-                general.Utils.saveFigure(f,sprintf('WH10_POD4_in%d_errors',idx));
+                Utils.saveFigure(f,sprintf('WH10_POD4_in%d_errors',idx));
 
                 f = d.Figures{2}; a = gca(f);
                 axis(a,[0 m.T md.RelErrT(1)*.9 min(1,relmax)]);
                 set(legend(a),'Location','NorthEast');
-                general.Utils.saveFigure(f,sprintf('WH10_POD4_in%d_relerr',idx),'fig');
+                Utils.saveFigure(f,sprintf('WH10_POD4_in%d_relerr',idx),'fig');
                 title(a,'');
-                general.Utils.saveFigure(f,sprintf('WH10_POD4_in%d_relerr',idx));
+                Utils.saveFigure(f,sprintf('WH10_POD4_in%d_relerr',idx));
 
                 f = d.Figures{3}; a = gca(f);
-                general.Utils.saveFigure(f,sprintf('WH10_POD4_in%d_ctimes',idx),'fig');
+                Utils.saveFigure(f,sprintf('WH10_POD4_in%d_ctimes',idx),'fig');
                 title(a,'');
-                general.Utils.saveFigure(f,sprintf('WH10_POD4_in%d_ctimes',idx));
+                Utils.saveFigure(f,sprintf('WH10_POD4_in%d_ctimes',idx));
 
                 close([d.Figures{:}]);
             end
@@ -305,7 +305,7 @@ classdef WH10Experiment < models.BaseFullModel
             m.Name = 'Sinus input, mean output mapping, larger error';
             m.System.C = dscomponents.LinearOutputConv(ones(1,m.dim)/m.dim);
             
-            d = tools.EstimatorAnalyzer;
+            d = EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 0 0 1 0 0 1 1];
             d.SingleFigures = true;
@@ -316,23 +316,23 @@ classdef WH10Experiment < models.BaseFullModel
 %             a = gca(f);
 %             axis(a,[0 m.T 1e-5 1e4]); 
 %             set(legend(a),'Location','NorthEast');
-%             general.Utils.saveFigure(f,'WH10_e3_errors','fig');
+%             Utils.saveFigure(f,'WH10_e3_errors','fig');
 %             title(a,'');
-%             general.Utils.saveFigure(f,'WH10_e3_errors');
+%             Utils.saveFigure(f,'WH10_e3_errors');
 %             close(f);
 %             
 %             f = d.Figures{2}; a = gca(f);
 %             axis(a,[0 m.T 1e-5 1]);
 %             set(legend(a),'Location','SouthWest');
-%             general.Utils.saveFigure(f,'WH10_e3_relerrors','fig');
+%             Utils.saveFigure(f,'WH10_e3_relerrors','fig');
 %             title(a,'');
-%             general.Utils.saveFigure(f,'WH10_e3_relerrors');
+%             Utils.saveFigure(f,'WH10_e3_relerrors');
 %             close(f);
 %             
 %             f = d.Figures{3}; a = gca(f);
-%             general.Utils.saveFigure(f,'WH10_e3_ctimes','fig');
+%             Utils.saveFigure(f,'WH10_e3_ctimes','fig');
 %             title(a,'');
-%             general.Utils.saveFigure(f,'WH10_e3_ctimes');
+%             Utils.saveFigure(f,'WH10_e3_ctimes');
 %             close(f);
         end
          

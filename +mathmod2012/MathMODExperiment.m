@@ -88,7 +88,7 @@ classdef MathMODExperiment < models.BaseFullModel
             m = models.mathmod2012.MathMODExperiment(dim);
             s = m.SpaceReducer;
             
-            d = tools.EstimatorAnalyzer;
+            d = EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
             d.SingleFigures = true;
@@ -109,26 +109,26 @@ classdef MathMODExperiment < models.BaseFullModel
                 axis(a,[0 m.T md.MinErr*.9 min(1e4,absmax)]);
                 set(legend(a),'Location','NorthEast');
                 fi = fullfile(KerMor.App.DataStoreDirectory,'MathMOD',sprintf('MathMOD_mu1_%d_deg%f_', mu1, s.Degree));
-                general.Utils.saveFigure(f,[fi 'errors'],'fig');
+                Utils.saveFigure(f,[fi 'errors'],'fig');
                 title(a,'');
-                general.Utils.saveFigure(f,[fi 'errors']);
+                Utils.saveFigure(f,[fi 'errors']);
 
                 f = d.Figures{2}; a = gca(f);
                 axis(a,[0 m.T md.MinRelErr*.9 min(1,relmax)]);
                 set(legend(a),'Location','NorthEast');
-                general.Utils.saveFigure(f,[fi 'relerr'],'fig');
+                Utils.saveFigure(f,[fi 'relerr'],'fig');
                 title(a,'');
-                general.Utils.saveFigure(f,[fi 'relerr']);
+                Utils.saveFigure(f,[fi 'relerr']);
 
                 f = d.Figures{3}; a = gca(f);
-                general.Utils.saveFigure(f,[fi 'ctimes'],'fig');
+                Utils.saveFigure(f,[fi 'ctimes'],'fig');
                 title(a,'');
-                general.Utils.saveFigure(f,[fi 'ctimes']);
+                Utils.saveFigure(f,[fi 'ctimes']);
             
             end
             
             PlotParamSweep(r,[1; 1],1,1,-.1:.05:1.1);
-            general.Utils.saveFigure(gcf,'mu1_sweep','png');
+            Utils.saveFigure(gcf,'mu1_sweep','png');
             
             d.createStatsTables;
         end

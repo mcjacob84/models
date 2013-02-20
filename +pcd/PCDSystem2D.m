@@ -145,7 +145,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             function doplot(y, tag, thetitle, pnr)
                 di = abs(this.SteadyStates(:,pnr)-y(end));
                 reldi = di ./ (this.SteadyStates(:,pnr)+eps);
-                reldistr = general.Utils.implode(reldi,', ','%2.3e');
+                reldistr = Utils.implode(reldi,', ','%2.3e');
                 if any(reldi > .1) || any(reldi < 10)
                     [~, id] = min(di);
                     tit = sprintf('Model "%s", %s concentrations\nCell state at T=%d: %s\n%s', model.Name, thetitle,...
