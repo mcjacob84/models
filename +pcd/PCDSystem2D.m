@@ -96,7 +96,7 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             this.x0 = dscomponents.ConstInitialValue(x0);
             
             % Diffusion part
-            A = general.MatUtils.laplacemat(this.hs, this.Dims(1), this.Dims(2));
+            A = MatUtils.laplacemat(this.hs, this.Dims(1), this.Dims(2));
             A = blkdiag(A,this.Diff(1)*A,this.Diff(2)*A,this.Diff(3)*A);
             this.A = dscomponents.LinearCoreFun(A);
             

@@ -60,7 +60,7 @@ classdef CoreFun3D < dscomponents.ACoreFun
             % Create diffusion matrix
             d = this.sys.Dims;
             ge = general.geometry.RectGrid3D(d(1),d(2),d(3));
-            this.A = general.MatUtils.laplacemat3D(this.sys.h, ge);
+            this.A = MatUtils.laplacemat3D(this.sys.h, ge);
             n = size(this.A,1);
             [i,j] = find(this.A);
             i = [i; i+n; i+2*n; i+3*n];
