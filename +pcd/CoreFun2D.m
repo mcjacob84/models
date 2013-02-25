@@ -144,23 +144,23 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 
                 %% Top & Bottom
                 % bottom
-                pos = this.hlp.xd <= this.hlp.xr*mu(10)/2;
+                pos = this.hlp.xd <= this.hlp.xr*mu(1)/2;
                 idx = this.idxmat(pos,1); 
-                rb(idx) = (xi(idx)*mu(14)*ud);
+                rb(idx) = (xi(idx)*mu(2)*ud);
                 % top
-                pos = this.hlp.xd <= this.hlp.xr*mu(9)/2;
+                pos = this.hlp.xd <= this.hlp.xr*mu(1)/2;
                 idx = this.idxmat(pos,end);
-                rb(idx) = rb(idx) + (xi(idx)*mu(13)*ud);
+                rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
                 
                 %% Left & Right
                 % right
-                pos = this.hlp.yd <= this.hlp.yr*mu(12)/2;
+                pos = this.hlp.yd <= this.hlp.yr*mu(1)/2;
                 idx = this.idxmat(end,pos);
-                rb(idx) = rb(idx) + (xi(idx)*mu(16)*ud);
+                rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
                 % left
-                pos = this.hlp.yd <= this.hlp.yr*mu(11)/2;
+                pos = this.hlp.yd <= this.hlp.yr*mu(1)/2;
                 idx = this.idxmat(1,pos);
-                rb(idx) = rb(idx) + (xi(idx)*mu(15)*ud);
+                rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
                 
                 % x_a
                 fx(1:m) = rc(1)*xi.*ya - rc(3)*xa + rb/this.hlp.hs;
@@ -171,10 +171,6 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 % y_i
                 fx(3*m+1:end) = -rc(2)*yi.*xan - rc(6)*yi + rc(8);
             else
-                % Uncomment if reaction coeffs become real params again
-                %mu = [s.ReacCoeff; mu]';
-                mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu([1 1 1 1 2 2 2 2],:)];
-                
                 % Extract single functions
                 xa = x(1:m,:);
                 xan = xa.^this.hlp.n;
@@ -189,29 +185,29 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 %% Top & Bottom
                 xd = repmat(this.hlp.xd,1,nd); % y distances
                 % bottom
-                pos = bsxfun(@lt,xd,this.hlp.xr*mu(10,:)/2);
+                pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
                 idx = this.idxmat(:,1);
-                rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(14,:).*ud));
+                rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
                 % top
-                pos = bsxfun(@lt,xd,this.hlp.xr*mu(9,:)/2);
+                pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
                 idx = this.idxmat(:,end);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(13,:).*ud));
+                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
                 
                 %% Left & Right
                 yd = repmat(this.hlp.yd,1,nd);
                 % right
-                pos = bsxfun(@lt,yd,this.hlp.yr*mu(12,:)/2);
+                pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
                 idx = this.idxmat(end,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(16,:).*ud));
+                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
                 % left
-                pos = bsxfun(@lt,yd,this.hlp.yr*mu(11,:)/2);
+                pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
                 idx = this.idxmat(1,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(15,:).*ud));
+                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
                 
-                fx(1:m,:) = bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xa,rc(3)) + rb/this.hlp.hs;
-                fx(m+1:2*m,:) = bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,ya,rc(4));
-                fx(2*m+1:3*m,:) = -bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xi,rc(5)) + bsxfun(@times,ones(size(xi)),rc(7)) - rb/this.hlp.hs;
-                fx(3*m+1:end,:) = -bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,yi,rc(6)) + bsxfun(@times,ones(size(xi)),rc(8));
+                fx(1:m,:) = rc(1)*xi.*ya - xa*rc(3) + rb/this.hlp.hs;
+                fx(m+1:2*m,:) = rc(2)*yi.*xan - ya*rc(4);
+                fx(2*m+1:3*m,:) = -rc(1)*xi.*ya - rc(5)*xi + rc(7) - rb/this.hlp.hs;
+                fx(3*m+1:end,:) = -rc(2)*yi.*xan - rc(6)*yi + rc(8);
             end
             
             % If this has been projected, project back to reduced space
@@ -231,16 +227,16 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             rc = this.sys.ReacCoeff;
             
             % Boundary stuff
-            bottom = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(10)/2,1);
-            top = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(9)/2,end);
-            right = this.idxmat(end,this.hlp.yd <= this.hlp.yr*mu(12)/2);
-            left = this.idxmat(1,this.hlp.yd <= this.hlp.yr*mu(11)/2);
+            bottom = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(1)/2,1);
+            top = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(1)/2,end);
+            right = this.idxmat(end,this.hlp.yd <= this.hlp.yr*mu(1)/2);
+            left = this.idxmat(1,this.hlp.yd <= this.hlp.yr*mu(1)/2);
             rbxi = zeros(n,1);
             u = this.activationFun(t);
-            rbxi(bottom) = mu(14)*u;
-            rbxi(top) = mu(13)*u;
-            rbxi(right) = mu(16)*u;
-            rbxi(left) = mu(15)*u;
+            rbxi(bottom) = mu(2)*u;
+            rbxi(top) = mu(2)*u;
+            rbxi(right) = mu(2)*u;
+            rbxi(left) = mu(2)*u;
             rbxi = rbxi/this.hlp.hs;
             
             %% x_a part
@@ -309,15 +305,15 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             fxj = zeros(length(pts),nd);
             rc = this.sys.ReacCoeff;
             if nd > 1
-                bottom = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(10,:)/2);
-                top = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(9,:)/2);
-                right = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(12,:)/2);
-                left = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(11,:)/2);
+                bottom = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(1,:)/2);
+                top = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(1,:)/2);
+                right = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(1,:)/2);
+                left = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(1,:)/2);
             else
-                bottom = this.hlp.xd <= this.hlp.xr*mu(10)/2;
-                top = this.hlp.xd <= this.hlp.xr*mu(9)/2;
-                right = this.hlp.yd <= this.hlp.yr*mu(12)/2;
-                left = this.hlp.yd <= this.hlp.yr*mu(11)/2;
+                bottom = this.hlp.xd <= this.hlp.xr*mu(1,:)/2;
+                top = this.hlp.xd <= this.hlp.xr*mu(1,:)/2;
+                right = this.hlp.yd <= this.hlp.yr*mu(1,:)/2;
+                left = this.hlp.yd <= this.hlp.yr*mu(1,:)/2;
             end
             % Get matrix indices
             J2 = mod(pts,m);
@@ -328,7 +324,6 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             row = rem(J2-1, this.hlp.d1)+1;
             col = (J2-row)/this.hlp.d1+1;
             u = this.activationFun(t);
-           
             for idx=1:length(pts)
                 j = pts(idx);
                 if idx == 1
@@ -349,19 +344,19 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                     % Boundary conditions
                     % Bottom
                     if col(idx) == 1
-                        fj = fj + bottom(row(idx),:) .* (x(3,:).*mu(14,:).*u/this.hlp.hs);
+                        fj = fj + bottom(row(idx),:) .* (x(3,:).*mu(2,:).*u/this.hlp.hs);
                     end
                     % Top
                     if col(idx) == this.hlp.d2
-                        fj = fj + top(row(idx),:) .* (x(3,:).*mu(13,:).*u/this.hlp.hs);
+                        fj = fj + top(row(idx),:) .* (x(3,:).*mu(2,:).*u/this.hlp.hs);
                     end
                     % Right
                     if row(idx) == this.hlp.d1
-                        fj = fj + right(col(idx),:) .* (x(3,:).*mu(16,:).*u/this.hlp.hs);
+                        fj = fj + right(col(idx),:) .* (x(3,:).*mu(2,:).*u/this.hlp.hs);
                     end
                     % Left
                     if row(idx) == 1
-                        fj = fj + left(col(idx),:) .* (x(3,:).*mu(15,:).*u/this.hlp.hs);
+                        fj = fj + left(col(idx),:) .* (x(3,:).*mu(2,:).*u/this.hlp.hs);
                     end
                     
                 % Y_a
@@ -379,19 +374,19 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                     % Boundary conditions
                     % Bottom
                     if col(idx) == 1
-                        fj = fj - bottom(row(idx),:) .* (x(2,:).*mu(14,:).*u/this.hlp.hs);
+                        fj = fj - bottom(row(idx),:) .* (x(2,:).*mu(2,:).*u/this.hlp.hs);
                     end
                     % Top
                     if col(idx) == this.hlp.d2
-                        fj = fj - top(row(idx),:) .* (x(2,:).*mu(13,:).*u/this.hlp.hs);
+                        fj = fj - top(row(idx),:) .* (x(2,:).*mu(2,:).*u/this.hlp.hs);
                     end
                     % Right
                     if row(idx) == this.hlp.d1
-                        fj = fj - right(col(idx),:) .* (x(2,:).*mu(16,:).*u/this.hlp.hs);
+                        fj = fj - right(col(idx),:) .* (x(2,:).*mu(2,:).*u/this.hlp.hs);
                     end
                     % Left
                     if row(idx) == 1
-                        fj = fj - left(col(idx),:) .* (x(2,:).*mu(15,:).*u/this.hlp.hs);
+                        fj = fj - left(col(idx),:) .* (x(2,:).*mu(2,:).*u/this.hlp.hs);
                     end
                     
                 % Y_i
@@ -432,15 +427,15 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             row = rem(pts2-1, this.hlp.d1)+1;
             col = (pts2-row)/this.hlp.d1+1;
             if nd > 1
-                bottom = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(10,:)/2);
-                top = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(9,:)/2);
-                right = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(12,:)/2);
-                left = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(11,:)/2);
+                bottom = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(1)/2);
+                top = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(1)/2);
+                right = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(1)/2);
+                left = bsxfun(@lt,this.hlp.yd,this.hlp.yr*mu(1)/2);
             else
-                bottom = this.hlp.xd <= this.hlp.xr*mu(10)/2;
-                top = this.hlp.xd <= this.hlp.xr*mu(9)/2;
-                right = this.hlp.yd <= this.hlp.yr*mu(12)/2;
-                left = this.hlp.yd <= this.hlp.yr*mu(11)/2;
+                bottom = this.hlp.xd <= this.hlp.xr*mu(1)/2;
+                top = this.hlp.xd <= this.hlp.xr*mu(1)/2;
+                right = this.hlp.yd <= this.hlp.yr*mu(1)/2;
+                left = this.hlp.yd <= this.hlp.yr*mu(1)/2;
             end
             
             %% Derivative info per point
@@ -476,16 +471,16 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                     if d(3) % dx_a/x_i = mu1*y_a + rb'
                         dfx(curpos,:) = rc(1)*x(2,:);
                         if col(idx) == 1 % Bottom
-                            dfx(curpos,:) = dfx(curpos,:) + bottom(row(idx),:) .* mu(14,:)/this.hlp.hs;
+                            dfx(curpos,:) = dfx(curpos,:) + bottom(row(idx),:) .* mu(2,:)/this.hlp.hs;
                         end
                         if col(idx) == this.hlp.d2 % Top
-                            dfx(curpos,:) = dfx(curpos,:) + top(row(idx),:) .* mu(13,:)/this.hlp.hs;
+                            dfx(curpos,:) = dfx(curpos,:) + top(row(idx),:) .* mu(2,:)/this.hlp.hs;
                         end
                         if row(idx) == this.hlp.d1 % Right
-                            dfx(curpos,:) = dfx(curpos,:) + right(col(idx),:) .* mu(16,:)/this.hlp.hs;
+                            dfx(curpos,:) = dfx(curpos,:) + right(col(idx),:) .* mu(2,:)/this.hlp.hs;
                         end
                         if row(idx) == 1 % Left
-                            dfx(curpos,:) = dfx(curpos,:) + left(col(idx),:) .* mu(15,:)/this.hlp.hs;
+                            dfx(curpos,:) = dfx(curpos,:) + left(col(idx),:) .* mu(2,:)/this.hlp.hs;
                         end
                         curpos = curpos + 1;
                     end
@@ -517,16 +512,16 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                         dfx(curpos,:) = -rc(1)*x(1,:)-rc(5);
                         % Boundary conditions
                         if col(idx) == 1 % Bottom
-                            dfx(curpos,:) = dfx(curpos,:) - bottom(row(idx),:) .* mu(14,:)/this.hlp.hs;
+                            dfx(curpos,:) = dfx(curpos,:) - bottom(row(idx),:) .* mu(2,:)/this.hlp.hs;
                         end
                         if col(idx) == this.hlp.d2 % Top
-                            dfx(curpos,:) = dfx(curpos,:) - top(row(idx),:) .* mu(13,:)/this.hlp.hs;
+                            dfx(curpos,:) = dfx(curpos,:) - top(row(idx),:) .* mu(2,:)/this.hlp.hs;
                         end
                         if row(idx) == this.hlp.d1 % Right
-                            dfx(curpos,:) = dfx(curpos,:) - right(col(idx),:) .* mu(16,:)/this.hlp.hs;
+                            dfx(curpos,:) = dfx(curpos,:) - right(col(idx),:) .* mu(2,:)/this.hlp.hs;
                         end
                         if row(idx) == 1 % Left
-                            dfx(curpos,:) = dfx(curpos,:) - left(col(idx),:) .* mu(15,:)/this.hlp.hs;
+                            dfx(curpos,:) = dfx(curpos,:) - left(col(idx),:) .* mu(2,:)/this.hlp.hs;
                         end
                         curpos = curpos + 1;
                     end
