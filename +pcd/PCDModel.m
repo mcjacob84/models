@@ -58,7 +58,6 @@ classdef PCDModel < models.BaseFullModel
 %             s = sampling.RandomSampler;
 %             s.Samples = 10;
             s = sampling.GridSampler;
-            s.Spacing = 'log';
             this.Sampler = s;
             
 %             this.ODESolver = solvers.MLWrapper(@ode23);
