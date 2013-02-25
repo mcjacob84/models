@@ -29,7 +29,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
         
         idxmat;
         
-        activationFun;
+        gaussian;
     end
     
     methods
@@ -40,9 +40,9 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             this.MultiArgumentEvaluations = true;
             this.TimeDependent = false;
             this.hlp.n = this.sys.n;
-            k = kernels.GaussKernel;
-            k.setGammaForDistance(150,.4);
-            this.activationFun = k;
+            % \gamma=28 is such that we have K(0,27)~<.4 (27=150/tau)
+            k = kernels.GaussKernel(28.206364723698);
+            this.gaussian = k;
         end
         
         function copy = clone(this)
@@ -55,6 +55,20 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             copy.nodes = this.nodes;
             copy.hlp = this.hlp;
             copy.idxmat = this.idxmat;
+        end
+        
+        function plotActivationFun(this, pm)
+            if nargin < 3
+                pm = PlotManager;
+                pm.LeaveOpen = true;
+            end
+            
+            h = pm.nextPlot('activation_fun','External input activation function','time','factor');
+            plot(h,this.sys.Model.Times,this.activationFun(this.sys.Model.scaledTimes));
+            
+            if nargin < 3
+                pm.done;
+            end
         end
         
         function newSysDimension(this)
@@ -114,17 +128,11 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             
             m = this.nodes;
             
-            % Compile boundary conditions
-            to = this.sys.Model.tau*t;
-            ud = (this.activationFun.evaluateScalar(to-150)-.4)*(to<=300)/.6;
-            %ud = (to < 10)*1 + (to >= 10)*max(0,(2-to/10));
-            %ud = 1;
-            
+            % Compute activation fun values (it's set up in scaled times!)
+            ud = this.activationFun(t);
+            rc = this.sys.ReacCoeff;
             if size(x,2) == 1
-                % Uncomment if reaction coeffs become real params again
-                %mu = [s.ReacCoeff; mu]';
-                mu = [this.sys.ReacCoeff; mu([1 1 1 1 2 2 2 2])];
-                
+               
                 % Extract single functions
                 xa = x(1:m);
                 xan = xa.^this.hlp.n;
@@ -155,13 +163,13 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 rb(idx) = rb(idx) + (xi(idx)*mu(15)*ud);
                 
                 % x_a
-                fx(1:m) = mu(1)*xi.*ya - mu(3)*xa + rb/this.hlp.hs;
+                fx(1:m) = rc(1)*xi.*ya - rc(3)*xa + rb/this.hlp.hs;
                 % y_a
-                fx(m+1:2*m) = mu(2)*yi.*xan - mu(4)*ya;
+                fx(m+1:2*m) = rc(2)*yi.*xan - rc(4)*ya;
                 % x_i
-                fx(2*m+1:3*m) = -mu(1)*xi.*ya - mu(5)*xi + mu(7) - rb/this.hlp.hs;
+                fx(2*m+1:3*m) = -rc(1)*xi.*ya - rc(5)*xi + rc(7) - rb/this.hlp.hs;
                 % y_i
-                fx(3*m+1:end) = -mu(2)*yi.*xan - mu(6)*yi + mu(8);
+                fx(3*m+1:end) = -rc(2)*yi.*xan - rc(6)*yi + rc(8);
             else
                 % Uncomment if reaction coeffs become real params again
                 %mu = [s.ReacCoeff; mu]';
@@ -172,7 +180,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 xan = xa.^this.hlp.n;
                 ya = x(m+1:2*m,:);
                 xi = x(2*m+1:3*m,:);
-                yi = x(3*m+1:end,:);
+                yi = x(3*m+1:end,:); 
 
                 % Compile boundary conditions
                 nd = size(x,2);
@@ -200,10 +208,10 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 idx = this.idxmat(1,:);
                 rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(15,:).*ud));
                 
-                fx(1:m,:) = bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xa,mu(3,:)) + rb/this.hlp.hs;
-                fx(m+1:2*m,:) = bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,ya,mu(4,:));
-                fx(2*m+1:3*m,:) = -bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xi,mu(5,:)) + bsxfun(@times,ones(size(xi)),mu(7,:)) - rb/this.hlp.hs;
-                fx(3*m+1:end,:) = -bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,yi,mu(6,:)) + bsxfun(@times,ones(size(xi)),mu(8,:));
+                fx(1:m,:) = bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xa,rc(3)) + rb/this.hlp.hs;
+                fx(m+1:2*m,:) = bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,ya,rc(4));
+                fx(2*m+1:3*m,:) = -bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xi,rc(5)) + bsxfun(@times,ones(size(xi)),rc(7)) - rb/this.hlp.hs;
+                fx(3*m+1:end,:) = -bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,yi,rc(6)) + bsxfun(@times,ones(size(xi)),rc(8));
             end
             
             % If this has been projected, project back to reduced space
@@ -212,7 +220,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             end
         end
         
-        function J = getStateJacobian(this, x, ~, mu)
+        function J = getStateJacobian(this, x, t, mu)
             
             % If this has been projected, restore full size and compute values.
             if ~isempty(this.V)
@@ -220,7 +228,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             end
             
             n = this.nodes;
-            mu = [this.sys.ReacCoeff; mu([1 1 1 1 2 2 2 2])];
+            rc = this.sys.ReacCoeff;
             
             % Boundary stuff
             bottom = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(10)/2,1);
@@ -228,42 +236,43 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             right = this.idxmat(end,this.hlp.yd <= this.hlp.yr*mu(12)/2);
             left = this.idxmat(1,this.hlp.yd <= this.hlp.yr*mu(11)/2);
             rbxi = zeros(n,1);
-            rbxi(bottom) = mu(14);
-            rbxi(top) = mu(13);
-            rbxi(right) = mu(16);
-            rbxi(left) = mu(15);
+            u = this.activationFun(t);
+            rbxi(bottom) = mu(14)*u;
+            rbxi(top) = mu(13)*u;
+            rbxi(right) = mu(16)*u;
+            rbxi(left) = mu(15)*u;
             rbxi = rbxi/this.hlp.hs;
             
             %% x_a part
             % 1=x_a, 2=y_a, 3=x_i {, y_i}
             i = [(1:n)'; (1:n)'; (1:n)'];
             j = (1:3*n)';
-            s = [-ones(n,1)*mu(3); ... % dx_a/x_a = -mu3
-                 mu(1)*x(2*n+1:3*n);... % dx_a/y_a = mu1*x_i
-                 mu(1)*x(n+1:2*n) + rbxi]; %dx_a/x_i + rbxi
+            s = [-ones(n,1)*rc(3); ... % dx_a/x_a = -mu3
+                 rc(1)*x(2*n+1:3*n);... % dx_a/y_a = mu1*x_i
+                 rc(1)*x(n+1:2*n) + rbxi]; %dx_a/x_i + rbxi
             %% y_a part
             % 1=x_a, 2=y_a {, x_i}, 3=y_i
             i = [i; (n+1:2*n)'; (n+1:2*n)'; (n+1:2*n)'];
             j = [j; (1:2*n)'; (3*n+1:4*n)'];
-            hlp1 = this.hlp.n*mu(2)*x(3*n+1:end).*x(1:n).^(this.hlp.n-1);
-            hlp2 = mu(2)*x(1:n).^this.hlp.n;
+            hlp1 = this.hlp.n*rc(2)*x(3*n+1:end).*x(1:n).^(this.hlp.n-1);
+            hlp2 = rc(2)*x(1:n).^this.hlp.n;
             s = [s; hlp1; ... % dy_a/x_a = n*mu2*y_i*x_a^(n-1)
-                 -ones(n,1)*mu(4);... % dy_a/y_a = -mu4
+                 -ones(n,1)*rc(4);... % dy_a/y_a = -mu4
                  hlp2]; %dy_a/y_i = mu2 * x_a^n
             
             %% x_i part
             % {x_a,} 1=y_a, 2=x_i {, y_i}
             i = [i; (2*n+1:3*n)'; (2*n+1:3*n)']; 
             j = [j; (n+1:3*n)'];
-            s = [s; -mu(1)*x(2*n+1:3*n);... %dx_i/y_a = -mu1*x_i
-                    -mu(1)*x(n+1:2*n)-mu(5)-rbxi]; %dx_i/x_i = -mu1*y_a -mu5 -rbxi
+            s = [s; -rc(1)*x(2*n+1:3*n);... %dx_i/y_a = -mu1*x_i
+                    -rc(1)*x(n+1:2*n)-rc(5)-rbxi]; %dx_i/x_i = -mu1*y_a -mu5 -rbxi
             
             %% y_i part
             % 1=x_a, {y_a, x_i}, 2=y_i
             i = [i; (3*n+1:4*n)'; (3*n+1:4*n)']; 
             j = [j; (1:n)'; (3*n+1:4*n)'];
             s = [s; -hlp1; ... %dy_i/x_a = -n*mu2*y_i*x_a^(n-1)
-                    -hlp2-mu(6)]; % dy_i/y_i = -mu2 * x_a^n-mu6
+                    -hlp2-rc(6)]; % dy_i/y_i = -mu2 * x_a^n-mu6
             
             n = this.fDim;
             if ~isempty(this.V)
@@ -278,7 +287,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
     end
     
     methods(Access=protected)
-        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, ~, mu)
+        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, t, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into
             % the components x_a, y_a, x_i, y_i
             %
@@ -298,8 +307,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             m = this.nodes;
             nd = size(X,2);
             fxj = zeros(length(pts),nd);
-            
-            mu = [this.sys.ReacCoeff(:,ones(1,size(mu,2))); mu([1 1 1 1 2 2 2 2],:)];
+            rc = this.sys.ReacCoeff;
             if nd > 1
                 bottom = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(10,:)/2);
                 top = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(9,:)/2);
@@ -319,6 +327,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             % ind2sub direct replacement!
             row = rem(J2-1, this.hlp.d1)+1;
             col = (J2-row)/this.hlp.d1+1;
+            u = this.activationFun(t);
            
             for idx=1:length(pts)
                 j = pts(idx);
@@ -334,60 +343,62 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 % X_a
                 if j <= m
                     % 1=x_a, 2=y_a, 3=x_i {, y_i}
-                    % mu(1)*xi.*ya - mu(3)*xa + rb;
-                    fj = mu(1,:).*x(3,:).*x(2,:) - mu(3,:).*x(1,:);
+                    % rc(1)*xi.*ya - rc(3)*xa + rb;
+                    fj = rc(1)*x(3,:).*x(2,:) - rc(3)*x(1,:);
                     
                     % Boundary conditions
                     % Bottom
                     if col(idx) == 1
-                        fj = fj + bottom(row(idx),:) .* (x(3,:).*mu(14,:)/this.hlp.hs);
+                        fj = fj + bottom(row(idx),:) .* (x(3,:).*mu(14,:).*u/this.hlp.hs);
                     end
                     % Top
                     if col(idx) == this.hlp.d2
-                        fj = fj + top(row(idx),:) .* (x(3,:).*mu(13,:)/this.hlp.hs);
+                        fj = fj + top(row(idx),:) .* (x(3,:).*mu(13,:).*u/this.hlp.hs);
                     end
                     % Right
                     if row(idx) == this.hlp.d1
-                        fj = fj + right(col(idx),:) .* (x(3,:).*mu(16,:)/this.hlp.hs);
+                        fj = fj + right(col(idx),:) .* (x(3,:).*mu(16,:).*u/this.hlp.hs);
                     end
                     % Left
                     if row(idx) == 1
-                        fj = fj + left(col(idx),:) .* (x(3,:).*mu(15,:)/this.hlp.hs);
+                        fj = fj + left(col(idx),:) .* (x(3,:).*mu(15,:).*u/this.hlp.hs);
                     end
                     
                 % Y_a
                 elseif m < j && j <= 2*m
                     % 1=x_a, 2=y_a {, x_i}, 3=y_i
-                    % mu(2)*yi.*xan - mu(4)*ya;
-                    fj = mu(2,:).*x(3,:).*x(1,:).^this.hlp.n - mu(4,:).*x(2,:);
+                    % rc(2)*yi.*xan - rc(4)*ya;
+                    fj = rc(2)*x(3,:).*x(1,:).^this.hlp.n - rc(4)*x(2,:);
                     
                 % X_i
                 elseif 2*m < j && j <= 3*m
                     % {x_a,} 1=y_a, 2=x_i {, y_i}
-                    % -mu(1)*xi.*ya - mu(5)*xi + mu(7) - rb;
-                    fj = -mu(1,:).*x(2,:).*x(1,:) - mu(5,:).*x(2,:) + mu(7,:);
+                    % -rc(1)*xi.*ya - rc(5)*xi + rc(7) - rb;
+                    fj = -rc(1)*x(2,:).*x(1,:) - rc(5)*x(2,:) + rc(7);
+                    
+                    % Boundary conditions
                     % Bottom
                     if col(idx) == 1
-                        fj = fj - bottom(row(idx),:) .* (x(2,:).*mu(14,:)/this.hlp.hs);
+                        fj = fj - bottom(row(idx),:) .* (x(2,:).*mu(14,:).*u/this.hlp.hs);
                     end
                     % Top
                     if col(idx) == this.hlp.d2
-                        fj = fj - top(row(idx),:) .* (x(2,:).*mu(13,:)/this.hlp.hs);
+                        fj = fj - top(row(idx),:) .* (x(2,:).*mu(13,:).*u/this.hlp.hs);
                     end
                     % Right
                     if row(idx) == this.hlp.d1
-                        fj = fj - right(col(idx),:) .* (x(2,:).*mu(16,:)/this.hlp.hs);
+                        fj = fj - right(col(idx),:) .* (x(2,:).*mu(16,:).*u/this.hlp.hs);
                     end
                     % Left
                     if row(idx) == 1
-                        fj = fj - left(col(idx),:) .* (x(2,:).*mu(15,:)/this.hlp.hs);
+                        fj = fj - left(col(idx),:) .* (x(2,:).*mu(15,:).*u/this.hlp.hs);
                     end
                     
                 % Y_i
                 else
                     % 1=x_a, {y_a, x_i}, 2=y_i
-                    % -mu(2)*yi.*xan - mu(6)*yi + mu(8);
-                    fj = -mu(2,:).*x(2,:).*x(1,:).^this.hlp.n - mu(6,:).*x(2,:) + mu(8,:);
+                    % -rc(2)*yi.*xan - rc(6)*yi + rc(8);
+                    fj = -rc(2)*x(2,:).*x(1,:).^this.hlp.n - rc(6)*x(2,:) + rc(8);
                 end
                 fxj(idx,:) = fj;
             end
@@ -411,7 +422,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             % dfx: A column vector with 'numel(deriv)' rows containing the derivatives at all
             % specified pts i with respect to the coordinates given by 'idx(ends(i-1):ends(i))'
             m = this.nodes;
-            mu = [this.sys.ReacCoeff(:,ones(1,size(mu,2))); mu([1 1 1 1 2 2 2 2],:)];
+            rc = this.sys.ReacCoeff;
             nd = size(X,2);
             
             %% Boundary stuff
@@ -455,15 +466,15 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 if i <= m
                     % 1=x_a, 2=y_a, 3=x_i {, y_i}
                     if d(1) % dx_a/x_a = -mu3
-                        dfx(curpos,:) = -mu(3,:);
+                        dfx(curpos,:) = -rc(3);
                         curpos = curpos + 1;
                     end
                     if d(2) % dx_a/y_a = mu1*x_i
-                        dfx(curpos,:) = mu(1,:).*x(3,:);
+                        dfx(curpos,:) = rc(1)*x(3,:);
                         curpos = curpos + 1;
                     end
                     if d(3) % dx_a/x_i = mu1*y_a + rb'
-                        dfx(curpos,:) = mu(1,:).*x(2,:);
+                        dfx(curpos,:) = rc(1)*x(2,:);
                         if col(idx) == 1 % Bottom
                             dfx(curpos,:) = dfx(curpos,:) + bottom(row(idx),:) .* mu(14,:)/this.hlp.hs;
                         end
@@ -483,15 +494,15 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 elseif m < i && i <= 2*m
                     % 1=x_a, 2=y_a {, x_i}, 3=y_i
                     if d(1) % dy_a/x_a = n*mu2*y_i*x_a^(n-1)
-                        dfx(curpos,:) = this.hlp.n*mu(2,:).*x(3,:).*x(1,:).^(this.hlp.n-1);
+                        dfx(curpos,:) = this.hlp.n*rc(2)*x(3,:).*x(1,:).^(this.hlp.n-1);
                         curpos = curpos + 1;
                     end
                     if d(2) % dy_a/y_a = -mu4
-                        dfx(curpos,:) = -mu(4,:);
+                        dfx(curpos,:) = -rc(4);
                         curpos = curpos + 1;
                     end
                     if d(3) % dx_a/x_a = -mu3
-                        dfx(curpos,:) = mu(2,:).*x(1,:).^this.hlp.n;
+                        dfx(curpos,:) = rc(2)*x(1,:).^this.hlp.n;
                         curpos = curpos + 1;
                     end
                     
@@ -499,11 +510,11 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 elseif 2*m < i && i <= 3*m
                     % {x_a,} 1=y_a, 2=x_i {, y_i}
                     if d(1) %dx_i/y_a = -mu1*x_i
-                        dfx(curpos,:) = -mu(1,:).*x(2,:);
+                        dfx(curpos,:) = -rc(1)*x(2,:);
                         curpos = curpos + 1;
                     end
                     if d(2) %dx_i/x_i = -mu1*y_a -mu5 -rbxi
-                        dfx(curpos,:) = -mu(1,:).*x(1,:)-mu(5,:);
+                        dfx(curpos,:) = -rc(1)*x(1,:)-rc(5);
                         % Boundary conditions
                         if col(idx) == 1 % Bottom
                             dfx(curpos,:) = dfx(curpos,:) - bottom(row(idx),:) .* mu(14,:)/this.hlp.hs;
@@ -524,15 +535,21 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 else
                     % 1=x_a, {y_a, x_i}, 2=y_i
                     if d(1) %dy_i/x_a = -n*mu2*y_i*x_a^(n-1)
-                        dfx(curpos,:) = -this.hlp.n*mu(2,:).*x(2,:).*x(1,:).^(this.hlp.n-1);
+                        dfx(curpos,:) = -this.hlp.n*rc(2)*x(2,:).*x(1,:).^(this.hlp.n-1);
                         curpos = curpos + 1;
                     end
                     if d(2) % dy_i/y_i = -mu2 * x_a^n-mu6
-                        dfx(curpos,:) = -mu(2,:).*x(1,:).^this.hlp.n - mu(6,:);
+                        dfx(curpos,:) = -rc(2)*x(1,:).^this.hlp.n - rc(6);
                         curpos = curpos + 1;
                     end
                 end
             end
+        end
+    end
+    
+    methods(Access=private)
+        function f = activationFun(this, t)
+            f = (this.gaussian.evaluateScalar(t-27)-.4).*(t<=54)/.6;
         end
     end
 end

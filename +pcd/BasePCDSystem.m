@@ -141,8 +141,6 @@ classdef BasePCDSystem < models.BaseDynSystem
             
             this.registerProps('h','Omega');
             
-            % Uncomment if reaction parameters become real parameters again
-            %this.setReactionParams;
             this.ReacCoeff = [this.Kc1_real this.Kc2_real this.Kd1_real ...
                               this.Kd2_real this.Kd3_real this.Kd4_real ...
                               this.Kp1_real this.Kp2_real]' * this.Model.tau;
@@ -196,7 +194,6 @@ classdef BasePCDSystem < models.BaseDynSystem
         function setConfig(this, mu, inputidx)
             setConfig@models.BaseDynSystem(this, mu, inputidx);
             
-            %this.setReactionParams;
             this.ReacCoeff = [this.Kc1_real this.Kc2_real this.Kd1_real ...
                               this.Kd2_real this.Kd3_real this.Kd4_real ...
                               this.Kp1_real this.Kp2_real]' * this.Model.tau;
