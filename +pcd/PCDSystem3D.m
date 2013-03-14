@@ -154,97 +154,19 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             x0(2*m+1:end) = 1e-9;
             this.x0 = dscomponents.ConstInitialValue(x0);
             
-%             p = .1; % 10% of each dimensions span, centered in geometry.
-%             d = this.dim1;
-%             d1idx = find(abs((1:d) - d/2) <= d/2 * p);
-%             d = this.dim2;
-%             d2idx = find(abs((1:d) - d/2) <= d/2 * p);
-%             d = this.dim3;
-%             d3idx = find(abs((1:d) - d/2) <= d/2 * p);
-%             [d1,d2,d3] = meshgrid(d1idx,d2idx,d3idx);
-%             sel = reshape(sub2ind([this.dim1,this.dim2,this.dim3],d1,d2,d3),1,[]);
-%             C = zeros(1,4*m);
-%             ca3 = m+1:2*m;
-%             C(ca3(sel)) = 1/length(sel);
-%             this.C = dscomponents.LinearOutputConv(C);
-        end
-    end
-    
-    methods(Static)
-        function pcd3d_MMACWKA_20logPar_SR(T, dt)
-            % Configuration to try and find the good old approximation with
-            % little approximation error
-            m = models.pcd.PCDModel(3);
-            
-            if nargin == 1
-                dt = T/2000;
-            elseif nargin == 0
-                T = 8000;
-                dt = 1.5;
-            end
-            m.T = T; %[s]
-            m.dt = dt; %[s]
-            m.System.h = m.L/6;
-            o = solvers.MLode15i;
-            o.AbsTol = 1e-6;
-            o.RelTol = 1e-5;
-            o.MaxStep = [];
-            m.ODESolver = o;
-            
-            s = sampling.GridSampler;
-            s.Spacing = 'log';
-            m.Sampler = s;
-            
-            a = m.Approx;
-%             s = data.selection.DefaultSelector;
-            %s = data.selection.LinspaceSelector;
-            s = data.selection.TimeSelector;
-            s.Size = 25000;
-            a.TrainDataSelector = s;
-            aa = approx.algorithms.MinMaxAdaptiveCWKA;
-            aa.MaxExpansionSize = 80;
-            aa.MaxRelErr = 1e-5;
-            aa.MaxAbsErrFactor = 1e-5;
-            aa.CheckMaxErrorPercent = .07;
-            aa.InitialCenter = 't0';
-            a.Algorithm = aa;
-            
-            m.ModelData.TrajectoryData = data.FileTrajectoryData(m.ModelData);
-            
-            % Zero initial conditions
-            %dim = size(m.System.x0.evaluate([]),1);
-            %m.System.x0 = dscomponents.ConstInitialValue(zeros(dim,1));
-            
-%            m.SpaceReducer = [];
-            m.SpaceReducer = spacereduction.PODGreedy;
-            m.SpaceReducer.Eps = 1e-9;
-            
-            a = KerMor.App;
-            a.Verbose = 2;
-
-            t1 = m.off1_createParamSamples;
-            t2 = m.off2_genTrainingData;
-            t3 = m.off3_computeReducedSpace;
-            t4 = m.off4_genApproximationTrainData;
-            
-            %factors = Utils.createCombinations([5 10 15 20], [1 2 3 4 5],[.1 .01 .001]);
-            factors = Utils.createCombinations(3, 10, 2);
-            n = size(factors,2);
-            K = approx.KernelApprox.empty;
-            t5 = zeros(1,n);
-            for i = 1:n
-                fprintf('Starting approximation run %d of %d..\n',i,n);
-                aa.NumGammas = factors(1,i);
-                aa.MaxGFactor = factors(2,i);
-                aa.MinGFactor = factors(3,i);
-                t5(i) = m.off5_computeApproximation;
-                K(i) = m.Approx.clone;
-            end
-            times = [t1 t2 t3 t4 t5];%#ok
-            
-            file = sprintf('pcd3d_MMACWKA_20logPar_SR_T%d_dt%s', T, strrep(sprintf('%f',dt),'.','_'));
-            conf = object2str(m);
-            save(file, 'm', 'K', 'times', 'factors', 'conf');
+            p = .1; % 10% of each dimensions span, centered in geometry.
+            d = this.dim1;
+            d1idx = find(abs((1:d) - d/2) <= d/2 * p);
+            d = this.dim2;
+            d2idx = find(abs((1:d) - d/2) <= d/2 * p);
+            d = this.dim3;
+            d3idx = find(abs((1:d) - d/2) <= d/2 * p);
+            [d1,d2,d3] = meshgrid(d1idx,d2idx,d3idx);
+            sel = reshape(sub2ind([this.dim1,this.dim2,this.dim3],d1,d2,d3),1,[]);
+            C = zeros(1,4*m);
+            ca3 = m+1:2*m;
+            C(ca3(sel)) = 1/length(sel);
+            this.C = dscomponents.LinearOutputConv(C);
         end
     end
 end
