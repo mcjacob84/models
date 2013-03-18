@@ -33,68 +33,6 @@ classdef BasePCDSystem < models.BaseDynSystem
     % supervision system @ref propclasses. This class now inherits from KerMorObject and has an
     % extended constructor registering any user-relevant properties using
     % KerMorObject.registerProps.
-    %
-    % @todo Set typical concentrations at model level (state scaling)
-    
-    properties(Constant)
-        % Exponent in ya,yi term (necessary casp-3 for casp-8 activation)
-        n = 2;
-        
-        %% Coefficient values        
-        % Procaspase-8 to Caspase-8 reaction rate
-        % Empiric value from [1] in daub's milestone
-        Kc1_real = 0.08;
-        
-        % Procaspase-3 to Caspase-3 reaction rate
-        % Empiric value from [1] in daub's milestone
-        Kc2_real = 0.08;
-        
-        % Caspase-8 degradation rate
-        % Empiric value from [1] in daub's milestone
-        Kd1_real = .0005;
-        
-        % Caspase-3 degradation rate
-        % Empiric value from [1] in daub's milestone
-        Kd2_real = .0005;
-        
-        % Pro-Caspase-8 degradation rate
-        % Empiric value from [1] in daub's milestone
-        Kd3_real = .0005;
-        
-        % Caspase-3 degradation rate
-        % Empiric value from [1] in daub's milestone
-        Kd4_real = .0005;
-        
-        % Procaspase-8 production rate
-        % Empiric value from [1] in daub's milestone
-        Kp1_real = 0.0001;
-        
-        % Procaspase-3 production rate
-        % Empiric value from [1] in daub's milestone
-        Kp2_real = 0.0001;
-        
-        %% System Rescaling settings
-        % Typical Caspase-8 concentration
-        xa0 = 1e-7; %[M]
-        
-        % Typical Caspase-3 concentration
-        ya0 = 1e-7; %[M]
-        
-        % Typical Procaspase-8 concentration
-        xi0 = 1e-7; %[M]
-        
-        % Typical Procaspase-3 concentration
-        yi0 = 1e-7; %[M]
-        
-        % Steady state configurations
-        % First row: life state
-        % Second row: unstable state
-        % Third row: death state (as of ya > 0.01 its considered death)
-        SteadyStates = [[0; 9.8153e-4; 0.1930]*models.pcd.BasePCDSystem.xa0...
-                        [0; 3.0824e-5; 0.1713]*models.pcd.BasePCDSystem.ya0...
-                        [.2; 0.1990; 0.0070]*models.pcd.BasePCDSystem.xi0...
-                        [.2; 0.2; 0.0287]*models.pcd.BasePCDSystem.yi0];
-    end
     
     properties(SetObservable, Dependent)
         % Spatial stepwidth (in unscaled size units!)
@@ -141,9 +79,22 @@ classdef BasePCDSystem < models.BaseDynSystem
             
             this.registerProps('h','Omega');
             
-            this.ReacCoeff = [this.Kc1_real this.Kc2_real this.Kd1_real ...
-                              this.Kd2_real this.Kd3_real this.Kd4_real ...
-                              this.Kp1_real this.Kp2_real]' * this.Model.tau;
+            this.ReacCoeff = [m.Kc1_real m.Kc2_real m.Kd1_real ...
+                              m.Kd2_real m.Kd3_real m.Kd4_real ...
+                              m.Kp1_real m.Kp2_real]' * m.tau;
+                          
+            % Add parameters
+            % Activation area
+            p = this.addParam('area', [.01, 1], 10);
+            p.Spacing = 'lin';
+            
+            % Activation rate
+            p = this.addParam('rate', [0.0005, 1], 15);
+            p.Spacing = 'log';
+            
+            % Activation time
+            p = this.addParam('atime', [0, 1], 5);
+            p.Spacing = 'lin';
         end
         
         function h = get.h(this)
@@ -193,10 +144,10 @@ classdef BasePCDSystem < models.BaseDynSystem
         
         function setConfig(this, mu, inputidx)
             setConfig@models.BaseDynSystem(this, mu, inputidx);
-            
-            this.ReacCoeff = [this.Kc1_real this.Kc2_real this.Kd1_real ...
-                              this.Kd2_real this.Kd3_real this.Kd4_real ...
-                              this.Kp1_real this.Kp2_real]' * this.Model.tau;
+            m = this.Model;
+            this.ReacCoeff = [m.Kc1_real m.Kc2_real m.Kd1_real ...
+                              m.Kd2_real m.Kd3_real m.Kd4_real ...
+                              m.Kp1_real m.Kp2_real]' * m.tau;
         end
     end
     
@@ -210,12 +161,13 @@ classdef BasePCDSystem < models.BaseDynSystem
                     this.Dims(d) = length(this.fOmega(d,1):this.h:this.fOmega(d,2));
                 end
                 m = prod(this.Dims);
+                
                 % Set state scaling
                 ss = zeros(4*m,1);
-                ss(1:m) = this.xa0;
-                ss(m+1:2*m) = this.ya0;
-                ss(2*m+1:3*m) = this.xi0;
-                ss(3*m+1:end) = this.yi0;
+                ss(1:m) = this.Model.xa0;
+                ss(m+1:2*m) = this.Model.ya0;
+                ss(2*m+1:3*m) = this.Model.xi0;
+                ss(3*m+1:end) = this.Model.yi0;
                 this.StateScaling = ss;
                 
                 % Set new initial values and output in 1D-3D systems

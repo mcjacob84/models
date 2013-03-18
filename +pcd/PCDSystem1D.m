@@ -21,8 +21,11 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             this.Omega = [0 1] * this.Model.L;
             this.h = this.Model.L/24;
            
+            % Remove params set in BasePCDSystem (simpler for 1D)
+            this.Params = data.ModelParam.empty;
+            
             % Add input param (is getting inserted after the BasePCDSystem
-            % condtructor params, so number 9!)
+            % constructor params, so number 9!)
             this.addParam('U', [1e-5, 1e-2], 50);
         end
 

@@ -23,26 +23,9 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             
             % Spatial area (unscaled!)
             this.Omega = [0 1.5; 0 1] * this.Model.L;
+            
             % Scaled!
             this.h = .5 * this.Model.L;
-            %model.dt = model.dt*5;
-            
-            % Add params
-            % Simpler version: homogeneous area & rate
-            this.addParam('area', [0, 1], 10);
-            this.addParam('rate', [1e-5, 1e-2], 15);
-%             rate_min = 1e-4;
-%             rate_max = 1e-1;
-%             % Param indices 9-12
-%             this.addParam('area_top', [0, .9], 3);
-%             this.addParam('area_bottom', [0, 0], 1);
-%             this.addParam('area_left', [0, .9], 3);
-%             this.addParam('area_right', [0, 0], 1);
-%             % Param indices 13-16
-%             this.addParam('rate_top', [rate_min, rate_max], 3);
-%             this.addParam('rate_bottom', [.005, .005], 1);
-%             this.addParam('rate_left', [rate_min, rate_max], 3);
-%             this.addParam('rate_right', [rate_min, rate_max], 1); 
         end
         
         function varargout = plot(~, model, t, y, varargin)
@@ -112,7 +95,6 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             ca3 = m+1:2*m;
             C(ca3(sel)) = 1/length(sel);
             this.C = dscomponents.LinearOutputConv(C);
-%             this.C = dscomponents.LinearOutputConv(1);
         end
     end
     
@@ -143,8 +125,8 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             doplot(y(3*m+1:end,:),'pc3','Pro-Caspase-3 (y_i)',4);
             
             function doplot(y, tag, thetitle, pnr)
-                di = abs(this.SteadyStates(:,pnr)-y(end));
-                reldi = di ./ (this.SteadyStates(:,pnr)+eps);
+                di = abs(this.Model.SteadyStates(:,pnr)-y(end));
+                reldi = di ./ (this.Model.SteadyStates(:,pnr)+eps);
                 reldistr = Utils.implode(reldi,', ','%2.3e');
                 if any(reldi > .1) || any(reldi < 10)
                     [~, id] = min(di);
