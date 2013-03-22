@@ -48,19 +48,19 @@ classdef PCDModel < models.BaseFullModel
         
         % Caspase-8 degradation rate
         % Empiric value from [1] in daub's milestone
-        Kd1_real = .0003;
+        Kd1_real = .0005;
         
         % Caspase-3 degradation rate
         % Empiric value from [1] in daub's milestone
-        Kd2_real = .0003;
+        Kd2_real = .0005;
         
         % Pro-Caspase-8 degradation rate
         % Empiric value from [1] in daub's milestone
-        Kd3_real = .0003;
+        Kd3_real = .0005;
         
         % Caspase-3 degradation rate
         % Empiric value from [1] in daub's milestone
-        Kd4_real = .0003;
+        Kd4_real = .0005;
         
         % Procaspase-8 production rate
         % Empiric value from [1] in daub's milestone
