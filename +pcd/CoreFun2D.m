@@ -297,7 +297,7 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
             % ind2sub direct replacement!
             row = rem(J2-1, this.hlp.d1)+1;
             col = (J2-row)/this.hlp.d1+1;
-            u = this.activationFun(t);
+            u = this.activationFun(t, mu);
             for idx=1:length(pts)
                 j = pts(idx);
                 if idx == 1
@@ -390,6 +390,7 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
             % Return values:
             % dfx: A column vector with 'numel(deriv)' rows containing the derivatives at all
             % specified pts i with respect to the coordinates given by 'idx(ends(i-1):ends(i))'
+            error('Activation fun not yet implemented correctly');
             m = this.nodes;
             rc = this.System.ReacCoeff;
             nd = size(X,2);
