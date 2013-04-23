@@ -35,6 +35,9 @@ classdef PCDModel < models.BaseFullModel
         L = 1e-5; %[m]
         
         % Exponent in ya,yi term (necessary casp-3 for casp-8 activation)
+        %
+        % @note This is only for the current 1D and 3D models; the 2D model has the exponent as
+        % 4th model parameter.
         n = 2;
         
         %% Coefficient values        

@@ -95,6 +95,10 @@ classdef BasePCDSystem < models.BaseDynSystem
             % Activation time
             p = this.addParam('atime', [0, 1], 5);
             p.Spacing = 'lin';
+            
+            % Exponent
+            p = this.addParam('exponent', [1, 4], 5);
+            p.Spacing = 'lin';
         end
         
         function h = get.h(this)

@@ -30,9 +30,8 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
         
         function this = CoreFun2D(dynsys)
             this = this@models.pcd.BaseCoreFun(dynsys);
-            this.hlp.n = this.System.Model.n;
         end
-        
+           
         function copy = clone(this)
             % System already copied in constructor (see below)
             copy = models.pcd.CoreFun2D(this.System);
@@ -105,7 +104,7 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
                
                 % Extract single functions
                 xa = x(1:m);
-                xan = xa.^this.hlp.n;
+                xan = xa.^mu(4);
                 ya = x(m+1:2*m);
                 xi = x(2*m+1:3*m);
                 yi = x(3*m+1:end);
@@ -143,7 +142,7 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
             else
                 % Extract single functions
                 xa = x(1:m,:);
-                xan = xa.^this.hlp.n;
+                xan = xa.^mu(4,:);
                 ya = x(m+1:2*m,:);
                 xi = x(2*m+1:3*m,:);
                 yi = x(3*m+1:end,:); 
@@ -224,8 +223,8 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
             % 1=x_a, 2=y_a {, x_i}, 3=y_i
             i = [i; (n+1:2*n)'; (n+1:2*n)'; (n+1:2*n)'];
             j = [j; (1:2*n)'; (3*n+1:4*n)'];
-            hlp1 = this.hlp.n*rc(2)*x(3*n+1:end).*x(1:n).^(this.hlp.n-1);
-            hlp2 = rc(2)*x(1:n).^this.hlp.n;
+            hlp1 = mu(4)*rc(2)*x(3*n+1:end).*x(1:n).^(mu(4)-1);
+            hlp2 = rc(2)*x(1:n).^mu(4);
             s = [s; hlp1; ... % dy_a/x_a = n*mu2*y_i*x_a^(n-1)
                  -ones(n,1)*rc(4);... % dy_a/y_a = -mu4
                  hlp2]; %dy_a/y_i = mu2 * x_a^n
@@ -336,8 +335,8 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
                 % Y_a
                 elseif m < j && j <= 2*m
                     % 1=x_a, 2=y_a {, x_i}, 3=y_i
-                    % rc(2)*yi.*xan - rc(4)*ya;
-                    fj = rc(2)*x(3,:).*x(1,:).^this.hlp.n - rc(4)*x(2,:);
+                    % rc(2)*yi.*xa^mu4 - rc(4)*ya;
+                    fj = rc(2)*x(3,:).*x(1,:).^mu(4,:) - rc(4)*x(2,:);
                     
                 % X_i
                 elseif 2*m < j && j <= 3*m
@@ -366,8 +365,8 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
                 % Y_i
                 else
                     % 1=x_a, {y_a, x_i}, 2=y_i
-                    % -rc(2)*yi.*xan - rc(6)*yi + rc(8);
-                    fj = -rc(2)*x(2,:).*x(1,:).^this.hlp.n - rc(6)*x(2,:) + rc(8);
+                    % -rc(2)*yi.*xa^mu4 - rc(6)*yi + rc(8);
+                    fj = -rc(2)*x(2,:).*x(1,:).^mu(4,:) - rc(6)*x(2,:) + rc(8);
                 end
                 fxj(idx,:) = fj;
             end
@@ -464,7 +463,7 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
                 elseif m < i && i <= 2*m
                     % 1=x_a, 2=y_a {, x_i}, 3=y_i
                     if d(1) % dy_a/x_a = n*mu2*y_i*x_a^(n-1)
-                        dfx(curpos,:) = this.hlp.n*rc(2)*x(3,:).*x(1,:).^(this.hlp.n-1);
+                        dfx(curpos,:) = mu(4,:)*rc(2)*x(3,:).*x(1,:).^(mu(4,:)-1);
                         curpos = curpos + 1;
                     end
                     if d(2) % dy_a/y_a = -mu4
@@ -472,7 +471,7 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
                         curpos = curpos + 1;
                     end
                     if d(3) % dx_a/x_a = -mu3
-                        dfx(curpos,:) = rc(2)*x(1,:).^this.hlp.n;
+                        dfx(curpos,:) = rc(2)*x(1,:).^mu(4,:);
                         curpos = curpos + 1;
                     end
                     
@@ -505,11 +504,11 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
                 else
                     % 1=x_a, {y_a, x_i}, 2=y_i
                     if d(1) %dy_i/x_a = -n*mu2*y_i*x_a^(n-1)
-                        dfx(curpos,:) = -this.hlp.n*rc(2)*x(2,:).*x(1,:).^(this.hlp.n-1);
+                        dfx(curpos,:) = -mu(4,:)*rc(2)*x(2,:).*x(1,:).^(mu(4,:)-1);
                         curpos = curpos + 1;
                     end
                     if d(2) % dy_i/y_i = -mu2 * x_a^n-mu6
-                        dfx(curpos,:) = -rc(2)*x(1,:).^this.hlp.n - rc(6);
+                        dfx(curpos,:) = -rc(2)*x(1,:).^mu(4,:) - rc(6);
                         curpos = curpos + 1;
                     end
                 end
