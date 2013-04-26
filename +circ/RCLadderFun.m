@@ -23,17 +23,11 @@ classdef RCLadderFun < dscomponents.ACoreFun
         end
         
         function fx = evaluateCoreFun(~, v, ~, ~)
-            d = size(v,1);
-            e = ones(d,1);
-            A = spdiags([e -2*e e],-1:1,d,d);
-            A(1,:) = -A(1,:);
-            A(end,end) = -1;
-            
             vd = exp(40*(v(1:end-1,:)-v(2:end,:)));
             vdf = [vd; ones(1,size(v,2))];
             vdb = [-exp(40*v(1,:)) + 2; vd];
             
-            fx = vdb - vdf + A*v;
+            fx = vdb - vdf;
         end
         
         function target = project(this, V, W)

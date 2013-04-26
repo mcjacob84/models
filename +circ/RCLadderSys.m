@@ -23,8 +23,14 @@ classdef RCLadderSys < models.BaseDynSystem
             
             B = zeros(dim,1);
             B(1) = 1;
-            
             this.B = dscomponents.LinearInputConv(B);
+                
+            e = ones(dim,1);
+            A = spdiags([e -2*e e],-1:1,dim,dim);
+            A(1,:) = -A(1,:);
+            A(end,end) = -1;
+            this.A = dscomponents.LinearCoreFun(A);
+            
             this.C = dscomponents.LinearOutputConv(B');
             
             this.f = models.circ.RCLadderFun;

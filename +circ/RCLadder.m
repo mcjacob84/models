@@ -57,13 +57,16 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
             app = approx.KernelApprox;
             a = approx.algorithms.VKOGA;
             a.MaxRelErr = 1e-5;
-            a.MaxAbsErrFactor = 1e-3;
-            a.NumGammas = 10;
+            a.MaxAbsResidualErr = 1e-3;
+            ec = kernels.config.ExpansionConfig;
+            
+            ec.StateConfig = kernels.config.GaussConfig('D',.3:.1:2);
+            a.ExpConfig = ec;
             app.Algorithm = a;
             
             app.TimeKernel = kernels.NoKernel;
             app.ParamKernel = kernels.NoKernel;
-            app.Kernel = kernels.GaussKernel(.5);
+            app.Kernel = kernels.GaussKernel;
             app.Kernel.G = 1;
                         
             t = data.selection.TimeSelector;
@@ -77,8 +80,8 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
             s.UseSVDS = false;
             this.SpaceReducer = s;
             
-            s = solvers.ExplEuler;
-            s.MaxStep = .005; % Stability constraint due to diffusion term
+            s = solvers.SemiImplicitEuler(this);
+            s.MaxStep = .05; % Stability constraint due to diffusion term
             this.ODESolver = s;
         end
         
