@@ -1,4 +1,4 @@
-classdef CoreFun2D < dscomponents.ACompEvalCoreFun
+classdef CoreFun2D < models.pcd.BaseCoreFun
 % The core nonlinear function of the PCD model.
 %
 % @author Daniel Wirtz @date 16.03.2010
@@ -19,61 +19,34 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
 % - \c License @ref licensing
     
     properties(Access=private)
-        % The assoc. dynamical system
-        % (need some values from that)
-        sys;
-        
         nodes;
         
         hlp;
         
         idxmat;
-        
-        gaussian;
     end
     
     methods
         
         function this = CoreFun2D(dynsys)
-            this = this@dscomponents.ACompEvalCoreFun;
-            this.sys = dynsys;
-            this.MultiArgumentEvaluations = true;
-            this.TimeDependent = false;
-            this.hlp.n = this.sys.n;
-            % \gamma=28 is such that we have K(0,27)~<.4 (27=150/tau)
-            k = kernels.GaussKernel(28.206364723698);
-            this.gaussian = k;
+            this = this@models.pcd.BaseCoreFun(dynsys);
         end
-        
+           
         function copy = clone(this)
-            % sys already copied in constructor (see below)
-            copy = models.pcd.CoreFun2D(this.sys);
+            % System already copied in constructor (see below)
+            copy = models.pcd.CoreFun2D(this.System);
             
             % Call superclass method
-            copy = clone@dscomponents.ACompEvalCoreFun(this, copy);
+            copy = clone@models.pcd.BaseCoreFun(this, copy);
             
             copy.nodes = this.nodes;
             copy.hlp = this.hlp;
             copy.idxmat = this.idxmat;
         end
         
-        function plotActivationFun(this, pm)
-            if nargin < 3
-                pm = PlotManager;
-                pm.LeaveOpen = true;
-            end
-            
-            h = pm.nextPlot('activation_fun','External input activation function','time','factor');
-            plot(h,this.sys.Model.Times,this.activationFun(this.sys.Model.scaledTimes));
-            
-            if nargin < 3
-                pm.done;
-            end
-        end
-        
         function newSysDimension(this)
             % Create diffusion matrix
-            s = this.sys;            
+            s = this.System;            
             n = prod(s.Dims);
             this.nodes = n;
             this.hlp.d1 = s.Dims(1);
@@ -88,8 +61,8 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             a = s.Omega;
             this.hlp.xr = a(1,2)-a(1,1); % xrange
             this.hlp.yr = a(2,2)-a(2,1); % yrange
-            this.hlp.xd = abs(((1:this.hlp.d1)-1)*this.sys.h-.5*this.hlp.xr)'; % x distances from middle
-            this.hlp.yd = abs(((1:this.hlp.d2)-1)*this.sys.h-.5*this.hlp.yr)'; % y distances from middle
+            this.hlp.xd = abs(((1:this.hlp.d1)-1)*this.System.h-.5*this.hlp.xr)'; % x distances from middle
+            this.hlp.yd = abs(((1:this.hlp.d2)-1)*this.System.h-.5*this.hlp.yr)'; % y distances from middle
             
             % Add x_a dependencies
             % 1=x_a, 2=y_a, 3=x_i {, y_i}
@@ -112,10 +85,6 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.fDim,this.xDim);
         end
         
-        function evaluateCoreFun(varargin)
-            error('dont call me (direct overload of evaluate for efficiency');
-        end
-        
         function fx = evaluate(this, x, t, mu)
             
             % If this has been projected, restore full size and compute values.
@@ -129,13 +98,13 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             m = this.nodes;
             
             % Compute activation fun values (it's set up in scaled times!)
-            ud = this.activationFun(t);
-            rc = this.sys.ReacCoeff;
+            ud = this.activationFun(t,mu);
+            rc = this.System.ReacCoeff;
             if size(x,2) == 1
                
                 % Extract single functions
                 xa = x(1:m);
-                xan = xa.^this.hlp.n;
+                xan = xa.^mu(4);
                 ya = x(m+1:2*m);
                 xi = x(2*m+1:3*m);
                 yi = x(3*m+1:end);
@@ -173,7 +142,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             else
                 % Extract single functions
                 xa = x(1:m,:);
-                xan = xa.^this.hlp.n;
+                xan = xa.^mu(4,:);
                 ya = x(m+1:2*m,:);
                 xi = x(2*m+1:3*m,:);
                 yi = x(3*m+1:end,:); 
@@ -204,9 +173,13 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 idx = this.idxmat(1,:);
                 rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
                 
+                % Ca-8
                 fx(1:m,:) = rc(1)*xi.*ya - xa*rc(3) + rb/this.hlp.hs;
+                % Ca-3
                 fx(m+1:2*m,:) = rc(2)*yi.*xan - ya*rc(4);
+                % Pro-Ca-8
                 fx(2*m+1:3*m,:) = -rc(1)*xi.*ya - rc(5)*xi + rc(7) - rb/this.hlp.hs;
+                % Pro-Ca-3
                 fx(3*m+1:end,:) = -rc(2)*yi.*xan - rc(6)*yi + rc(8);
             end
             
@@ -224,7 +197,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             end
             
             n = this.nodes;
-            rc = this.sys.ReacCoeff;
+            rc = this.System.ReacCoeff;
             
             % Boundary stuff
             bottom = this.idxmat(this.hlp.xd <= this.hlp.xr*mu(1)/2,1);
@@ -250,8 +223,8 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             % 1=x_a, 2=y_a {, x_i}, 3=y_i
             i = [i; (n+1:2*n)'; (n+1:2*n)'; (n+1:2*n)'];
             j = [j; (1:2*n)'; (3*n+1:4*n)'];
-            hlp1 = this.hlp.n*rc(2)*x(3*n+1:end).*x(1:n).^(this.hlp.n-1);
-            hlp2 = rc(2)*x(1:n).^this.hlp.n;
+            hlp1 = mu(4)*rc(2)*x(3*n+1:end).*x(1:n).^(mu(4)-1);
+            hlp2 = rc(2)*x(1:n).^mu(4);
             s = [s; hlp1; ... % dy_a/x_a = n*mu2*y_i*x_a^(n-1)
                  -ones(n,1)*rc(4);... % dy_a/y_a = -mu4
                  hlp2]; %dy_a/y_i = mu2 * x_a^n
@@ -303,7 +276,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             m = this.nodes;
             nd = size(X,2);
             fxj = zeros(length(pts),nd);
-            rc = this.sys.ReacCoeff;
+            rc = this.System.ReacCoeff;
             if nd > 1
                 bottom = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(1,:)/2);
                 top = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(1,:)/2);
@@ -323,7 +296,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             % ind2sub direct replacement!
             row = rem(J2-1, this.hlp.d1)+1;
             col = (J2-row)/this.hlp.d1+1;
-            u = this.activationFun(t);
+            u = this.activationFun(t, mu);
             for idx=1:length(pts)
                 j = pts(idx);
                 if idx == 1
@@ -362,8 +335,8 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 % Y_a
                 elseif m < j && j <= 2*m
                     % 1=x_a, 2=y_a {, x_i}, 3=y_i
-                    % rc(2)*yi.*xan - rc(4)*ya;
-                    fj = rc(2)*x(3,:).*x(1,:).^this.hlp.n - rc(4)*x(2,:);
+                    % rc(2)*yi.*xa^mu4 - rc(4)*ya;
+                    fj = rc(2)*x(3,:).*x(1,:).^mu(4,:) - rc(4)*x(2,:);
                     
                 % X_i
                 elseif 2*m < j && j <= 3*m
@@ -392,8 +365,8 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 % Y_i
                 else
                     % 1=x_a, {y_a, x_i}, 2=y_i
-                    % -rc(2)*yi.*xan - rc(6)*yi + rc(8);
-                    fj = -rc(2)*x(2,:).*x(1,:).^this.hlp.n - rc(6)*x(2,:) + rc(8);
+                    % -rc(2)*yi.*xa^mu4 - rc(6)*yi + rc(8);
+                    fj = -rc(2)*x(2,:).*x(1,:).^mu(4,:) - rc(6)*x(2,:) + rc(8);
                 end
                 fxj(idx,:) = fj;
             end
@@ -416,8 +389,9 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
             % Return values:
             % dfx: A column vector with 'numel(deriv)' rows containing the derivatives at all
             % specified pts i with respect to the coordinates given by 'idx(ends(i-1):ends(i))'
+            error('Activation fun not yet implemented correctly');
             m = this.nodes;
-            rc = this.sys.ReacCoeff;
+            rc = this.System.ReacCoeff;
             nd = size(X,2);
             
             %% Boundary stuff
@@ -489,7 +463,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 elseif m < i && i <= 2*m
                     % 1=x_a, 2=y_a {, x_i}, 3=y_i
                     if d(1) % dy_a/x_a = n*mu2*y_i*x_a^(n-1)
-                        dfx(curpos,:) = this.hlp.n*rc(2)*x(3,:).*x(1,:).^(this.hlp.n-1);
+                        dfx(curpos,:) = mu(4,:)*rc(2)*x(3,:).*x(1,:).^(mu(4,:)-1);
                         curpos = curpos + 1;
                     end
                     if d(2) % dy_a/y_a = -mu4
@@ -497,7 +471,7 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                         curpos = curpos + 1;
                     end
                     if d(3) % dx_a/x_a = -mu3
-                        dfx(curpos,:) = rc(2)*x(1,:).^this.hlp.n;
+                        dfx(curpos,:) = rc(2)*x(1,:).^mu(4,:);
                         curpos = curpos + 1;
                     end
                     
@@ -530,21 +504,15 @@ classdef CoreFun2D < dscomponents.ACompEvalCoreFun
                 else
                     % 1=x_a, {y_a, x_i}, 2=y_i
                     if d(1) %dy_i/x_a = -n*mu2*y_i*x_a^(n-1)
-                        dfx(curpos,:) = -this.hlp.n*rc(2)*x(2,:).*x(1,:).^(this.hlp.n-1);
+                        dfx(curpos,:) = -mu(4,:)*rc(2)*x(2,:).*x(1,:).^(mu(4,:)-1);
                         curpos = curpos + 1;
                     end
                     if d(2) % dy_i/y_i = -mu2 * x_a^n-mu6
-                        dfx(curpos,:) = -rc(2)*x(1,:).^this.hlp.n - rc(6);
+                        dfx(curpos,:) = -rc(2)*x(1,:).^mu(4,:) - rc(6);
                         curpos = curpos + 1;
                     end
                 end
             end
-        end
-    end
-    
-    methods(Access=private)
-        function f = activationFun(this, t)
-            f = (this.gaussian.evaluateScalar(t-27)-.4).*(t<=54)/.6;
         end
     end
 end

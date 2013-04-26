@@ -1,4 +1,4 @@
-classdef CoreFun3D < dscomponents.ACoreFun
+classdef CoreFun3D < models.pcd.BaseCoreFun
 % The core nonlinear function of the PCD model in 3D.
 %
 % @author Daniel Wirtz @date 2011-10-05
@@ -34,24 +34,22 @@ classdef CoreFun3D < dscomponents.ACoreFun
     
     methods
         
-        function this = CoreFun3D(dynsys)
-            this = this@dscomponents.ACoreFun;
-            this.sys = dynsys;
-            this.MultiArgumentEvaluations = false;
-            this.TimeDependent = true;
-        end
+%         function this = CoreFun3D(dynsys)
+%             this = this@models.pcd.BaseCoreFun(dynsys);
+%         end
         
         function copy = clone(this)
             copy = models.pcd.CoreFun3D(this.sys);
             
             % Call superclass method
-            copy = clone@dscomponents.ACoreFun(this, copy);
+            copy = clone@models.pcd.BaseCoreFun(this, copy);
             
             % copy reference!
             %copy.sys = this.sys; % already done in constructor
             copy.A = this.A;
             copy.dim = this.dim;
             copy.g = this.g;
+            copy.nodes = this.nodes;
         end
         
         function newSysDimension(this)

@@ -3,6 +3,8 @@ classdef PCDModel < models.BaseFullModel
 %
 % @author Daniel Wirtz @date 2011-03-16
 %
+% @change{0,7,dw,2013-03-14} Moved constants from other pcd classes to this class.
+%
 % @change{0,6,dw,2011-11-27} Moved the static reduction experiments to their respective xD
 % systems.
 %
@@ -31,6 +33,67 @@ classdef PCDModel < models.BaseFullModel
         
         % Typical cell length (from 1D)
         L = 1e-5; %[m]
+        
+        % Exponent in ya,yi term (necessary casp-3 for casp-8 activation)
+        %
+        % @note This is only for the current 1D and 3D models; the 2D model has the exponent as
+        % 4th model parameter.
+        n = 2;
+        
+        %% Coefficient values        
+        % Procaspase-8 to Caspase-8 reaction rate
+        % Empiric value from [1] in daub's milestone
+        Kc1_real = 0.08;
+        
+        % Procaspase-3 to Caspase-3 reaction rate
+        % Empiric value from [1] in daub's milestone
+        Kc2_real = 0.08;
+        
+        % Caspase-8 degradation rate
+        % Empiric value from [1] in daub's milestone
+        Kd1_real = .0005;
+        
+        % Caspase-3 degradation rate
+        % Empiric value from [1] in daub's milestone
+        Kd2_real = .0005;
+        
+        % Pro-Caspase-8 degradation rate
+        % Empiric value from [1] in daub's milestone
+        Kd3_real = .0005;
+        
+        % Caspase-3 degradation rate
+        % Empiric value from [1] in daub's milestone
+        Kd4_real = .0005;
+        
+        % Procaspase-8 production rate
+        % Empiric value from [1] in daub's milestone
+        Kp1_real = 0.0001;
+        
+        % Procaspase-3 production rate
+        % Empiric value from [1] in daub's milestone
+        Kp2_real = 0.0001;
+        
+        %% System Rescaling settings
+        % Typical Caspase-8 concentration
+        xa0 = 1e-7; %[M]
+        
+        % Typical Caspase-3 concentration
+        ya0 = 1e-7; %[M]
+        
+        % Typical Procaspase-8 concentration
+        xi0 = 1e-7; %[M]
+        
+        % Typical Procaspase-3 concentration
+        yi0 = 1e-7; %[M]
+        
+        % Steady state configurations
+        % First row: life state
+        % Second row: unstable state
+        % Third row: death state (as of ya > 0.01 its considered death)
+        SteadyStates = [[0; 9.8153e-4; 0.1930]*models.pcd.PCDModel.xa0...
+                        [0; 3.0824e-5; 0.1713]*models.pcd.PCDModel.ya0...
+                        [.2; 0.1990; 0.0070]*models.pcd.PCDModel.xi0...
+                        [.2; 0.2; 0.0287]*models.pcd.PCDModel.yi0];
     end
     
     properties(Dependent)
@@ -48,8 +111,8 @@ classdef PCDModel < models.BaseFullModel
                 dim = 1;
             end
             
-            this.T = 6; %[s]
-            this.dt = .01; %[s]
+            this.T = 3600; %[s]
+            this.dt = 5; %[s]
             % time scaling
             this.tau = this.L^2/this.d1;
             
@@ -62,11 +125,12 @@ classdef PCDModel < models.BaseFullModel
             
 %             this.ODESolver = solvers.MLWrapper(@ode23);
 %             this.ODESolver = solvers.ExplEuler(this.dt);
-            o = solvers.MLode15i;
-            o.AbsTol = 1e-6;
-            o.RelTol = 1e-5;
-            o.MaxStep = [];
-            this.ODESolver = o;
+%             o = solvers.MLode15i;
+%             o.AbsTol = 1e-6;
+%             o.RelTol = 1e-5;
+%             o.MaxStep = [];
+%             this.ODESolver = o;
+            this.ODESolver = solvers.SemiImplicitEuler(this);
             
             switch dim
                 case 3
@@ -79,6 +143,7 @@ classdef PCDModel < models.BaseFullModel
                     s = models.pcd.PCDSystem1D(this);
                     this.Name = 'Programmed Cell Death 1D';
             end
+            s.MaxTimestep = this.dt;            
             this.System = s;
             
             % Space reduction setup

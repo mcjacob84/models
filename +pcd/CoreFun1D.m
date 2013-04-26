@@ -81,6 +81,7 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
             fx = zeros(size(x));
             
             m = this.nodes;
+            n = this.sys.Model.n;
             
             % Non-Multidimensional case
             if size(x,2) == 1
@@ -88,7 +89,7 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
                 
                 % Extract single functions
                 xa = x(1:m);
-                xan = xa.^this.sys.n;
+                xan = xa.^n;
                 ya = x(m+1:2*m);
                 xi = x(2*m+1:3*m);
                 yi = x(3*m+1:end);
@@ -105,7 +106,7 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
                 mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu];
                 % Extract single functions
                 xa = x(1:m,:);
-                xan = xa.^this.sys.n;
+                xan = xa.^n;
                 ya = x(m+1:2*m,:);
                 xi = x(2*m+1:3*m,:);
                 yi = x(3*m+1:end,:);
@@ -141,6 +142,7 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
             % fxj: A matrix with pts-many component function evaluations `f_i(\vx)` as rows and as
             % many columns as `\vX` had.
             m = this.nodes;
+            n = this.sys.Model.n;
             fxj = zeros(length(pts),size(X,2));
             
             mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu];
@@ -169,7 +171,7 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
                 elseif m < j && j <= 2*m
                     % 1=x_a, 2=y_a {, x_i}, 3=y_i
                     % mu(2)*yi.*xan - mu(4)*ya;
-                    fj = mu(2,:).*x(3,:).*x(1,:).^this.sys.n - mu(4,:).*x(2,:);
+                    fj = mu(2,:).*x(3,:).*x(1,:).^n - mu(4,:).*x(2,:);
                     
                 % X_i
                 elseif 2*m < j && j <= 3*m
@@ -185,7 +187,7 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
                 else
                     % 1=x_a, {y_a, x_i}, 2=y_i
                     % -mu(2)*yi.*xan - mu(6)*yi + mu(8);
-                    fj = -mu(2,:).*x(2,:).*x(1,:).^this.sys.n - mu(6,:).*x(2,:) + mu(8,:);
+                    fj = -mu(2,:).*x(2,:).*x(1,:).^n - mu(6,:).*x(2,:) + mu(8,:);
                 end
                 fxj(idx,:) = fj;
             end
