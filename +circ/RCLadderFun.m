@@ -14,12 +14,14 @@ classdef RCLadderFun < dscomponents.ACoreFun
 % - \c License @ref licensing
     
     methods
-        function this = RCLadderFun
+        function this = RCLadderFun(dim)
             this = this@dscomponents.ACoreFun;
             
             this.MultiArgumentEvaluations = true;
             this.CustomProjection = true;
             this.TimeDependent = false;
+            this.xDim = dim;
+            this.fDim = dim;
         end
         
         function fx = evaluateCoreFun(~, v, ~, ~)
