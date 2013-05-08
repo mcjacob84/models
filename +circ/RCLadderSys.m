@@ -35,7 +35,9 @@ classdef RCLadderSys < models.BaseDynSystem
             
             this.f = models.circ.RCLadderFun(dim);
             
-            this.Inputs = {@(t)exp(-t),@(t)(cos(2*pi*t/10) + 1)/2,@(t)double((t-.3)>0)};
+            this.Inputs = {@(t)exp(-t),@(t)(cos(2*pi*t/10) + 1)/2,...
+                @(t)double((t-.3)>0),@(t)(cos(pi*t)+1)/(t+1),...
+                @(t)(cos(pi*t*.5)+1)/(t+1),@(t)2*(t>1.3),@(t)(cos(3*pi*t)+1)/(2*t+1)};
             
             this.MaxTimestep = [];
             this.StateScaling = 1;            

@@ -86,6 +86,8 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
             s = solvers.SemiImplicitEuler(this);
             s.MaxStep = .05; % Stability constraint due to diffusion term
             this.ODESolver = s;
+            
+            this.ErrorEstimator = error.IterationCompLemmaEstimator;
         end
         
         function set.Dims(this, value)
