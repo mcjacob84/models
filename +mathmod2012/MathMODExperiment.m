@@ -108,7 +108,7 @@ classdef MathMODExperiment < models.BaseFullModel
                 a = gca(f);
                 axis(a,[0 m.T md.MinErr*.9 min(1e4,absmax)]);
                 set(legend(a),'Location','NorthEast');
-                fi = fullfile(KerMor.App.DataStoreDirectory,'MathMOD',sprintf('MathMOD_mu1_%d_deg%f_', mu1, s.Degree));
+                fi = fullfile(KerMor.App.DataDirectory,'MathMOD',sprintf('MathMOD_mu1_%d_deg%f_', mu1, s.Degree));
                 Utils.saveFigure(f,[fi 'errors'],'fig');
                 title(a,'');
                 Utils.saveFigure(f,[fi 'errors']);

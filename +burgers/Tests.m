@@ -16,7 +16,7 @@ classdef Tests
     methods(Static)
         
         function d = getMoRePasDir
-            d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_MoRePaS');
+            d = fullfile(KerMor.App.DataDirectory,'test_Burgers_MoRePaS');
             if exist(d,'file') ~= 7
                 [~,~] = mkdir(d);
             end
