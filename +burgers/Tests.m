@@ -226,10 +226,8 @@ classdef Tests
             end
             m = models.burgers.Burgers(dim, version);
             
-            if dim < 1000
-                m.Data.TrajectoryData = data.MemoryTrajectoryData;
-            else
-                m.Data.TrajectoryData = data.FileTrajectoryData(m.Data);
+            if dim > 1000
+                m.Data.useFileTrajectoryData;
             end
             
             %% Sampling - manual

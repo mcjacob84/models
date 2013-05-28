@@ -167,7 +167,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel
             %% Model specifics
             this.T = 5;
             this.dt = .05;
-            this.ModelData.TrajectoryData = data.FileTrajectoryData(this.ModelData);%#ok
+            this.Data.useFileTrajectoryData;
             
             %% Internal setup
             this.System = models.beam.DynLinTimoshenkoSystem(this);

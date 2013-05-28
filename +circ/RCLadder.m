@@ -36,6 +36,9 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
     methods
         
         function this = RCLadder(dims)
+            
+            this = this@models.BaseFullModel;
+            
             if nargin == 0
                 dims = 30;
             end
@@ -49,6 +52,7 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
             this.dt = .0025;
             this.tau = 1;
             this.SaveTag = sprintf('rcladder_d%d_T%g',dims,this.T);
+            this.Data = data.ModelData(this);
             
             this.System = models.circ.RCLadderSys(this);
             
