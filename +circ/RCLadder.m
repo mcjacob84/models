@@ -102,6 +102,19 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
         end
     end
     
+    methods(Static, Access=protected)
+        function this = loadobj(this)
+            if ~isa(this, 'models.circ.RCLadder')
+                s = this;
+                this = models.circ.RCLadder(s.Dims);
+                % field "Dims" is set in constructor
+                this = loadobj@models.BaseFullModel(this, s);
+            else
+                this = loadobj@models.BaseFullModel(this);
+            end
+        end
+    end
+    
     methods(Static)
         
         function runDemo
