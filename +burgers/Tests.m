@@ -16,7 +16,7 @@ classdef Tests
     methods(Static)
         
         function d = getMoRePasDir
-            d = fullfile(KerMor.App.DataStoreDirectory,'test_Burgers_MoRePaS');
+            d = fullfile(KerMor.App.DataDirectory,'test_Burgers_MoRePaS');
             if exist(d,'file') ~= 7
                 [~,~] = mkdir(d);
             end
@@ -226,10 +226,8 @@ classdef Tests
             end
             m = models.burgers.Burgers(dim, version);
             
-            if dim < 1000
-                m.Data.TrajectoryData = data.MemoryTrajectoryData;
-            else
-                m.Data.TrajectoryData = data.FileTrajectoryData(m.Data);
+            if dim > 1000
+                m.Data.useFileTrajectoryData;
             end
             
             %% Sampling - manual

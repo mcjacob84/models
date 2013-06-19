@@ -146,7 +146,7 @@ classdef Tests
             m.ErrorEstimator = e;
             
             gitbranch = KerMor.getGitBranch;
-            d = fullfile(KerMor.App.DataStoreDirectory,sprintf('tests_PCD_DEIM_2D_%d_%d',m.System.Dims));
+            d = fullfile(KerMor.App.DataDirectory,sprintf('tests_PCD_DEIM_2D_%d_%d',m.System.Dims));
             [~,~] = mkdir(d);
             oldd = pwd;
             cd(d);
@@ -218,7 +218,7 @@ classdef Tests
             m.ErrorEstimator = e;
             
             gitbranch = KerMor.getGitBranch;
-            d = fullfile(KerMor.App.DataStoreDirectory,sprintf('tests_PCD_DEIM_2D_%d_%d_500s',m.System.Dims));
+            d = fullfile(KerMor.App.DataDirectory,sprintf('tests_PCD_DEIM_2D_%d_%d_500s',m.System.Dims));
             [~,~] = mkdir(d);
             oldd = pwd;
             cd(d);
@@ -280,7 +280,7 @@ classdef Tests
             gitbranch = KerMor.getGitBranch;
             
             clear s;
-            d = fullfile(KerMor.App.DataStoreDirectory,'tests_PCD_DEIM_1D');
+            d = fullfile(KerMor.App.DataDirectory,'tests_PCD_DEIM_1D');
             [~,~] = mkdir(d);
             oldd = pwd;
             cd(d);

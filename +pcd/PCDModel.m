@@ -116,7 +116,9 @@ classdef PCDModel < models.BaseFullModel
             % time scaling
             this.tau = this.L^2/this.d1;
             
-            this.Data.TrajectoryData = data.FileTrajectoryData(this.Data);
+            if dim > 10000
+                this.Data.useFileTrajectoryData;
+            end
             
 %             s = sampling.RandomSampler;
 %             s.Samples = 10;

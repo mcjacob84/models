@@ -36,6 +36,9 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
     methods
         
         function this = RCLadder(dims)
+            
+            this = this@models.BaseFullModel;
+            
             if nargin == 0
                 dims = 30;
             end
@@ -49,6 +52,7 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
             this.dt = .0025;
             this.tau = 1;
             this.SaveTag = sprintf('rcladder_d%d_T%g',dims,this.T);
+            this.Data = data.ModelData(this);
             
             this.System = models.circ.RCLadderSys(this);
             
@@ -95,6 +99,19 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
                 error('value must be a positive integer scalar');
             end
             this.Dims = value;
+        end
+    end
+    
+    methods(Static, Access=protected)
+        function this = loadobj(this)
+            if ~isa(this, 'models.circ.RCLadder')
+                s = this;
+                this = models.circ.RCLadder(s.Dims);
+                % field "Dims" is set in constructor
+                this = loadobj@models.BaseFullModel(this, s);
+            else
+                this = loadobj@models.BaseFullModel(this);
+            end
         end
     end
     
