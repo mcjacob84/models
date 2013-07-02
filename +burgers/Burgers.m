@@ -64,13 +64,6 @@ classdef Burgers < models.BaseFullModel
             this.Approx = a;
             
             this.ErrorEstimator = error.DEIMEstimator;
-%             a.ParamKernel = kernels.GaussKernel;
-%             al = approx.algorithms.VKOGA;
-%             al.UseOGA = true;
-%             al.NumGammas = 30;
-%             al.MaxExpansionSize = 400;
-%             al.gameps = 1e-2;
-%             a.Algorithm = al;
         end
         
         function [f, ax] = plot(this, t, y, ax)
