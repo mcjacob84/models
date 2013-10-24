@@ -61,7 +61,12 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             if ~isempty(varargin) && isa(varargin{1},'PlotManager')
                 pm = varargin{1};
             else
-                pm = PlotManager(false,2,2);
+                if model.WithInhibitors
+                    np = 4;
+                else
+                    np = 2;
+                end
+                pm = PlotManager(false,2,np);
                 if nargout == 0
                     pm.LeaveOpen = true;
                 else
@@ -113,7 +118,11 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             d2idx = find(abs((1:d) - d/2) <= d/2 * p);
             [d1,d2] = meshgrid(d1idx,d2idx);
             sel = reshape(sub2ind(this.Dims,d1,d2),1,[]);
-            C = sparse(1,4*m);
+            if this.Model.WithInhibitors
+                C = sparse(1,8*m);
+            else
+                C = sparse(1,4*m);
+            end
             ca3 = m+1:2*m;
             C(ca3(sel)) = 1/length(sel);
             this.C = dscomponents.LinearOutputConv(C);
@@ -128,8 +137,9 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             idxmat = zeros(this.Dims);
             idxmat(:) = 1:m;
             sel = idxmat(:,round(this.Dims(2)/2));
-            sel = [sel; sel+m; sel+2*m; sel+3*m];
-            m = length(sel)/4;
+            sel = [sel; sel+m; sel+2*m; sel+3*m;...
+                sel+4*m; sel+5*m; sel+6*m; sel+7*m];
+            m = length(sel)/8;
             y = y(sel,:);
             
             if length(t) > 150
@@ -141,24 +151,35 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             
             X = t;
             Y = (this.Omega(1,1):this.h:this.Omega(1,2))/model.L;
-            doplot(y(1:m,:),'c8','Caspase-8 (x_a)',1);
-            doplot(y(m+1:2*m,:),'c3','Caspase-3 (y_a)',2);
-            doplot(y(2*m+1:3*m,:),'pc8','Pro-Caspase-8 (x_i)',3);
-            doplot(y(3*m+1:end,:),'pc3','Pro-Caspase-3 (y_i)',4);
+            pos = reshape(1:8*m,[],8)';
+            doplot('c8','Caspase-8 (x_a)',1);
+            doplot('c3','Caspase-3 (y_a)',2);
+            doplot('pc8','Pro-Caspase-8 (x_i)',3);
+            doplot('pc3','Pro-Caspase-3 (y_i)',4);
+            if this.Model.WithInhibitors
+                doplot('iap','IAP (iap)',5);
+                doplot('bar','BAR (bar)',6);
+                doplot('yb','Caspase-3+IAP (yb)',7);
+                doplot('xb','Caspase-8+BAR (xb)',8);
+            end
             
-            function doplot(y, tag, thetitle, pnr)
-                di = abs(this.Model.SteadyStates(:,pnr)-y(end));
+            function doplot(tag, thetitle, pnr)
+                yl = y(pos(pnr,:),:);
+                di = abs(this.Model.SteadyStates(:,pnr)-yl(end));
                 reldi = di ./ (this.Model.SteadyStates(:,pnr)+eps);
                 reldistr = Utils.implode(reldi,', ','%2.3e');
                 if any(reldi > .1) || any(reldi < 10)
                     [~, id] = min(di);
-                    tit = sprintf('Model "%s", %s concentrations\nCell state at T=%d: %s\n%s', model.Name, thetitle,...
+                    tit = sprintf('%s concentrations\nCell state at T=%g: %s\n%s', thetitle,...
                     max(t),states{id},reldistr);
                 else
-                    tit = sprintf('Model "%s", %s concentrations\n%s', model.Name, thetitle,reldistr);
+                    tit = sprintf('%s concentrations\n%s', thetitle,reldistr);
+                end
+                if pm.Single
+                    tit = sprintf('Model "%s"\n%s',model.Name,tit);
                 end
                 h = pm.nextPlot(tag,tit,'Time [s]','Cell slice');
-                surf(h,X,Y,y,'EdgeColor','none');
+                surf(h,X,Y,yl,'EdgeColor','none');
                 zlabel(h,thetitle);
             end
         end

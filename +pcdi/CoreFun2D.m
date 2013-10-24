@@ -17,6 +17,9 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
         hlp;
         
         idxmat;
+        
+        Ji;
+        Jj;
     end
     
     methods
@@ -57,22 +60,25 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
             this.hlp.xd = abs(((1:this.hlp.d1)-1)*this.System.h-.5*this.hlp.xr)'; % x distances from middle
             this.hlp.yd = abs(((1:this.hlp.d2)-1)*this.System.h-.5*this.hlp.yr)'; % y distances from middle
             
+             %% 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
             % Add x_a dependencies
-            % 1=x_a, 2=y_a, 3=x_i {, y_i}
-            i = [(1:n)'; (1:n)'; (1:n)'];
-            j = (1:3*n)';
+            % rc(2)*xi.*ya - rc(5)*xa
+            i = repmat(this.nodepos(1),1,3); 
+            j = this.nodepos(1:3);
             % Add y_a dependencies
-            % 1=x_a, 2=y_a {, x_i}, 3=y_i
-            i = [i; (n+1:2*n)'; (n+1:2*n)'; (n+1:2*n)'];
-            j = [j; (1:2*n)'; (3*n+1:4*n)'];
+            % rc(1)*yi.*xa - rc(6)*ya;
+            i = [i repmat(this.nodepos(2),1,3)];
+            j = [j this.nodepos([1:2 4])];
             % Add x_i dependencies
-            % {x_a,} 1=y_a, 2=x_i {, y_i}
-            i = [i; (2*n+1:3*n)'; (2*n+1:3*n)'];
-            j = [j; (n+1:3*n)'];
+            % -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
+            i = [i repmat(this.nodepos(3),1,2)]; 
+            j = [j this.nodepos([2 3])];
             % Add y_i dependencies
-            % 1=x_a, {y_a, x_i}, 2=y_i
-            i = [i; (3*n+1:4*n)'; (3*n+1:4*n)'];
-            j = [j; (1:n)'; (3*n+1:4*n)'];
+            % -rc(1)*yi.*xa - rc(10)*yi + rc(17);
+            i = [i repmat(this.nodepos(4),1,2)]; 
+            j = [j this.nodepos([1 4])];
+            this.Ji = i;
+            this.Jj = j;
             this.xDim = 4*n;
             this.fDim = 4*n;
             this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.fDim,this.xDim);
@@ -207,36 +213,29 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
             rbxi(left) = mu(2)*u;
             rbxi = rbxi/this.hlp.hs;
             
-            %% x_a part
-            % 1=x_a, 2=y_a, 3=x_i {, y_i}
-            i = [(1:n)'; (1:n)'; (1:n)'];
-            j = (1:3*n)';
-            s = [-ones(n,1)*rc(5); ... % dx_a/x_a = -k5
-                rc(2)*x(2*n+1:3*n);... % dx_a/y_a = k2*x_i
-                rc(2)*x(n+1:2*n) + rbxi]; %dx_a/x_i + rbxi
-            %% y_a part
-            % 1=x_a, 2=y_a {, x_i}, 3=y_i
-            i = [i; (n+1:2*n)'; (n+1:2*n)'; (n+1:2*n)'];
-            j = [j; (1:2*n)'; (3*n+1:4*n)'];
-            hlp1 = mu(4)*rc(1)*x(3*n+1:end).*x(1:n).^(mu(4)-1);
-            hlp2 = rc(1)*x(1:n).^mu(4);
-            s = [s; hlp1; ... % dy_a/x_a = n*k1*y_i*x_a^(n-1)
-                -ones(n,1)*rc(6);... % dy_a/y_a = -k6
-                hlp2]; %dy_a/y_i = k1 * x_a^n
+            % yb, xb values not needed in jacobian!
+            posi = reshape(1:4*n',[],4)';
+            o = ones(n,1);
+            xa = x(posi(1,:)); ya = x(posi(2,:));
+            xi = x(posi(3,:)); yi = x(posi(4,:));
             
-            %% x_i part
-            % {x_a,} 1=y_a, 2=x_i {, y_i}
-            i = [i; (2*n+1:3*n)'; (2*n+1:3*n)'];
-            j = [j; (n+1:3*n)'];
-            s = [s; -rc(2)*x(2*n+1:3*n);... %dx_i/y_a = -k2*x_i
-                -rc(2)*x(n+1:2*n)-rc(9)-rbxi]; %dx_i/x_i = -k2*y_a -k9 -rbxi
-            
-            %% y_i part
-            % 1=x_a, {y_a, x_i}, 2=y_i
-            i = [i; (3*n+1:4*n)'; (3*n+1:4*n)'];
-            j = [j; (1:n)'; (3*n+1:4*n)'];
-            s = [s; -hlp1; ... %dy_i/x_a = -n*k1*y_i*x_a^(n-1)
-                -hlp2-rc(10)]; % dy_i/y_i = -k1 * x_a^n-k10
+            %% 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+            % dxa = rc(2)*xi.*ya - rc(5)*xa
+            s = [-o*rc(5); ... % dx_a/x_a
+                rc(2)*xi;... % dxa/ya
+                rc(2)*ya + rbxi]; %dxa/xi
+            % dya = rc(1)*yi.*xan - rc(6)*ya;
+            nyixan_1 = mu(4)*rc(1)*yi.*xa.^(mu(4)-1);
+            k1xan = rc(1)*xa.^mu(4);
+            s = [s; nyixan_1; ... % dya/xa
+                -o*rc(6);... % dy_a/y_a
+                k1xan]; %dy_a/y_i
+            % dxi = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
+            s = [s; -rc(2)*xi;... %dxi/ya
+                -rc(2)*xa-rc(9)-rbxi]; %dxi/xi
+            % dyi = -rc(1)*yi.*xan - rc(10)*yi + rc(17);
+            s = [s; -nyixan_1; ... %dyi/xa
+                -k1xan-o*rc(10)]; % dyi/yi
             
             n = this.fDim;
             if ~isempty(this.V)
@@ -246,11 +245,19 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
             if ~isempty(this.W)
                 n = size(this.W,1);
             end
-            J = sparse(i,j,s,n,m);
+            J = sparse(this.Ji,this.Jj,s,n,m);
         end
     end
     
     methods(Access=protected)
+        function idx = nodepos(this, nr)
+            n = this.nodes;
+            idx = zeros(1,n*length(nr));
+            for k=1:length(nr)
+                idx((k-1)*n+1:k*n) = (nr(k)-1)*this.nodes+1:nr(k)*this.nodes;
+            end
+        end
+        
         function fxj = evaluateComponents(this, pts, ends, ~, ~, X, t, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into
             % the components x_a, y_a, x_i, y_i

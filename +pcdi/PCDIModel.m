@@ -101,14 +101,19 @@ classdef PCDIModel < models.BaseFullModel
         % Typical cell length (from 1D)
         L = 1e-5; %[m]
         
-        %         % Steady state configurations
-        %         % First row: life state
-        %         % Second row: unstable state
-        %         % Third row: death state (as of ya > 0.01 its considered death)
-        %         SteadyStates = [[0; 9.8153e-4; 0.1930]*models.pcd.PCDModel.xa0...
-        %                         [0; 3.0824e-5; 0.1713]*models.pcd.PCDModel.ya0...
-        %                         [.2; 0.1990; 0.0070]*models.pcd.PCDModel.xi0...
-        %                         [.2; 0.2; 0.0287]*models.pcd.PCDModel.yi0];
+        % Steady state configurations
+        % First row: life state
+        % Second row: unstable state
+        % Third row: death state (as of ya > 0.01 its considered death)
+        SteadyStates = models.pcdi.PCDIModel.tc*...
+            [[0; 2.16e-4; 0.0097]...
+            [0; 0.0012; 0.1109]...
+            [.1984; 0.1659; 0.0107]...
+            [.1984; 0.1918; 0.0781]...
+            [5.5556; 2.4177; 0.0473]...
+            [1; 0.8372; 0.1027]...
+            [0; 0.0015; 0.0026]...
+            [0; 0.009; 0.0498]];
     end
     
     properties(SetAccess=private)
@@ -127,7 +132,7 @@ classdef PCDIModel < models.BaseFullModel
             % dim: The dimension to use @default 1
             
             if nargin == 0
-                dim = 1;
+                dim = 2;
             end
             this.WithInhibitors = inhibitors;
             
@@ -151,15 +156,15 @@ classdef PCDIModel < models.BaseFullModel
             switch dim
                 case 3
                     s = models.pcdi.PCDISystem3D(this);
-                    this.Name = 'Programmed Cell Death 3D (Inhibitor System)';
-                    this.Data.useFileTrajectoryData;
-                case 2
-                    s = models.pcdi.PCDISystem2D(this);
-                    this.Name = 'Programmed Cell Death 2D (Inhibitor System)';
+                    this.Name = 'Programmed Cell Death 3D';
                     this.Data.useFileTrajectoryData;
                 otherwise
-                    s = models.pcdi.PCDISystem1D(this);
-                    this.Name = 'Programmed Cell Death 1D (Inhibitor System)';
+                    s = models.pcdi.PCDISystem2D(this);
+                    this.Name = 'Programmed Cell Death 2D';
+                    this.Data.useFileTrajectoryData;
+            end
+            if this.WithInhibitors
+                this.Name = [this.Name ' (Inhibitor System)'];
             end
             s.MaxTimestep = this.dt;
             this.System = s;

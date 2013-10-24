@@ -30,6 +30,8 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
             
             % Call superclass method
             copy = clone@models.pcdi.CoreFun2D(this, copy);
+            copy.Ji = this.Ji;
+            copy.Jj = this.Jj;
         end
         
         function newSysDimension(this)
@@ -39,51 +41,46 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
             % Re-build sparsity pattern
             n = this.nodes;
             
-            % 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+            %% 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
             % Add x_a dependencies
             % rc(2)*xi.*ya - rc(5)*xa -rc(11)*xa.*bar + rc(18)*xb
-            i = repmat(pos(1),1,5); 
-            j = pos([1:3 6 8]);
+            i = repmat(this.nodepos(1),1,5); 
+            j = this.nodepos([1:3 6 8]);
             % Add y_a dependencies
             % rc(1)*yi.*xa - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yb;
-            i = [i repmat(pos(2),1,5)];
-            j = [j pos([1:2 4 5 7])];
+            i = [i repmat(this.nodepos(2),1,5)];
+            j = [j this.nodepos([1:2 4 5 7])];
             % Add x_i dependencies
             % -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
-            i = [i repmat(pos(3),1,2)]; 
-            j = [j pos([2 3])];
+            i = [i repmat(this.nodepos(3),1,2)]; 
+            j = [j this.nodepos([2 3])];
             % Add y_i dependencies
             % -rc(1)*yi.*xa - rc(10)*yi + rc(17);
-            i = [i repmat(pos(4),1,2)]; 
-            j = [j pos([1 4])];
+            i = [i repmat(this.nodepos(4),1,2)]; 
+            j = [j this.nodepos([1 4])];
             
-            % 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+            %% 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
             % Add iap dependencies
             % -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yab;
-            i = [i repmat(pos(5),1,3)]; 
-            j = [j pos([2 5 7])];
+            i = [i repmat(this.nodepos(5),1,3)]; 
+            j = [j this.nodepos([2 5 7])];
             % Add bar dependencies
             % -rc(11)*xa.*bar + rc(18)*xab - rc(19)*bar + rc(19);
-            i = [i repmat(pos(6),1,3)]; 
-            j = [j pos([1 6 8])];
+            i = [i repmat(this.nodepos(6),1,3)]; 
+            j = [j this.nodepos([1 6 8])];
             % Add bar dependencies
             % rc(3)*ya.*iap -(rc(14)+rc(7))*yab;
-            i = [i repmat(pos(7),1,3)]; 
-            j = [j pos([2 5 7])];
+            i = [i repmat(this.nodepos(7),1,3)]; 
+            j = [j this.nodepos([2 5 7])];
             % Add bar dependencies
             % rc(11)*xa.*bar-(rc(18)+rc(13))*xab;
-            i = [i repmat(pos(8),1,3)]; 
-            j = [j pos([1 6 8])];
+            i = [i repmat(this.nodepos(8),1,3)]; 
+            j = [j this.nodepos([1 6 8])];
+            this.Ji = i;
+            this.Jj = j;
             this.xDim = 8*n;
             this.fDim = 8*n;
             this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.fDim,this.xDim);
-            
-            function idx = pos(nr)
-                idx = [];
-                for k=1:length(nr)
-                    idx = [idx (nr(k)-1)*n+1:nr(k)*n];%#ok
-                end
-            end
         end
         
         function fx = evaluate(this, x, t, mu)
@@ -110,8 +107,8 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
                 yi = x(3*m+1:4*m);
                 iap = x(4*m+1:5*m);
                 bar = x(5*m+1:6*m);
-                yab = x(6*m+1:7*m);
-                xab = x(7*m+1:end);
+                yb = x(6*m+1:7*m);
+                xb = x(7*m+1:end);
     
                 rb = zeros(m,1);
                 
@@ -139,21 +136,21 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
                 % km3 = 14, km8 = 15, km12 = 19
                 
                 % x_a
-                fx(1:m) = rc(2)*xi.*ya - rc(5)*xa -rc(11)*xa.*bar + rc(18)*xab + rb/this.hlp.hs;
+                fx(1:m) = rc(2)*xi.*ya - rc(5)*xa -rc(11)*xa.*bar + rc(18)*xb + rb/this.hlp.hs;
                 % y_a
-                fx(m+1:2*m) = rc(1)*yi.*xan - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yab;
+                fx(m+1:2*m) = rc(1)*yi.*xan - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yb;
                 % x_i
                 fx(2*m+1:3*m) = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
                 % y_i
                 fx(3*m+1:4*m) = -rc(1)*yi.*xan - rc(10)*yi + rc(17);
                 % iap
-                fx(4*m+1:5*m) = -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yab;
+                fx(4*m+1:5*m) = -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yb;
                 % bar
-                fx(5*m+1:6*m) = -rc(11)*xa.*bar + rc(18)*xab - rc(19)*bar + rc(19);
+                fx(5*m+1:6*m) = -rc(11)*xa.*bar + rc(18)*xb - rc(19)*bar + rc(19);
                 % yab
-                fx(6*m+1:7*m) = rc(3)*ya.*iap -(rc(14)+rc(7))*yab;
+                fx(6*m+1:7*m) = rc(3)*ya.*iap -(rc(14)+rc(7))*yb;
                 % xab
-                fx(7*m+1:8*m) = rc(11)*xa.*bar-(rc(18)+rc(13))*xab;
+                fx(7*m+1:8*m) = rc(11)*xa.*bar-(rc(18)+rc(13))*xb;
             else
                 % Extract single functions
                 xa = x(1:m,:);
@@ -163,8 +160,8 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
                 yi = x(3*m+1:4*m,:); 
                 iap = x(4*m+1:5*m,:);
                 bar = x(5*m+1:6*m,:);
-                yab = x(6*m+1:7*m,:);
-                xab = x(7*m+1:end,:);
+                yb = x(6*m+1:7*m,:);
+                xb = x(7*m+1:end,:);
 
                 % Compile boundary conditions
                 nd = size(x,2);
@@ -193,21 +190,21 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
                 rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
                 
                 % x_a
-                fx(1:m,:) = rc(2)*xi.*ya - rc(5)*xa -rc(11)*xa.*bar + rc(18)*xab + rb/this.hlp.hs;
+                fx(1:m,:) = rc(2)*xi.*ya - rc(5)*xa -rc(11)*xa.*bar + rc(18)*xb + rb/this.hlp.hs;
                 % y_a
-                fx(m+1:2*m,:) = rc(1)*yi.*xan - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yab;
+                fx(m+1:2*m,:) = rc(1)*yi.*xan - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yb;
                 % x_i
                 fx(2*m+1:3*m,:) = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
                 % y_i
                 fx(3*m+1:4*m,:) = -rc(1)*yi.*xan - rc(10)*yi + rc(17);
                 % iap
-                fx(4*m+1:5*m,:) = -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yab;
+                fx(4*m+1:5*m,:) = -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yb;
                 % bar
-                fx(5*m+1:6*m,:) = -rc(11)*xa.*bar + rc(18)*xab - rc(19)*bar + rc(19);
+                fx(5*m+1:6*m,:) = -rc(11)*xa.*bar + rc(18)*xb - rc(19)*bar + rc(19);
                 % yab
-                fx(6*m+1:7*m,:) = rc(3)*ya.*iap -(rc(14)+rc(7))*yab;
+                fx(6*m+1:7*m,:) = rc(3)*ya.*iap -(rc(14)+rc(7))*yb;
                 % xab
-                fx(7*m+1:8*m,:) = rc(11)*xa.*bar-(rc(18)+rc(13))*xab;
+                fx(7*m+1:8*m,:) = rc(11)*xa.*bar-(rc(18)+rc(13))*xb;
             end
             
             % If this has been projected, project back to reduced space
@@ -239,61 +236,56 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
             rbxi(left) = mu(2)*u;
             rbxi = rbxi/this.hlp.hs;
             
+            % yb, xb values not needed in jacobian!
+            hlp = reshape(1:6*n',[],6)';
+            o = ones(n,1);
+            xa = x(hlp(1,:)); ya = x(hlp(2,:));
+            xi = x(hlp(3,:)); yi = x(hlp(4,:));
+            iap = x(hlp(5,:)); bar = x(hlp(6,:));
+            
             %% 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
-            % Add x_a dependencies
-            % rc(2)*xi.*ya - rc(5)*xa -rc(11)*xa.*bar + rc(18)*xb
-            i = repmat(pos(1),1,5); 
-            j = pos([1:3 6 8]);
-            s = [-ones(n,1)*rc(5); ... % dx_a/x_a = -k5
-                rc(2)*x(pos(3));... % dx_a/y_a = k2*x_i
-                rc(2)*x(pos(2)) + rbxi; %dx_a/x_i + rbxi
-                -rc(11)*xa; % dx_a/bar = -rc(11)*xa
-                ones(n,1)*rc(18)]; %dx_a/xb = rc(18)
-            
-            % Add y_a dependencies
-            % rc(1)*yi.*xa - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yb;
-            i = [i repmat(pos(2),1,5)];
-            j = [j pos([1:2 4 5 7])];
-            dya_xy = mu(4)*rc(1)*x(pos(4)).*x(1:n).^(mu(4)-1);
-            k1xan = rc(1)*x(1:n).^mu(4);
-            s = [s; dya_xy; ... % dy_a/x_a = n*k1*y_i*x_a^(n-1)
-                -ones(n,1)*rc(6);... % dy_a/y_a = -k6
-                k1xan;... %dy_a/y_i = k1 * x_a^n
-                -rc(3)*x(pos(2));...
-                ones(n,1)*rc(14)];
-            
+            % dxa = rc(2)*xi.*ya - rc(5)*xa -rc(11)*xa.*bar + rc(18)*xb
+            s = [-o*rc(5)-rc(11)*bar; ... % dx_a/x_a
+                rc(2)*xi;... % dxa/ya
+                rc(2)*ya + rbxi; %dxa/xi
+                -rc(11)*xa; % dxa/bar
+                o*rc(18)]; %dxa/xb
+            % dya = rc(1)*yi.*xan - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yb;
+            nyixan_1 = mu(4)*rc(1)*yi.*xa.^(mu(4)-1);
+            k1xan = rc(1)*xa.^mu(4);
+            s = [s; nyixan_1; ... % dya/xa
+                -o*rc(6) - rc(3)*iap;... % dy_a/y_a
+                k1xan;... %dy_a/y_i
+                -rc(3)*xa;... %dya/
+                o*rc(14)];
             %% 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
             % Add x_i dependencies
-            % -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
-            i = [i repmat(pos(3),1,2)]; 
-            j = [j pos([2 3])];
-            s = [s; -rc(2)*x(pos(3));... %dx_i/y_a = -k2*x_i
-                -rc(2)*x(pos(2))-rc(9)-rbxi]; %dx_i/x_i = -k2*y_a -k9 -rbxi
-                
-            % Add y_i dependencies HIER WEITER
-            % -rc(1)*yi.*xa - rc(10)*yi + rc(17);
-            i = [i repmat(pos(4),1,2)]; 
-            j = [j pos([1 4])];
-            s = [s; -dya_xy; ... %dy_i/x_a = -n*k1*y_i*x_a^(n-1)
-                -k1xan -rc(10)]; % dy_i/y_i = -k1 * x_a^n-k10
+            % dxi = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
+            s = [s; -rc(2)*xi;... %dxi/ya
+                -rc(2)*xa-rc(9)-rbxi]; %dxi/xi
+            % -rc(1)*yi.*xan - rc(10)*yi + rc(17);
+            s = [s; -nyixan_1; ... %dyi/xa
+                -k1xan-o*rc(10)]; % dyi/yi
             
-            % 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+            %% 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
             % Add iap dependencies
-            % -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yab;
-            i = [i repmat(pos(5),1,3)]; 
-            j = [j pos([2 5 7])];
-            % Add bar dependencies
-            % -rc(11)*xa.*bar + rc(18)*xab - rc(19)*bar + rc(19);
-            i = [i repmat(pos(6),1,3)]; 
-            j = [j pos([1 6 8])];
-            % Add bar dependencies
-            % rc(3)*ya.*iap -(rc(14)+rc(7))*yab;
-            i = [i repmat(pos(7),1,3)]; 
-            j = [j pos([2 5 7])];
-            % Add bar dependencies
-            % rc(11)*xa.*bar-(rc(18)+rc(13))*xab;
-            i = [i repmat(pos(8),1,3)]; 
-            j = [j pos([1 6 8])];
+            % diap = -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yb;
+            s = [s; -(rc(3)+rc(4))*iap; ... %diap/ya
+                -(rc(3)+rc(4))*ya-rc(8); % diap/iap
+                o*rc(14)]; % diap/yb
+            % dbar = -rc(11)*xa.*bar + rc(18)*xb - rc(19)*bar + rc(19);
+            s = [s; -rc(11)*bar; ... %dbar/xa
+                -rc(11)*xa-rc(8); % dbar/bar
+                o*rc(18)]; % diap/xb
+            %% 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+            % dyb = rc(3)*ya.*iap -(rc(14)+rc(7))*yb;
+            s = [s; rc(3)*iap; ... %dyb/ya
+                rc(3)*ya; % dyb/iap
+                -o*(rc(14)+rc(7))]; % dyb/yb
+            % dxb = rc(11)*xa.*bar-(rc(18)+rc(13))*xb;
+            s = [s; rc(11)*bar; ... %dxb/xa
+                rc(11)*xa; % dxb/bar
+                -o*(rc(18)+rc(13))]; % dxp/xb
             
             n = this.fDim;
             if ~isempty(this.V)
@@ -303,14 +295,7 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
             if ~isempty(this.W)
                 n = size(this.W,1);
             end
-            J = sparse(i,j,s,n,m);
-            
-            function idx = pos(nr)
-                idx = [];
-                for k=1:length(nr)
-                    idx = [idx (nr(k)-1)*n+1:nr(k)*n];%#ok
-                end
-            end
+            J = sparse(this.Ji,this.Jj,s,n,m);
         end
     end
     
@@ -366,12 +351,13 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
                 % Select the elements of x that are effectively used in f
                 xidx = (st+1):ends(idx);
                 x = X(xidx,:);
-                                
-                % X_a
+                
+                %% X_a
+                % General: 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+                % Sel: 1=xa, 2=ya, 3=xi, 4=bar, 5=xb
+                % rc(2)*xi.*ya - rc(5)*xa -rc(11)*xa.*bar + rc(18)*xb + rb/this.hlp.hs;
                 if j <= m
-                    % 1=x_a, 2=y_a, 3=x_i {, y_i}
-                    % rc(1)*xi.*ya - rc(3)*xa + rb;
-                    fj = rc(1)*x(3,:).*x(2,:) - rc(3)*x(1,:);
+                    fj = rc(2)*x(3,:).*x(2,:) - rc(5)*x(1,:) -rc(11)*x(1,:).*x(4,:) + rc(18)*x(5,:);
                     
                     % Boundary conditions
                     % Bottom
@@ -391,17 +377,19 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
                         fj = fj + left(col(idx),:) .* (x(3,:).*mu(2,:).*u/this.hlp.hs);
                     end
                     
-                % Y_a
+                %% Y_a
+                % General: 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+                % Sel: 1=x_a, 2=y_a, 3=y_i, 4=iap, 5=yb
+                % rc(1)*yi.*xan - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yb;
                 elseif m < j && j <= 2*m
-                    % 1=x_a, 2=y_a {, x_i}, 3=y_i
-                    % rc(2)*yi.*xa^mu4 - rc(4)*ya;
-                    fj = rc(2)*x(3,:).*x(1,:).^mu(4,:) - rc(4)*x(2,:);
+                    fj = rc(1)*x(3,:).*x(1,:).^mu(4,:) - rc(6)*x(2,:) - rc(3)*x(2,:).*x(4,:) + rc(14)*x(5,:);
                     
-                % X_i
+                %% X_i
+                % General: 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+                % Sel: % 1=ya, 2=xi
+                % -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
                 elseif 2*m < j && j <= 3*m
-                    % {x_a,} 1=y_a, 2=x_i {, y_i}
-                    % -rc(1)*xi.*ya - rc(5)*xi + rc(7) - rb;
-                    fj = -rc(1)*x(2,:).*x(1,:) - rc(5)*x(2,:) + rc(7);
+                    fj = -rc(2)*x(2,:).*x(1,:) - rc(9)*x(2,:) + rc(16);
                     
                     % Boundary conditions
                     % Bottom
@@ -421,11 +409,40 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
                         fj = fj - left(col(idx),:) .* (x(2,:).*mu(2,:).*u/this.hlp.hs);
                     end
                     
-                % Y_i
+                %% Y_i
+                % General: 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+                % Sel: 1=x_a, 2=y_i
+                % -rc(1)*yi.*xan - rc(10)*yi + rc(17);
+                elseif 3*m < j && j <= 4*m
+                    fj = -rc(1)*x(2,:).*x(1,:).^mu(4,:) - rc(10)*x(2,:) + rc(17);
+                    
+                %% IAP
+                % General: 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+                % Sel: 1=ya, 2=iap, 3=yb
+                % -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yb;
+                elseif 4*m < j && j <= 5*m
+                    fj = -(rc(3)+rc(4))*x(1,:).*x(2,:) - rc(8)*x(2,:) + rc(15) + rc(14)*x(3,:);
+                    
+                %% BAR
+                % General: 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+                % Sel: 1=xa, 2=bar, 3=xb
+                % -rc(11)*xa.*bar + rc(18)*xb - rc(19)*bar + rc(19);
+                elseif 5*m < j && j <= 6*m
+                    fj = -rc(11)*x(1,:).*x(2,:) + rc(18)*x(3,:) - rc(19)*x(2,:) + rc(19);
+                    
+                %% YB
+                % General: 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+                % Sel: 1=ya, 2=iap, 3=yb
+                % rc(3)*ya.*iap -(rc(14)+rc(7))*yb;
+                elseif 6*m < j && j <= 7*m
+                    fj = rc(3)*x(1,:).*x(2,:) -(rc(14)+rc(7))*x(3,:);
+                
+                %% XB
+                % General: 1=x_a, 2=y_a, 3=x_i, 4=y_i, 5=iap, 6=bar, 7=yb, 8=xb
+                % Sel: 1=xa, 2=bar, 3=xb
+                % rc(11)*xa.*bar-(rc(18)+rc(13))*xb;
                 else
-                    % 1=x_a, {y_a, x_i}, 2=y_i
-                    % -rc(2)*yi.*xa^mu4 - rc(6)*yi + rc(8);
-                    fj = -rc(2)*x(2,:).*x(1,:).^mu(4,:) - rc(6)*x(2,:) + rc(8);
+                    fj = rc(11)*x(1,:).*x(2,:)-(rc(18)+rc(13))*x(3,:);
                 end
                 fxj(idx,:) = fj;
             end
