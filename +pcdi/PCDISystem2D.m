@@ -92,10 +92,10 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             else
                 x0 = zeros(4*m,1);
             end
-            x0(1:2*m) = 1e-16; % use 5e-13 for pcd 2d exps
-            x0(2*m+1:4*m) = 1e-9; % use 3e-8 for pcd 2d exps
+            x0(1:2*m) = 5e-13;
+            x0(2*m+1:4*m) = 3e-8;
             if this.Model.WithInhibitors
-                x0(4*m+1:end) = 1e-16; % use 3e-8 for pcd 2d exps
+                x0(4*m+1:end) = 5e-13;%3e-8;
             end
             this.x0 = dscomponents.ConstInitialValue(x0);
             
@@ -167,7 +167,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 yl = y(pos(pnr,:),:);
                 di = abs(this.Model.SteadyStates(:,pnr)-yl(end));
                 reldi = di ./ (this.Model.SteadyStates(:,pnr)+eps);
-                reldistr = Utils.implode(reldi,', ','%2.3e');
+                reldistr = Utils.implode(reldi,', ','%g');
                 if any(reldi > .1) || any(reldi < 10)
                     [~, id] = min(di);
                     tit = sprintf('%s concentrations\nCell state at T=%g: %s\n%s', thetitle,...

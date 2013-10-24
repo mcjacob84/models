@@ -29,13 +29,13 @@ classdef PCDIModel < models.BaseFullModel
         d5 = 1.8720e-11; %[m^2/s]
         
         % Typical diffusion rate for BAR
-        d6 = 2.0700e-11; %[m^2/s]
+        d6 = 1.9548e-11; %[m^2/s]
         
         % Typical diffusion rate for YAI
-        d7 = 1.4760e-11; %[m^2/s]
+        d7 = 1.4850e-11; %[m^2/s]
         
         % Typical diffusion rate for XAB
-        d8 = 1.5120e-11; %[m^2/s]
+        d8 = 1.4850e-11; %[m^2/s]
         
         % Procaspase-8 to Caspase-8 reaction rate
         K1 = 0.08;
@@ -71,7 +71,7 @@ classdef PCDIModel < models.BaseFullModel
         K11 = 0.18;
         
         % BAR degradation rate
-        K12 = 1.0800e-04;
+        K12 = 1e-04;
         
         % XAP degradation rate
         K13 = 0.0018;
@@ -80,19 +80,19 @@ classdef PCDIModel < models.BaseFullModel
         Km3 = 0.0018;
         
         % IAP production rate
-        Km8 = 1.0800e-04;
+        Km8 = 1e-04;
         
         % Procaspase-8 production rate
-        Km9 = 1.0800e-04;
+        Km9 = 1e-04;
         
         % Procaspase-3 production rate
-        Km10 = 1.0800e-04;
+        Km10 = 1e-04;
         
         % XAB degradation rate
         Km11 = 0.0018;
         
         % BAR production rate
-        Km12 = 1.0800e-04;
+        Km12 = 1e-04;
         
         %% System Rescaling settings
         % Typical concentration
@@ -102,11 +102,13 @@ classdef PCDIModel < models.BaseFullModel
         L = 1e-5; %[m]
         
         % Steady state configurations
+        %
+        % Note: These are SCALED quantities
+        %
         % First row: life state
         % Second row: unstable state
         % Third row: death state (as of ya > 0.01 its considered death)
-        SteadyStates = models.pcdi.PCDIModel.tc*...
-            [[0; 2.16e-4; 0.0097]...
+        SteadyStates = [[0; 2.16e-4; 0.0097]...
             [0; 0.0012; 0.1109]...
             [.1984; 0.1659; 0.0107]...
             [.1984; 0.1918; 0.0781]...
@@ -165,7 +167,8 @@ classdef PCDIModel < models.BaseFullModel
             end
             if this.WithInhibitors
                 this.Name = [this.Name ' (Inhibitor System)'];
-            end
+            end            
+            
             s.MaxTimestep = this.dt;
             this.System = s;
             

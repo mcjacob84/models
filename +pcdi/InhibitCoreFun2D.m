@@ -229,7 +229,7 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
             right = this.idxmat(end,this.hlp.yd <= this.hlp.yr*mu(1)/2);
             left = this.idxmat(1,this.hlp.yd <= this.hlp.yr*mu(1)/2);
             rbxi = zeros(n,1);
-            u = this.activationFun(t);
+            u = this.activationFun(t,mu);
             rbxi(bottom) = mu(2)*u;
             rbxi(top) = mu(2)*u;
             rbxi(right) = mu(2)*u;

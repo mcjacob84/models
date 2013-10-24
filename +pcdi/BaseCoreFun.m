@@ -63,6 +63,7 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
     properties(Access=private)
         gaussian;
         fAFT = 1;
+        fTau;
     end
     
     methods
@@ -72,7 +73,9 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
             this.TimeDependent = true;
             this.MultiArgumentEvaluations = true;
             
-            this.ActivationFunType = 1;
+            this.fTau = dynsys.Model.tau;
+            
+            this.ActivationFunType = 2;
         end
         
         function copy = clone(this, copy)
@@ -82,11 +85,12 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
             % Dont clone the associated system
             copy.System = this.System;
             copy.gaussian = this.gaussian.clone;
-            copy.ActivationFunType = this.ActivationFunType;
+            copy.fTau = this.fTau;
+            copy.fAFT = this.fAFT;
         end
         
         function evaluateCoreFun(varargin)
-            error('dont call me (direct overload of evaluate for efficiency');
+            error('dont call me (direct overload of evaluate for efficiency)');
         end
         
         function plotActivationFun(this, mu, pm)
@@ -120,24 +124,34 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
             this.gaussian = k;
             this.fAFT = value;
         end
-        
-        function value = get.ActivationFunType(this)
-            value = this.fAFT;
-        end
     end
     
     methods(Access=protected)
         function f = activationFun(this, t, mu)
-            g = this.gaussian;
-            if this.ActivationFunType == 1
-                f = (g.evaluateScalar(t-27)-.4).*(t<=54)/.6;
+            if this.fAFT == 1
+                f = (this.gaussian.evaluateScalar(t-27)-.4).*(t<=54)/.6;
             else
-                tau = this.System.Model.tau;
+                tau = this.fTau;
                 ts = this.ActivationTransitionTime/tau;
-                te = ts+(mu(3,:)*(this.MaxActivationTime-2*this.ActivationTransitionTime))/tau;
-                f = (g.evaluateScalar(t-ts)-.001).*(t<=ts)/.999 ...
-                    + (t>ts).*(t<=te) ...
-                    + (g.evaluateScalar(t-te)-.001).*(t>te).*(t<=te+ts)/.999;
+                if isscalar(t)
+                    te = ts+(mu(3)*(this.MaxActivationTime-2*this.ActivationTransitionTime))/tau;
+                    if t > te+ts
+                        f = 0;
+                    elseif t > ts && t <= te
+                        f = 1;
+                    elseif t <= ts
+                        f = (this.gaussian.evaluateScalar(t-ts)-.001)/.999;
+                    elseif t>te && t<=te+ts
+                        f = (this.gaussian.evaluateScalar(t-te)-.001)/.999;
+                    else 
+                        f = 0;
+                    end
+                else
+                    te = ts+(mu(3,:)*(this.MaxActivationTime-2*this.ActivationTransitionTime))/tau;
+                    f = (this.gaussian.evaluateScalar(t-ts)-.001).*(t<=ts)/.999 ...
+                        + (t>ts).*(t<=te) ...
+                        + (this.gaussian.evaluateScalar(t-te)-.001).*(t>te).*(t<=te+ts)/.999;
+                end
             end
         end
     end
