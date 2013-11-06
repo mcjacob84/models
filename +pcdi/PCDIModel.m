@@ -41,25 +41,25 @@ classdef PCDIModel < models.BaseFullModel
         K1 = 0.08;
         
         % Procaspase-3 to Caspase-3 reaction rate
-        K2 = 0.08;
+        K2 = 0.08; 
         
         % IAP-Caspase 3 (de)reaction rate
-        K3 = 0.0018;
+        K3 = 0.054; 
         
         % IAP-Caspase 3 one-way (de)reaction rate
-        K4 = 0.018;
+        K4 = 0.36; 
         
         % Caspase-8 degradation rate
-        K5 = .0005;
+        K5 = .0005; 
         
         % Caspase-3 degradation rate
-        K6 = .0005;
+        K6 = .0005; 
         
         % YAI degradation rate
-        K7 = 0.0018;
+        K7 = 3.6000e-4;
         
         % IAP degradation rate
-        K8 = 1.8000e-05;
+        K8 = 1.8000e-04;
         
         % Pro-Caspase-8 degradation rate
         K9 = .0005;
@@ -68,31 +68,31 @@ classdef PCDIModel < models.BaseFullModel
         K10 = .0005;
         
         % BAR - Procaspase-8 (de)reaction rate
-        K11 = 0.18;
+        K11 = 0.54; 
         
         % BAR degradation rate
-        K12 = 1e-04;
+        K12 = 1.8000e-05; 
         
         % XAP degradation rate
-        K13 = 0.0018;
+        K13 = 1.8000e-4;
         
         % YAI to IAP production rate
-        Km3 = 0.0018;
+        Km3 = 0.0360;
         
         % IAP production rate
-        Km8 = 1e-04;
+        Km8 = 1e-04; 
         
         % Procaspase-8 production rate
-        Km9 = 1e-04;
+        Km9 = 1e-04; 
         
         % Procaspase-3 production rate
         Km10 = 1e-04;
         
         % XAB degradation rate
-        Km11 = 0.0018;
+        Km11 = 0.0360;
         
         % BAR production rate
-        Km12 = 1e-04;
+        Km12 = 1.8000e-06;
         
         %% System Rescaling settings
         % Typical concentration
@@ -115,7 +115,40 @@ classdef PCDIModel < models.BaseFullModel
             [5.5556; 2.4177; 0.0473]...
             [1; 0.8372; 0.1027]...
             [0; 0.0015; 0.0026]...
-            [0; 0.009; 0.0498]];
+            [0; 0.009; 0.0498]]
+        % Determination of steady states for the given parameter values
+        % dependent on the exponent mu(4)
+        %
+        % syms xa ya xi yi iap bar yb xb;
+        % Reaction system
+        % F = [K2*xi*ya-K5*xa-K11*xa*bar+Km11*xb;...
+        %     K1*yi*xa^mu(4)-K6*ya-K3*ya*iap+Km3*yb;
+        %     -K2*xi*ya-K9*xi+Km9;...
+        %     -K1*yi*xa^mu(4)-K10*yi+Km10;...
+        %     -K3*ya*iap-K8*iap+Km8-K4*ya*iap+Km3*yb;...
+        %     -K11*xa*bar+Km11*xb-K12*bar+Km12;...
+        %     K3*ya*iap-Km3*yb-K7*yb;...
+        %     K11*xa*bar-Km11*xb-K13*xb];
+        % Sol = solve(F);
+        
+        % Find solution with real and positive concentrations
+        % Index = find((Sol.xa >= 0) .* (Sol.ya >= 0) .* (Sol.xi >= 0) .* ...
+        % (Sol.yi >= 0) .* (Sol.iap >= 0) .* (Sol.bar >= 0) .* ...
+        % (Sol.yb >= 0) .* (Sol.xb >= 0))
+        % if length(Index) == 3
+        %    SteadyStates =
+        %    [[Sol.xa(Index(1));Sol.xa(Index(2));Sol.xa(Index(3))]...
+        %     [Sol.ya(Index(1));Sol.ya(Index(2));Sol.ya(Index(3))]...
+        %     [Sol.xi(Index(1));Sol.xi(Index(2));Sol.xi(Index(3))]...
+        %     [Sol.yi(Index(1));Sol.yi(Index(2));Sol.yi(Index(3))]...
+        %     [Sol.iap(Index(1));Sol.iap(Index(2));Sol.iap(Index(3))]...
+        %     [Sol.bar(Index(1));Sol.bar(Index(2));Sol.bar(Index(3))]...
+        %     [Sol.yb(Index(1));Sol.yb(Index(2));Sol.yb(Index(3))]...
+        %     [Sol.xb(Index(1));Sol.xb(Index(2));Sol.xb(Index(3))]...
+        % else
+        % Life State independent of the exponent n
+        %     SteadyStates = [0 0 Km9/K9 Km10/K10 Km8/K8 Km12/K12 0 0];
+        % end                                
     end
     
     properties(SetAccess=private)
