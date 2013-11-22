@@ -515,5 +515,24 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
             end
         end
     end
+    
+    methods(Static, Access=protected, Sealed)
+        function obj = loadobj(obj)
+            if ~isa(obj, 'models.pcd.CoreFun2D')
+                from = obj;
+                s = [];
+                if isfield(from,'sys')
+                    s = from.sys;
+                end
+                obj = models.pcd.CoreFun2D(s);
+                obj.nodes = from.nodes;
+                obj.hlp = from.hlp;
+                obj.idxmat = from.idxmat;
+                obj = loadobj@models.pcd.BaseCoreFun(obj, from);
+            else
+                obj = loadobj@models.pcd.BaseCoreFun(obj);
+            end
+        end
+    end
 end
 
