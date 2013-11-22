@@ -81,7 +81,7 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
             
             % Dont clone the associated system
             copy.System = this.System;
-            copy.gaussian = this.gaussian.clone;
+            % Sets gaussian etc
             copy.ActivationFunType = this.ActivationFunType;
         end
         
@@ -138,6 +138,26 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
                 f = (g.evaluateScalar(t-ts)-.001).*(t<=ts)/.999 ...
                     + (t>ts).*(t<=te) ...
                     + (g.evaluateScalar(t-te)-.001).*(t>te).*(t<=te+ts)/.999;
+            end
+        end
+    end
+    
+    methods(Static, Access=protected)
+        function obj = loadobj(obj, from)
+            if nargin == 2
+                if isfield(from,'System')
+                    obj.System = from.System;
+                end
+                % Sets gaussian etc
+                if isfield(from,'fAFT')
+                    AFT = from.fAFT;
+                else
+                    AFT = 1;
+                end
+                obj.ActivationFunType = AFT;
+                obj = loadobj@dscomponents.ACompEvalCoreFun(obj, from);
+            else
+                obj = loadobj@dscomponents.ACompEvalCoreFun(obj);
             end
         end
     end
