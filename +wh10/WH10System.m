@@ -20,6 +20,8 @@ classdef WH10System < models.BaseDynSystem & dscomponents.ParamTimeKernelCoreFun
             
             %% System settings
             dims = model.dim;
+            this.xDim = dims;
+            this.fDim = dims;
 
             this.f = this;
             this.MaxTimestep = [];

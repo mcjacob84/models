@@ -3,11 +3,11 @@ function [m, r, d] = MathMODMain(dim)
 
 %     clear classes;
     if nargin == 0
-        dim = 1000;
+        dim = 240000;
     end
     
-    %loc = '/home/dwirtz/aghhome/Material/images';
-    loc = 'C:/Users/CreaByte/Documents/Uni/img';
+    loc = '/home/dwirtz/aghhome/Diss/errorestimation/img';
+%     loc = 'C:/Users/CreaByte/Documents/Uni/img';
     
     %in = 1;
     
@@ -15,34 +15,45 @@ function [m, r, d] = MathMODMain(dim)
     m.offlineGenerations;
     r = m.buildReducedModel;
     
+    pm = PlotManager;
+    pm.FilePrefix = 'mmod_noinput_';
+    pm.NoTitlesOnSave = true;
+    pm.AutoTickMarks = false;
+    pm.UseFileTypeFolders = false;
+    
+    %% Estimation plots for fixed param
     d = EstimatorAnalyzer;
     d.EstimatorIterations = [1 2 5];
     d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
     d.setModel(r);
-    pm = PlotManager(false,2,2);
-    pm.FilePrefix = 'mmod_noinput_';
-    %d.start([.5; 5; -.2],[],pm);
-    d.start([.5; 1; -.2],[],pm);
-    pm.done;
-%     pm.savePlots(loc,{'fig','pdf','jpg'});
-    
-%     pm = PlotManager(false,2,2);
-%     pm.FilePrefix = 'mmod12';
-%     pm.SingleSize = [800 500];
-%     % Pure inner dynamics without inputs and initial value -.2
-%     ParamSweep(r, [0; 10; -.2], [], 2, 0:1:10, ...
-%         pm.nextPlot('mmod_noinput_ps_exppar'));
-%     
-%     % Pure inner dynamics without inputs and initial value -.2
-%     ParamSweep(r, [0; 3; -.2], 1, 1, 0:.1:1, ...
-%         pm.nextPlot('mmod_ps_inputpar'));
-%     
-%     ParamSweep(r, [0; 4; -.2], 2, 1, 0:.1:1, ...
-%         pm.nextPlot('mmod_ps_inputpar2'));
-%     
-%     ParamSweep2D(r, [0; 3; -.2], 1, [1 2], -.5:.2:1.5,-8:1.5:8, ...
-%         pm.nextPlot('mmod_ps2d_in_exp'));
+%     [e,re,ct] = d.compute([.5; 5; -.2], []);
+%     d.createPlots(e,re,ct,pm);
 %     pm.done;
-%     
-%     pm.savePlots(loc,{'fig','pdf','jpg'});
+%     pm.savePlots(loc,'Format','eps');
+    
+    %% Parameter sweeps
+    % Use TD estimator
+    r.ErrorEstimator = d.Est(7).Estimator;
+    pm.ExportDPI = 300;
+    
+    % Pure inner dynamics without inputs and initial value -.2
+%     ParamSweep(r, [0; 10; -.2], [], 2, 0:1:10, pm);
+%     pm.FilePrefix = 'mmod_exppar';
+%     pm.savePlots(loc,'Format',{'jpg','fig'},'Close',true);
+    
+    % Pure inner dynamics without inputs and initial value -.2
+    pm.SingleSize = [800 500];
+    ParamSweep(r, [0; 3; -.2], 1, 1, 0:.1:1, pm);
+    view(40,10);
+    pm.FilePrefix = 'mmod_inputpar';
+    pm.savePlots(loc,'Format',{'jpg','fig'},'Close',true);
+    
+    ParamSweep(r, [0; 4; -.2], 2, 1, 0:.1:1, pm);
+    pm.FilePrefix = 'mmod_inputpar2';
+    view(42,32);
+    pm.savePlots(loc,'Format',{'jpg','fig'},'Close',true);
+    
+    ParamSweep2D(r, [0; 3; -.2], 1, [1 2], -.5:.2:1.5,-8:1.5:8, pm.nextPlot('in_exp_2d'));
+    pm.FilePrefix = 'mmod';
+    pm.savePlots(loc,'Format',{'jpg','fig'},'Close',true);
 end

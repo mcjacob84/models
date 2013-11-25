@@ -3,6 +3,10 @@ classdef PCDIModel < models.BaseFullModel
     %
     % @author Daniel Wirtz @date 2013-10-23
     %
+    % @new{0,8,dw,2013-11-22} Moved SteadyStates into a function that
+    % computes the steady states depending on the current parameter
+    % (exponent mu(4))
+    %
     % @new{0,8,dw,2013-10-23} Added this class.
     %
     % This class is part of the framework
@@ -99,56 +103,7 @@ classdef PCDIModel < models.BaseFullModel
         tc = 1e-7; %[Mol]
         
         % Typical cell length (from 1D)
-        L = 1e-5; %[m]
-        
-        % Steady state configurations
-        %
-        % Note: These are SCALED quantities
-        %
-        % First row: life state
-        % Second row: unstable state
-        % Third row: death state (as of ya > 0.01 its considered death)
-        SteadyStates = [[0; 2.16e-4; 0.0097]...
-            [0; 0.0012; 0.1109]...
-            [0.2; 0.1659; 0.0107]...
-            [0.2; 0.1918; 0.0781]...
-            [0.5556; 2.4177; 0.0473]...
-            [0.1; 0.8372; 0.1027]...
-            [0; 0.0015; 0.0026]...
-            [0; 0.009; 0.0498]]
-        % Determination of steady states for the given parameter values
-        % dependent on the exponent mu(4)
-        %
-        % syms xa ya xi yi iap bar yb xb;
-        % Reaction system
-        % F = [K2*xi*ya-K5*xa-K11*xa*bar+Km11*xb;...
-        %     K1*yi*xa^mu(4)-K6*ya-K3*ya*iap+Km3*yb;
-        %     -K2*xi*ya-K9*xi+Km9;...
-        %     -K1*yi*xa^mu(4)-K10*yi+Km10;...
-        %     -K3*ya*iap-K8*iap+Km8-K4*ya*iap+Km3*yb;...
-        %     -K11*xa*bar+Km11*xb-K12*bar+Km12;...
-        %     K3*ya*iap-Km3*yb-K7*yb;...
-        %     K11*xa*bar-Km11*xb-K13*xb];
-        % Sol = solve(F);
-        
-        % Find solution with real and positive concentrations
-        % Index = find((Sol.xa >= 0) .* (Sol.ya >= 0) .* (Sol.xi >= 0) .* ...
-        % (Sol.yi >= 0) .* (Sol.iap >= 0) .* (Sol.bar >= 0) .* ...
-        % (Sol.yb >= 0) .* (Sol.xb >= 0))
-        % if length(Index) == 3
-        %    SteadyStates =
-        %    [[Sol.xa(Index(1));Sol.xa(Index(2));Sol.xa(Index(3))]...
-        %     [Sol.ya(Index(1));Sol.ya(Index(2));Sol.ya(Index(3))]...
-        %     [Sol.xi(Index(1));Sol.xi(Index(2));Sol.xi(Index(3))]...
-        %     [Sol.yi(Index(1));Sol.yi(Index(2));Sol.yi(Index(3))]...
-        %     [Sol.iap(Index(1));Sol.iap(Index(2));Sol.iap(Index(3))]...
-        %     [Sol.bar(Index(1));Sol.bar(Index(2));Sol.bar(Index(3))]...
-        %     [Sol.yb(Index(1));Sol.yb(Index(2));Sol.yb(Index(3))]...
-        %     [Sol.xb(Index(1));Sol.xb(Index(2));Sol.xb(Index(3))]];
-        % else
-        % Life State independent of the exponent n
-        %     SteadyStates = [0 0 Km9/K9 Km10/K10 Km8/K8 Km12/K12 0 0];
-        % end                                
+        L = 1e-5; %[m]                      
     end
     
     properties(SetAccess=private)
@@ -166,8 +121,11 @@ classdef PCDIModel < models.BaseFullModel
             % Parameters:
             % dim: The dimension to use @default 1
             
-            if nargin == 0
-                dim = 2;
+            if nargin < 2
+                inhibitors = true;
+                if nargin < 1
+                    dim = 2;
+                end
             end
             this.WithInhibitors = inhibitors;
             
@@ -223,6 +181,56 @@ classdef PCDIModel < models.BaseFullModel
             % Overrides standard method and forwards to the system's plot
             % function. (they are 1D and 2D)
             this.System.plotState(this, varargin{:});
+        end
+        
+        function ss = getSteadyStates(this, mu)
+            % Computes the steady state configurations depending on the
+            % current system (given by mu)
+            %
+            % Note: These are SCALED quantities. The cell is considered
+            % dead as of ya > 0.01.
+            %
+            % Parameters:
+            % mu: The current parameter @type colvec<double>
+            %
+            % Return values:
+            % ss: The steady states. First to third row: life state,
+            % unstable state, death state
+            
+            % Hack: bar seems to be a script file that accidentally gets
+            % called even though its initialized as variable.. so fake
+            % assign stuff to make the parser think its a variable.
+            bar = [];
+            syms xa ya xi yi iap bar yb xb;
+            
+            % Reaction system
+            F = [this.K2*xi*ya-this.K5*xa-this.K11*xa*bar+this.Km11*xb;...
+                this.K1*yi*xa^mu(4)-this.K6*ya-this.K3*ya*iap+this.Km3*yb;
+                -this.K2*xi*ya-this.K9*xi+this.Km9;...
+                -this.K1*yi*xa^mu(4)-this.K10*yi+this.Km10;...
+                -this.K3*ya*iap-this.K8*iap+this.Km8-this.K4*ya*iap+this.Km3*yb;...
+                -this.K11*xa*bar+this.Km11*xb-this.K12*bar+this.Km12;...
+                this.K3*ya*iap-this.Km3*yb-this.K7*yb;...
+                this.K11*xa*bar-this.Km11*xb-this.K13*xb];
+            sol = solve(F);
+            % Find solution with real and positive concentrations
+            pos = find((sol.xa >= 0) .* (sol.ya >= 0) .* (sol.xi >= 0) .* ...
+                (sol.yi >= 0) .* (sol.iap >= 0) .* (sol.bar >= 0) .* ...
+                (sol.yb >= 0) .* (sol.xb >= 0));
+            if length(pos) == 3
+                ss = [[sol.xa(pos(1));sol.xa(pos(2));sol.xa(pos(3))]...
+                    [sol.ya(pos(1));sol.ya(pos(2));sol.ya(pos(3))]...
+                    [sol.xi(pos(1));sol.xi(pos(2));sol.xi(pos(3))]...
+                    [sol.yi(pos(1));sol.yi(pos(2));sol.yi(pos(3))]...
+                    [sol.iap(pos(1));sol.iap(pos(2));sol.iap(pos(3))]...
+                    [sol.bar(pos(1));sol.bar(pos(2));sol.bar(pos(3))]...
+                    [sol.yb(pos(1));sol.yb(pos(2));sol.yb(pos(3))]...
+                    [sol.xb(pos(1));sol.xb(pos(2));sol.xb(pos(3))]];
+            else
+                % Life State independent of the exponent n
+                ss = [0 0 this.Km9/this.K9 this.Km10/this.K10...
+                    this.Km8/this.K8 this.Km12/this.K12 0 0];
+            end
         end
         
         function value = get.Dimension(this)

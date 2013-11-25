@@ -39,6 +39,7 @@ classdef MathMODExperiment < models.BaseFullModel
             
             this.T = 20;
             this.dt = 0.05;
+            this.System.MaxTimestep = this.dt;
             
             this.Sampler = sampling.GridSampler;
             %m.System.addParam('mu3',[3 3],1);

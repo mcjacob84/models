@@ -20,6 +20,8 @@ classdef MathMODSystem < models.BaseDynSystem & dscomponents.ParamTimeKernelCore
             
             %% System settings
             dims = model.dim;
+            this.xDim = dims;
+            this.fDim = dims;
 
             this.f = this;
             this.MaxTimestep = [];

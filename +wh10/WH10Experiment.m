@@ -30,18 +30,24 @@ classdef WH10Experiment < models.BaseFullModel
             this.ODESolver = s;
             
             %% System settings
-            this.System = WH10System(this);
+            this.System = models.wh10.WH10System(this);
         end
     end    
     
     methods(Static)
         
-        function [d, rmodels] = Experiment1(dim)
+        function [d, rmodels] = Experiment1(dim, dir)
             % Experiment with manual reduction and rotation as error source
-            if nargin < 1
-                dim = 240000;
+            %
+            % Creates the images also used in the Dissertation (Section
+            % 5.1.5, Figure 5.2)
+            if nargin < 2
+                dir = KerMor.App.TempDirectory;
+                if nargin < 1
+                    dim = 240000;
+                end
             end
-            m = WH10Experiment(dim);
+            m = models.wh10.WH10Experiment(dim);
             
             m.T = 20;
             m.dt = 0.05;
@@ -58,7 +64,7 @@ classdef WH10Experiment < models.BaseFullModel
             m.System.Inputs{4} = @(t)(t>10)*.1; % okay, aber nicht so spannend
             m.System.B = dscomponents.LinearInputConv(ones(m.dim,1));
             
-            % No training necessary!
+            %% No training necessary!
             m.TrainingInputs = [];
             
             m.System.C = dscomponents.LinearOutputConv(ones(1,m.dim)/m.dim);
@@ -72,57 +78,53 @@ classdef WH10Experiment < models.BaseFullModel
             d = EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
-            d.SingleFigures = true;
             
             degs = [.0005 .005 .05 .5];
             rmodels = {};
             
+            pm = PlotManager;
+            pm.AutoTickMarks = false;
+            pm.UseFileTypeFolders = false;
+            pm.NoTitlesOnSave = true;
+            
+            %% Create estimation plots
             for didx = 1:length(degs)
                 s.Degree = degs(didx);
-            
                 d.setModel(m);
+                
                 rmodels{didx} = d.ReducedModel;%#ok<*AGROW>
 
                 for idx=1:m.System.InputCount
                     m.Name = sprintf('\\theta=%.4f',s.Degree);
-                    d.start([],idx);
+                    [errs, relerrs, ctimes] = d.compute([],idx);
+                    d.createPlots(errs, relerrs, ctimes, pm);
                     
                     md = d.ModelData(end);
                     % 1 = full, 7 = LSLE TD
                     absmax = 30*abs(md.ErrT(7)-md.ErrT(1));
                     relmax = 30*abs(md.RelErrT(7)-md.RelErrT(1));
-
-                    f = d.Figures{1};
-                    a = gca(f);
-                    axis(a,[0 m.T md.MinErr*.9 min(1e4,absmax)]); 
-                    set(legend(a),'Location','NorthEast');
-                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_errors',idx,s.Degree),'fig');
-                    title(a,'');
-                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_errors',idx,s.Degree));
-
-                    f = d.Figures{2}; a = gca(f);
-                    axis(a,[0 m.T md.MinRelErr*.9 min(1,relmax)]);
-                    set(legend(a),'Location','NorthEast');
-                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_relerr',idx,s.Degree),'fig');
-                    title(a,'');
-                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_relerr',idx,s.Degree));
-
-                    f = d.Figures{3}; a = gca(f);
-                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_ctimes',idx,s.Degree),'fig');
-                    title(a,'');
-                    Utils.saveFigure(f,sprintf('WH10_in%d_deg%f_ctimes',idx,s.Degree));
                     
-                    close([d.Figures{:}]);
+                    axis(gca(1),[0 m.T md.MinErr*.9 min(1e4,absmax)]);
+                    axis(gca(2),[0 m.T md.MinRelErr*.9 min(1,relmax)]);
+                    set(gca(3),'XScale','log');
+                    
+                    pm.FilePrefix = sprintf('WH10_in%d_deg%f',idx,s.Degree);
+                    pm.savePlots(dir,'Format','eps','Close',true);
                 end
             end
             
-            save d d;
+            %% Create output error plot for u3 and theta=0.05
+            ma = ModelAnalyzer(rmodels{3});
+            ma.SingleFigures = true;
+            d.ReducedModel.ErrorEstimator = d.Est(7).Estimator;
+            ma.analyzeError([],3,pm);
+            pm.FilePrefix = 'WH10_in3_deg05';
+            pm.savePlots(dir,'Format','eps','Close',true,'Selection',3);
             
+            %% Table stuff
             range = 1:4:13;
             sort = [range (range)+1 (range)+2 (range)+3];
             d.createStatsTables(sort);
-            
-            %WH10Experiment.getExp1SysPlots(rmodels);
         end
         
         function getExp1SysPlots(rmodels)

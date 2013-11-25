@@ -148,6 +148,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 y = y(:,idx);
             end
             states = {'alive','unstable','dead'};
+            ss = this.Model.getSteadyStates(this.mu);
             
             X = t;
             Y = (this.Omega(1,1):this.h:this.Omega(1,2))/model.L;
@@ -165,8 +166,8 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             
             function doplot(tag, thetitle, pnr)
                 yl = y(pos(pnr,:),:);
-                di = abs(this.Model.SteadyStates(:,pnr)-yl(end));
-                reldi = di ./ (this.Model.SteadyStates(:,pnr)+eps);
+                di = abs(ss(:,pnr)-yl(end));
+                reldi = di ./ (ss(:,pnr)+eps);
                 reldistr = Utils.implode(reldi,', ','%g');
                 if any(reldi > .1) || any(reldi < 10)
                     [~, id] = min(di);
