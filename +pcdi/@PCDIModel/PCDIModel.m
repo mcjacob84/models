@@ -183,56 +183,6 @@ classdef PCDIModel < models.BaseFullModel
             this.System.plotState(this, varargin{:});
         end
         
-        function ss = getSteadyStates(this, mu)
-            % Computes the steady state configurations depending on the
-            % current system (given by mu)
-            %
-            % Note: These are SCALED quantities. The cell is considered
-            % dead as of ya > 0.01.
-            %
-            % Parameters:
-            % mu: The current parameter @type colvec<double>
-            %
-            % Return values:
-            % ss: The steady states. First to third row: life state,
-            % unstable state, death state
-            
-            % Hack: bar seems to be a script file that accidentally gets
-            % called even though its initialized as variable.. so fake
-            % assign stuff to make the parser think its a variable.
-            bar = [];
-            syms xa ya xi yi iap bar yb xb;
-            
-            % Reaction system
-            F = [this.K2*xi*ya-this.K5*xa-this.K11*xa*bar+this.Km11*xb;...
-                this.K1*yi*xa^mu(4)-this.K6*ya-this.K3*ya*iap+this.Km3*yb;
-                -this.K2*xi*ya-this.K9*xi+this.Km9;...
-                -this.K1*yi*xa^mu(4)-this.K10*yi+this.Km10;...
-                -this.K3*ya*iap-this.K8*iap+this.Km8-this.K4*ya*iap+this.Km3*yb;...
-                -this.K11*xa*bar+this.Km11*xb-this.K12*bar+this.Km12;...
-                this.K3*ya*iap-this.Km3*yb-this.K7*yb;...
-                this.K11*xa*bar-this.Km11*xb-this.K13*xb];
-            sol = solve(F);
-            % Find solution with real and positive concentrations
-            pos = find((sol.xa >= 0) .* (sol.ya >= 0) .* (sol.xi >= 0) .* ...
-                (sol.yi >= 0) .* (sol.iap >= 0) .* (sol.bar >= 0) .* ...
-                (sol.yb >= 0) .* (sol.xb >= 0));
-            if length(pos) == 3
-                ss = [[sol.xa(pos(1));sol.xa(pos(2));sol.xa(pos(3))]...
-                    [sol.ya(pos(1));sol.ya(pos(2));sol.ya(pos(3))]...
-                    [sol.xi(pos(1));sol.xi(pos(2));sol.xi(pos(3))]...
-                    [sol.yi(pos(1));sol.yi(pos(2));sol.yi(pos(3))]...
-                    [sol.iap(pos(1));sol.iap(pos(2));sol.iap(pos(3))]...
-                    [sol.bar(pos(1));sol.bar(pos(2));sol.bar(pos(3))]...
-                    [sol.yb(pos(1));sol.yb(pos(2));sol.yb(pos(3))]...
-                    [sol.xb(pos(1));sol.xb(pos(2));sol.xb(pos(3))]];
-            else
-                % Life State independent of the exponent n
-                ss = [0 0 this.Km9/this.K9 this.Km10/this.K10...
-                    this.Km8/this.K8 this.Km12/this.K12 0 0];
-            end
-        end
-        
         function value = get.Dimension(this)
             value = this.System.Dims;
         end
@@ -243,6 +193,14 @@ classdef PCDIModel < models.BaseFullModel
             end
             this.WithInhibitors = value;
         end
+    end
+    
+    methods%(Access=protected)
+        % Function to determine the steady states, depending on the current
+        % parameter mu (i.e. the exponent n which is one parameter)
+        %
+        % Function defined in separate file in class folder.
+        ss = getSteadyStates(this, n);
     end
 end
 

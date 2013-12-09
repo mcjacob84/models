@@ -147,8 +147,8 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 t = t(idx);
                 y = y(:,idx);
             end
-            states = {'alive','unstable','dead'};
-            ss = this.Model.getSteadyStates(this.mu);
+            states = {'dead', 'alive', 'unstable'};
+            ss = this.Model.getSteadyStates(this.mu(4))';
             
             X = t;
             Y = (this.Omega(1,1):this.h:this.Omega(1,2))/model.L;
@@ -166,16 +166,20 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             
             function doplot(tag, thetitle, pnr)
                 yl = y(pos(pnr,:),:);
-                di = abs(ss(:,pnr)-yl(end));
-                reldi = di ./ (ss(:,pnr)+eps);
-                reldistr = Utils.implode(reldi,', ','%g');
-                if any(reldi > .1) || any(reldi < 10)
-                    [~, id] = min(di);
-                    tit = sprintf('%s concentrations\nCell state at T=%g: %s\n%s', thetitle,...
-                    max(t),states{id},reldistr);
+                perc = (yl(end) - ss(2,pnr)) / (ss(1,pnr) - ss(2,pnr));
+                if perc < .5
+                    id = 2;
                 else
-                    tit = sprintf('%s concentrations\n%s', thetitle,reldistr);
+                    id = 1;
                 end
+                    
+%                 if any(reldi > .1) || any(reldi < 10)
+%                     [~, id] = min(perc);
+                    tit = sprintf('%s concentrations\nCell state at T=%.4g: %s\n%.5g (%5.2f%%)', thetitle,...
+                    max(t),states{id},yl(end),perc*100);
+%                 else
+%                     tit = sprintf('%s concentrations\n%s', thetitle,reldistr);
+%                 end
                 if pm.Single
                     tit = sprintf('Model "%s"\n%s',model.Name,tit);
                 end
