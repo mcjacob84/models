@@ -1,5 +1,13 @@
 classdef PCDIModel < models.BaseFullModel
-    % Base class inhibitor PCD models
+    % Base class inhibitor PCD models.
+    %
+    % The package models.pcdi contains a copy of the models.pcd model
+    % files, extended by an optional "inhibitor" extended governing
+    % equation. The constructor can be called passing a flag (default=true)
+    % if the extension should be used. As this mainly affects the system's
+    % nonlinearity, a separate class file has been created to cater for
+    % that case. Different behaviour in model and system classes is
+    % realized using the flag WithInhibitors.
     %
     % @author Daniel Wirtz @date 2013-10-23
     %
@@ -107,6 +115,7 @@ classdef PCDIModel < models.BaseFullModel
     end
     
     properties(SetAccess=private)
+        % Flag that detemines if this model uses inhibitors.
         WithInhibitors;
     end
     
@@ -119,7 +128,9 @@ classdef PCDIModel < models.BaseFullModel
             % Creates a new instance of the PCDModel
             %
             % Parameters:
-            % dim: The dimension to use @default 1
+            % dim: The dimension to use @type integer @default 2
+            % inhibitors: Flag to indicate if the inhibitor extensions
+            % should be used in this model. @type logical @default true
             
             if nargin < 2
                 inhibitors = true;
