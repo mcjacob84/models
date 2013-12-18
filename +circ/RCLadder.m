@@ -1,4 +1,4 @@
-classdef RCLadder < models.BaseFullModel & IDemoProvider
+classdef RCLadder < models.BaseFullModel
 % RCLadder: Model of a nonlinear resistor with independent current source
 %
 % This model has been used as benchmark in many papers. This implementation follows the details
@@ -114,63 +114,4 @@ classdef RCLadder < models.BaseFullModel & IDemoProvider
             end
         end
     end
-    
-    methods(Static)
-        
-        function runDemo
-            % Implements the IDemoProvider main demo function.
-            m = models.circ.RCLadder;
-            [t,y] = m.simulate([],2);
-            m.plot(t,y);
-            title('Plot for full model');
-            
-            m.offlineGenerations;
-            r = m.buildReducedModel;
-            [t,yr] = r.simulate([],2);
-            m.plot(t,yr);
-            title('Plot for reduced model');
-            m.plot(t,yr-y);
-            title('Error plot for reduced/full model');
-        end
-        
-        function m = getTPWLVersion
-            m = models.circ.RCLadder(100);
-            m.T = 10;
-            m.SpaceReducer.Mode = 'abs';
-            m.SpaceReducer.Value = 10;
-            %m.SpaceReducer = [];
-            a = approx.TPWLApprox;
-            a.TrainDataSelector.EpsRad = 0.02;%0.0059;
-            m.Approx = a;
-            m.TrainingInputs = 1;
-        end
-        
-        function m = getSVRVersion
-            m = models.circ.RCLadder(50);
-            m.T = 2;
-            m.System.Inputs(1) = [];
-            m.SpaceReducer.Mode = 'abs';
-            m.SpaceReducer.Value = 10;
-            %m.SpaceReducer = [];
-            a = approx.algorithms.Componentwise;
-            a.Gammas = logspace(log10(.01),log10(10),30);
-            c = general.regression.ScalarNuSVR;
-            c.C = 500;
-            c.nu = .4;
-            c.QPSolver = solvers.qp.qpMosek;
-            c.QPSolver.MaxIterations = 20000;
-%             c = general.regression.KernelLS;
-%             c.CGTol = c.CGTol;
-%             c.lambda = 1;
-%             c.CGMaxIt = 10000;
-            a.CoeffComp = c;
-            a.TimeKernel = kernels.NoKernel;
-            a.ParamKernel = kernels.NoKernel;
-            a.Kernel = kernels.GaussKernel(1);
-            a.TrainDataSelector.Size = 200;
-            m.Approx = a;
-            m.TrainingInputs = 1;
-        end
-    end
-    
 end

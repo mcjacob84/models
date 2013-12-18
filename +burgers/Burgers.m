@@ -32,6 +32,15 @@ classdef Burgers < models.BaseFullModel
     
     methods
         function this = Burgers(dim, version)
+            % Creates a new instance of the Burgers model.
+            % 
+            % Parameters:
+            % dim: The dimension @type integer @default 2000
+            % version: The version of the model to use. Possible choices
+            % are 1 for a combined right hand side (diffusion &
+            % nonlinearity in same function) or 2 for a linear part A
+            % containing the diffusion and a nonlinear part f for the
+            % quadratic term. @type integer @default 1
             this = this@models.BaseFullModel;
             if nargin < 2
                 version = 1;
@@ -66,21 +75,18 @@ classdef Burgers < models.BaseFullModel
             this.ErrorEstimator = error.DEIMEstimator;
         end
         
-        function [f, ax] = plot(this, t, y, ax)
+        function plot(this, t, y, pm)
             if nargin < 4
-                f = figure;
-                ax = gca(f);
+                pm = PlotManager;
+                pm.LeaveOpen = true;
             end
             nt = length(t);
             y  = [zeros(nt,1) y' zeros(nt,1)]; % add boundaries
             xx = linspace(this.Omega(1), this.Omega(2), this.fDim+2);
 
+            ax = pm.nextPlot('burgers',sprintf('%s: dim=%d',this.Name,this.fDim),'x','t');
             surfc(ax,xx,t,y);
             shading interp;
-            axis tight;
-            title(sprintf('%s: dim=%d',this.Name,this.fDim));
-            xlabel('x');
-            ylabel('t');
             zlabel('y');
             rotate3d on;
             if ~isempty(this.PlotAzEl)
