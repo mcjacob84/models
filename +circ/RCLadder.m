@@ -2,17 +2,10 @@ classdef RCLadder < models.BaseFullModel
 % RCLadder: Model of a nonlinear resistor with independent current source
 %
 % This model has been used as benchmark in many papers. This implementation follows the details
-% in \cite{BS06}:
-% [BS06] - Bai, Z., Skoogh, D.: A projection method for model reduction of bilinear dynamical systems.
-% Linear Algebra and its Applications 415(2-3), 406?425 (2006)
+% in \cite BS06
 %
 % This model is also used in several papers dealing with MOR of nonlinear systems, i.e.
-% \cite{Re03}:
-% [Re03] Rewienski, M.: A trajectory piecewise-linear approach to model order reduction of nonlinear
-% dynamical systems. Ph.D. thesis, Citeseer (2003)
-% or \cite{CI04}:
-% [CI04] M. Condon and R. Ivanov. Empirical balanced truncation of nonlinear systems. Journal of
-% Nonlinear Science, 14:405?414, 2004. 10.1007/s00332-004-0617-5.
+% \cite Re03 or \cite CI04.
 %
 % @author Daniel Wirtz @date 2011-04-29
 %
