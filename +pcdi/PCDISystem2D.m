@@ -95,7 +95,8 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             x0(1:2*m) = 5e-13;
             x0(2*m+1:4*m) = 3e-8;
             if this.Model.WithInhibitors
-                x0(4*m+1:end) = 5e-13;%3e-8;
+                x0(4*m+1:6*m) = 3e-8;
+                x0(6*m+1:end) = 5e-13;
             end
             this.x0 = dscomponents.ConstInitialValue(x0);
             
