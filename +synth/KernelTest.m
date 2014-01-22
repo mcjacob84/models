@@ -48,12 +48,14 @@ classdef KernelTest < models.BaseFullModel
 %             a.TrainDataSelector = data.selection.DefaultSelector;
             a.TrainDataSelector = data.selection.LinspaceSelector;
             a.TrainDataSelector.Size = 150;
-            a.Kernel = kernels.GaussKernel(3);
-            a.Kernel.G = 1;
-            a.TimeKernel = kernels.GaussKernel(2);
-            a.TimeKernel.G = 1;
-            a.ParamKernel = kernels.GaussKernel(3);
-            a.ParamKernel.G = 1;
+            kexp = kernels.ParamTimeKernelExpansion;
+            kexp.Kernel = kernels.GaussKernel(3);
+            kexp.Kernel.G = 1;
+            kexp.TimeKernel = kernels.GaussKernel(2);
+            kexp.TimeKernel.G = 1;
+            kexp.ParamKernel = kernels.GaussKernel(3);
+            kexp.ParamKernel.G = 1;
+            a.Expansion = kexp;
             this.Approx = a;
             
             s = spacereduction.PODReducer;
