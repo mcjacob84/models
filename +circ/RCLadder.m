@@ -59,15 +59,9 @@ classdef RCLadder < models.BaseFullModel
             a.MaxRelErr = 1e-5;
             a.MaxAbsResidualErr = 1e-3;
             ec = kernels.config.ExpansionConfig;
-            
             ec.StateConfig = kernels.config.GaussConfig('D',.3:.1:2);
             a.ExpConfig = ec;
             app.Algorithm = a;
-            
-            app.TimeKernel = kernels.NoKernel;
-            app.ParamKernel = kernels.NoKernel;
-            app.Kernel = kernels.GaussKernel;
-            app.Kernel.G = 1;
                         
             t = data.selection.TimeSelector;
             t.Size = 12000;
