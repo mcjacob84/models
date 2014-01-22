@@ -149,7 +149,7 @@ anp4 = (-Km10 * K2 * K1 * K5 ^ 2 * K11 ^ 2 * K13 ^ 2 * K9 * K3 * K7 - K6 * K9 ^ 
     Km8 * K2 * K1 * K5 ^ 2 * K11 ^ 2 * K13 ^ 2 * K9 * K3 * K7 + K6 * K9 * K1 * K5 ^ 2 * K11 ^ 2 * K13 ^ 2 * K8 * K2 * K7 + Km10 * K2 ^ 2 * K1 * K5 ^ 2 * K11 ^ 2 * K13 ^ 2 * K8 * Km3 + ...
     Km10 * K2 ^ 2 * K1 * K5 ^ 2 * K11 ^ 2 * K13 ^ 2 * K8 * K7 - K6 * K9 ^ 2 * K1 * K5 ^ 2 * K11 ^ 2 * K13 ^ 2 * K4 * Km3 - K6 * K9 ^ 2 * K1 * K5 ^ 2 * K11 ^ 2 * K13 ^ 2 * K4 * K7 + ...
     K6 * K9 * K1 * K5 ^ 2 * K11 ^ 2 * K13 ^ 2 * K8 * K2 * Km3 - Km10 * K2 * K1 * K5 ^ 2 * K11 ^ 2 * K13 ^ 2 * K9 * K4 * Km3);
-% Koeffizinten in der Größenordnung von 1e-21
+% Koeffizinten in der Grï¿½ï¿½enordnung von 1e-21
 % Multiplikation der Funktionswerte mit Zehnerpotenzen
 while (max([anp4 anp3 anp2 anp1 an a1 a2 a3 a4]) < 1.0)    
     a1 = 10*a1;
@@ -170,14 +170,14 @@ polynom = @(x) anp4*x.^(n+3) + anp3*x.^(n+2) + anp2*x.^(n+1) + anp1*x.^(n) + an*
                      
 % Bestimme Nullstelle des Polynoms -> Konzentration von x_a           
 options = optimoptions('fsolve','TolFun',1e-15,'Display','None');
-xa = fsolve(polynom,1.0,options);    
+xa = fsolve(polynom,0.2,options);    
 
 % Plotten des Polynoms -> Visualisierung der Lage der Nullstellen
 if doplot
     x = linspace(0,xa+1000*eps,10000);
     plot(x,polynom(x),'b')
 end
-% Fuer n = 3.818 fallen death state und transition state annähernd zusammen
+% Fuer n = 3.818 fallen death state und transition state annï¿½hernd zusammen
 % und polynom beruehrt die x-Achse
 % Fuer kleiner werdende n wandert der transition state Richtung life state
 
