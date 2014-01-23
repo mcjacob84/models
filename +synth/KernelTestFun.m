@@ -39,10 +39,12 @@ classdef KernelTestFun < dscomponents.ParamTimeKernelCoreFun
             
             % Sample bases
             this.svNum = 20;
-            this.Centers.xi = repmat(linspace(-24,24,this.svNum),dim,1);
-            %this.Centers.xi = linspace(-20,20,this.svNum);
-            this.Centers.ti = .5*(1:this.svNum);
-            this.Centers.mui = rand(2,this.svNum);
+            kexp = kernels.ParamTimeKernelExpansion;
+            kexp.Centers.xi = repmat(linspace(-24,24,this.svNum),dim,1);
+            kexp.Centers.xi = linspace(-20,20,this.svNum);
+            %kexp.Centers.ti = .5*(1:this.svNum);
+            kexp.Centers.mui = rand(2,this.svNum);
+            this.Expansion = kexp;
             
             % Function coefficients
             offset = .5;
@@ -52,16 +54,16 @@ classdef KernelTestFun < dscomponents.ParamTimeKernelCoreFun
             end
             ai = (rand(1,this.svNum)-offset);
             
-            this.Ma = repmat(ai,dim,1);
+            kexp.Ma = repmat(ai,dim,1);
             
             %% KernelApprox settings
             %this.Kernel = kernels.GaussKernel(4*sqrt(dims));
-            this.Kernel = kernels.GaussKernel(sqrt(dim));
-            this.Kernel.G = 1;
-            this.TimeKernel = kernels.GaussKernel(.4);
-            this.TimeKernel.G = 1;
-            this.ParamKernel = kernels.GaussKernel(.4);
-            this.ParamKernel.G = 1;
+            kexp.Kernel = kernels.GaussKernel(sqrt(dim));
+            kexp.Kernel.G = 1;
+            kexp.TimeKernel = kernels.GaussKernel(.4);
+            kexp.TimeKernel.G = 1;
+            kexp.ParamKernel = kernels.GaussKernel(.4);
+            kexp.ParamKernel.G = 1;
             
             this.dim = dim;
         end

@@ -62,8 +62,8 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
                     mi = .999*mi; Ma=1.001*Ma;
                 end
                 axis([0 max(t) this.Omega mi Ma]);
-                di = abs(this.SteadyStates(:,pnr)-y(end));
-                reldi = di ./ (this.SteadyStates(:,pnr)+eps);
+                di = abs(this.Model.SteadyStates(:,pnr)-y(end));
+                reldi = di ./ (this.Model.SteadyStates(:,pnr)+eps);
                 reldistr = Utils.implode(reldi,', ','%2.3e');
                 if any(reldi > .1) || any(reldi < 10)
                     [~, id] = min(di);
