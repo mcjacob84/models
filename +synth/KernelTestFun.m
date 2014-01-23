@@ -41,8 +41,7 @@ classdef KernelTestFun < dscomponents.ParamTimeKernelCoreFun
             this.svNum = 20;
             kexp = kernels.ParamTimeKernelExpansion;
             kexp.Centers.xi = repmat(linspace(-24,24,this.svNum),dim,1);
-            kexp.Centers.xi = linspace(-20,20,this.svNum);
-            %kexp.Centers.ti = .5*(1:this.svNum);
+            kexp.Centers.ti = .5*(1:this.svNum);
             kexp.Centers.mui = rand(2,this.svNum);
             this.Expansion = kexp;
             
