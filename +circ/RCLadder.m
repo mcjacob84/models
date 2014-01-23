@@ -5,7 +5,7 @@ classdef RCLadder < models.BaseFullModel
 % in \cite BS06
 %
 % This model is also used in several papers dealing with MOR of nonlinear systems, i.e.
-% \cite Re03 or \cite CI04.
+% \cite RW03 or \cite CI04.
 %
 % @author Daniel Wirtz @date 2011-04-29
 %
