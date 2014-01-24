@@ -45,17 +45,14 @@ classdef KernelTest < models.BaseFullModel
             % to the this.Ma property for the error estimator.
             a = approx.KernelApprox;
             a.Algorithm = approx.algorithms.Componentwise;
-%             a.TrainDataSelector = data.selection.DefaultSelector;
+            ec = kernels.config.ParamTimeExpansionConfig;
+            ec.StateConfig = kernels.config.GaussConfig('G',1);
+            ec.ParamConfig = kernels.config.GaussConfig('G',1);
+            ec.ParamConfig = kernels.config.GaussConfig('G',1);
+            a.Algorithm.ExpConfig = ec;
+            
             a.TrainDataSelector = data.selection.LinspaceSelector;
             a.TrainDataSelector.Size = 150;
-            kexp = kernels.ParamTimeKernelExpansion;
-            kexp.Kernel = kernels.GaussKernel(3);
-            kexp.Kernel.G = 1;
-            kexp.TimeKernel = kernels.GaussKernel(2);
-            kexp.TimeKernel.G = 1;
-            kexp.ParamKernel = kernels.GaussKernel(3);
-            kexp.ParamKernel.G = 1;
-            a.Expansion = kexp;
             this.Approx = a;
             
             s = spacereduction.PODReducer;

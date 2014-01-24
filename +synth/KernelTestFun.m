@@ -33,17 +33,12 @@ classdef KernelTestFun < dscomponents.ParamTimeKernelCoreFun
                 pos_flag = false;
             end
             
-            % Set props
-            this.fDim = dim;
-            this.xDim = dim;
-            
             % Sample bases
             this.svNum = 20;
             kexp = kernels.ParamTimeKernelExpansion;
             kexp.Centers.xi = repmat(linspace(-24,24,this.svNum),dim,1);
             kexp.Centers.ti = .5*(1:this.svNum);
             kexp.Centers.mui = rand(2,this.svNum);
-            this.Expansion = kexp;
             
             % Function coefficients
             offset = .5;
@@ -63,6 +58,7 @@ classdef KernelTestFun < dscomponents.ParamTimeKernelCoreFun
             kexp.TimeKernel.G = 1;
             kexp.ParamKernel = kernels.GaussKernel(.4);
             kexp.ParamKernel.G = 1;
+            this.Expansion = kexp;
             
             this.dim = dim;
         end
