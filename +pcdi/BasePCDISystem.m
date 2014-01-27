@@ -9,8 +9,8 @@ classdef BasePCDISystem < models.BaseDynSystem
     % @new{0,8,dw,2013-10-23} Added this class
     % This class is part of the framework
     % KerMor - Model Order Reduction using Kernels:
-    % - \c Homepage http://www.agh.ians.uni-stuttgart.de/research/software/kermor.html
-    % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
+    % - \c Homepage http://www.morepas.org/software/index.html
+    % - \c Documentation http://www.morepas.org/software/kermor/index.html
     % - \c License @ref licensing
     
     properties(SetObservable, Dependent)
