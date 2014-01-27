@@ -54,9 +54,6 @@ classdef RBMatlabModel < models.BaseFullModel
             % inputindex.
             % 
             % Overloads the base method in models.BaseModel.
-            %
-            % Inherited documentation:
-            % @copydoc models::BaseModel::simulate()
             if ~KerMor.App.Hasrbmatlab
                 error('rbmatlab is not registered with KerMor. Set KerMor.App.rbmatlabDirectory to fix.');
             end
@@ -68,9 +65,6 @@ classdef RBMatlabModel < models.BaseFullModel
             % parameter and inputindex.
             % 
             % Overloads the base method in models.BaseModel.
-            %
-            % Inherited documentation:
-            % @copydoc models::BaseModel::computeTrajectory()
             if ~KerMor.App.Hasrbmatlab
                 error('rbmatlab is not registered with KerMor. Set KerMor.App.rbmatlabDirectory to fix.');
             end
