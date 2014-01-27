@@ -75,17 +75,19 @@ classdef Burgers < models.BaseFullModel
             this.ErrorEstimator = error.DEIMEstimator;
         end
         
-        function plot(this, t, y, pm)
+        function plot(this, t, y, pm_ax)
             if nargin < 4
-                pm = PlotManager;
-                pm.LeaveOpen = true;
+                pm_ax = PlotManager;
+                pm_ax.LeaveOpen = true;
             end
             nt = length(t);
             y  = [zeros(nt,1) y' zeros(nt,1)]; % add boundaries
             xx = linspace(this.Omega(1), this.Omega(2), this.fDim+2);
 
-            ax = pm.nextPlot('burgers',sprintf('%s: dim=%d',this.Name,this.fDim),'x','t');
-            surfc(ax,xx,t,y);
+            if ~ishandle(pm_ax)
+                pm_ax = pm_ax.nextPlot('burgers',sprintf('%s: dim=%d',this.Name,this.fDim),'x','t');
+            end
+            surfc(pm_ax,xx,t,y);
             shading interp;
             zlabel('y');
             rotate3d on;
