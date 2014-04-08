@@ -83,6 +83,10 @@ classdef BasePCDISystem < models.BaseDynSystem
             % Exponent
             p = this.addParam('exponent', [1, 4], 5);
             p.Spacing = 'lin';
+            
+            % Diffusion density
+            p = this.addParam('diffusionstrength', [0, 1], 5);
+            p.Spacing = 'lin';
         end
         
         function h = get.h(this)
