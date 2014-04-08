@@ -17,6 +17,14 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
         %
         % @type logical @default false
         Plot2D = false;
+        
+        % The kernel expansion used to construct the diffusion coefficient
+        % distribution.
+        %
+        % @type kernels.KernelExpansion
+        Kexp;
+        
+        Gammas = [.03 .06 .08 .1];
     end
     
     methods
@@ -29,6 +37,21 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             else
                 this.f = models.pcdi.CoreFun2D(this);
             end
+            
+            % Assemble kernel expansion
+            s = RandStream('mt19937ar','Seed',2);
+            k = kernels.KernelExpansion;
+%             ke = kernels.Wendland;
+%             ke.d = 2;
+%             ke.k = 3;
+%             k.Kernel = ke;
+            k.Kernel.Gamma = .08;
+            
+            nc = 5;
+            k.Centers.xi = [.25 1   1.2 .8 .4
+                            .45 .25 .65 .9 .8];
+            k.Ma = s.rand(1,nc)*10000;
+            this.Kexp = k;
             
             % Spatial area (unscaled!)
             this.Omega = [0 1.5; 0 1] * this.Model.L;
@@ -82,9 +105,27 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 pm.done;
             end
         end
+        
+        function pm = plotDiffusionCoeff(this, pm)
+            if nargin < 2
+                pm = PlotManager(false,2,2);
+                if nargout == 0
+                    pm.LeaveOpen = true;
+                end
+            end
+            o = this.Omega / this.Model.L;
+            [x,y] = meshgrid(0:this.hs/15:o(1,2),0:this.hs/15:o(2,2));
+            for k=1:length(this.Gammas)
+                this.Kexp.Kernel.Gamma = this.Gammas(k);
+                c = this.diffusionCoeff([x(:) y(:)]');
+                c = reshape(c,size(x,1),[]);
+                h = pm.nextPlot('diff_coeff','Spatial diffusion coefficient c(x)','x','y');
+                surf(h,x,y,c,'EdgeColor','interp');
+            end
+        end
     end
     
-    methods(Access=protected)     
+    methods(Access=protected)
         function newSysDimension(this)
             m = prod(this.Dims);
             if this.Model.WithInhibitors
@@ -101,15 +142,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             this.x0 = dscomponents.ConstInitialValue(x0);
             
             % Diffusion part
-            A = MatUtils.laplacemat(this.hs, this.Dims(1), this.Dims(2));
-            D = this.Diff;
-            if this.Model.WithInhibitors
-                A = blkdiag(A,D(1)*A,D(2)*A,D(3)*A,...
-                    D(4)*A,D(5)*A,D(6)*A,D(7)*A);
-            else
-                A = blkdiag(A,D(1)*A,D(2)*A,D(3)*A);
-            end
-            this.A = dscomponents.LinearCoreFun(A);
+            this.A = this.assembleA;
             
             % Output extraction
             p = .1; % 10% of each dimensions span, centered in geometry.
@@ -131,6 +164,75 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
     end
     
     methods(Access=private)
+        
+        function res = assembleA(this)
+            
+            D = this.Diff;
+            
+            res = dscomponents.AffLinCoreFun;
+            res.TimeDependent = false;
+            
+            ilen = 1/length(this.Gammas);
+            % Add constant diffusion on [0, .2] interval
+            A = MatUtils.laplacemat(this.hs, this.Dims(1), this.Dims(2));
+            add(sprintf('(1-mu(5)/%g)*(mu(5)<%g)',ilen,ilen),A);
+            
+            % Then use all specified gamma widths and compute affine-linear
+            % interpolation
+            for k=1:length(this.Gammas)
+                % Set gamma (will influence the functions diffusionCoeff
+                % etc)
+                this.Kexp.Kernel.Gamma = this.Gammas(k);
+                % Compile matrix
+                A = this.assembleASpatialDiff;
+                % zero to one
+                zto = sprintf('(mu(5)>=%g)*(mu(5)<%g)*((mu(5)-%g)/%g)',(k-1)*ilen,k*ilen,(k-1)*ilen,ilen);
+                % one to zero
+                otz = sprintf('(mu(5)>=%g)*(mu(5)<%g)*(1-(mu(5)-%g)/%g)',k*ilen,(k+1)*ilen,k*ilen,ilen);
+                add([zto '+' otz],A);
+            end
+            
+            function add(str, A)
+                if this.Model.WithInhibitors
+                    augA = blkdiag(A,D(1)*A,D(2)*A,D(3)*A,...
+                        D(4)*A,D(5)*A,D(6)*A,D(7)*A);
+                else
+                    augA = blkdiag(A,D(1)*A,D(2)*A,D(3)*A);
+                end
+                res.addMatrix(str, augA);
+            end
+            
+        end
+        
+        function A = assembleASpatialDiff(this)
+            % Get scaled area
+            o = this.Omega / this.Model.L;
+            [x,y] = meshgrid(0:this.hs:o(1,2),0:this.hs:o(2,2));
+            x = x'; y = y';
+            if size(x,1) ~= this.Dims(1) || size(x,2) ~= this.Dims(2)
+                error('Boo');
+            end
+            
+            %% c(x) * \laplace u part
+            % laplace matrix
+            A1 = MatUtils.laplacemat(this.hs, this.Dims(1), this.Dims(2));
+            % times c(x)
+            A1 = bsxfun(@times,A1,this.diffusionCoeff([x(:) y(:)]')');
+            
+            %% grad c(x) . grad u part
+            A2 = MatUtils.divcdivumat(x,y,@this.nablaC);
+            
+            A = A1 + A2;
+        end
+        
+        function c = diffusionCoeff(this, x)
+            c = 1./(1+this.Kexp.evaluate(x));
+        end
+        
+        function nc = nablaC(this, x)
+            nc = -1/(1+this.Kexp.evaluate(x))^2 * this.Kexp.getStateJacobian(x);
+        end
+        
         function plot1DState(this, model, t, y, pm)
             m = prod(this.Dims);
             
