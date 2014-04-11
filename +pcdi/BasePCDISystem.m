@@ -46,6 +46,10 @@ classdef BasePCDISystem < models.BaseDynSystem
         
         % The reaction coefficients
         ReacCoeff;
+        
+        % The concentration labels
+        Labels = {'Caspase-8','Caspase-3','Pro-Caspase-8','Pro-Caspase-3',...
+            'IAP (iap)','BAR (bar)','Caspase-3+IAP (yb)','Caspase-8+BAR (xb)'};
     end
     
     methods
