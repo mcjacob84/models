@@ -24,7 +24,9 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
         % @type kernels.KernelExpansion
         Kexp;
         
-        Gammas = [.03 .06 .08 .1];
+        % Gamma values to use as kernel width for diffusivity
+        Gammas = .08;
+        %Gammas = [.03 .06 .08 .1];
     end
     
     methods
@@ -41,11 +43,6 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             % Assemble kernel expansion
             s = RandStream('mt19937ar','Seed',2);
             k = kernels.KernelExpansion;
-%             ke = kernels.Wendland;
-%             ke.d = 2;
-%             ke.k = 3;
-%             k.Kernel = ke;
-            k.Kernel.Gamma = .08;
             
             nc = 5;
             k.Centers.xi = [.25 1   1.2 .8 .4
@@ -60,7 +57,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             this.h = .5 * this.Model.L;
         end
         
-        function varargout = plot(~, model, t, y, varargin)
+        function varargout = plot(this, model, t, y, varargin)
             if ~isempty(varargin) && isa(varargin{1},'PlotManager')
                 pm = varargin{1};
             else
@@ -75,6 +72,9 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 sprintf('Output plot for model %s',model.Name),'Time','Caspase-3 Concentration');
             %plot(h,t,y,'r','LineWidth',2);
             semilogy(h,t,y,'r','LineWidth',2);
+            if ~isempty(this.mu)
+                this.plotDiffusionCoeff(this.mu(5),pm,true);
+            end
             if isempty(varargin)
                 pm.done;
             end
@@ -106,21 +106,45 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             end
         end
         
-        function pm = plotDiffusionCoeff(this, pm)
-            if nargin < 2
+        function pm = plotDiffusionCoeff(this, mu, pm, onlymu)
+            if nargin < 4
+                onlymu = false;
+            end
+            if nargin < 3 || isempty(pm)
                 pm = PlotManager(false,2,2);
                 if nargout == 0
                     pm.LeaveOpen = true;
                 end
+                if nargin < 2
+                    mu = linspace(0,1,10);
+                end
             end
             o = this.Omega / this.Model.L;
-            [x,y] = meshgrid(0:this.hs/15:o(1,2),0:this.hs/15:o(2,2));
+            [x,y] = meshgrid(0:this.hs/20:o(1,2),0:this.hs/20:o(2,2));
+            c = zeros(size(x,1),size(x,2),length(this.Gammas));
+            apm = general.AffParamMatrix;
+            lso = LinearSplitOfOne('mu',length(this.Gammas));
+            apm.addMatrix(lso.getFunStr(0),ones(size(x)));
             for k=1:length(this.Gammas)
                 this.Kexp.Kernel.Gamma = this.Gammas(k);
-                c = this.diffusionCoeff([x(:) y(:)]');
-                c = reshape(c,size(x,1),[]);
-                h = pm.nextPlot('diff_coeff','Spatial diffusion coefficient c(x)','x','y');
-                surf(h,x,y,c,'EdgeColor','interp');
+                hlp = this.diffusionCoeff([x(:) y(:)]');
+                c(:,:,k) = reshape(hlp,size(x,1),[]);
+                apm.addMatrix(lso.getFunStr(k),c(:,:,k));
+                if ~onlymu
+                    h = pm.nextPlot(sprintf('diff_coeff_%d',k),...
+                        sprintf('Spatial diffusion coefficient base c_%d(x) for \\gamma=%g',...
+                        k,this.Gammas(k)),'x','y');
+                    surf(h,x,y,c(:,:,k),'EdgeColor','interp');
+                end
+            end
+            for k = 1:length(mu)
+                h = pm.nextPlot(sprintf('diff_coeff_mu_%d',k),...
+                    sprintf('Spatial diffusion coefficient c(x) for mu(5)=%g',...
+                    mu(k)),'x','y');
+                surf(h,x,y,apm.compose(0,mu(k)),'EdgeColor','interp');
+            end
+            if nargin < 3
+                pm.done;
             end
         end
     end
@@ -172,11 +196,14 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             res = dscomponents.AffLinCoreFun;
             res.TimeDependent = false;
             
-            ilen = 1/length(this.Gammas);
+            
             % Add constant diffusion on [0, .2] interval
             A = MatUtils.laplacemat(this.hs, this.Dims(1), this.Dims(2));
-            add(sprintf('(1-mu(5)/%g)*(mu(5)<%g)',ilen,ilen),A);
             
+            % Use coefficient functions that split 1 into n linear
+            % functions (equally spaced)
+            lso = LinearSplitOfOne('mu(5)',length(this.Gammas));
+            add(lso.getFunStr(0),A);
             % Then use all specified gamma widths and compute affine-linear
             % interpolation
             for k=1:length(this.Gammas)
@@ -185,11 +212,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 this.Kexp.Kernel.Gamma = this.Gammas(k);
                 % Compile matrix
                 A = this.assembleASpatialDiff;
-                % zero to one
-                zto = sprintf('(mu(5)>=%g)*(mu(5)<%g)*((mu(5)-%g)/%g)',(k-1)*ilen,k*ilen,(k-1)*ilen,ilen);
-                % one to zero
-                otz = sprintf('(mu(5)>=%g)*(mu(5)<%g)*(1-(mu(5)-%g)/%g)',k*ilen,(k+1)*ilen,k*ilen,ilen);
-                add([zto '+' otz],A);
+                add(lso.getFunStr(k),A);
             end
             
             function add(str, A)
@@ -315,10 +338,15 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             hlpax = newplot(hlpf);
             axis tight;
             ax = [];
-            caps = {'Caspase-8','Caspase-3','Pro-Caspase-8','Pro-Caspase-3'};
-            for p = 1:4
+            
+            plots = 4;
+            if this.Model.WithInhibitors
+                plots = 8;
+            end
+            tags = {'c8','c3','pc8','pc3','iap','bar','yb','xb'};
+            for p = 1:plots
                 h = pm.nextPlot(sprintf('PCD2D_plot1D_%d',p),...
-                    sprintf('Model "%s", %s concentrations', model.Name, caps{p}),...
+                    sprintf('Model "%s", %s concentrations', model.Name, this.Labels{p}),...
                     'Left to right','Bottom to Top');
                 axis(h,[reshape(this.Omega',1,[]) b(p,:)]);
                 ar = get(gca,'DataAspectRatio');
@@ -329,7 +357,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                     set(h,'CLimMode','manual','CLim',b(p,:));
                 end
                 view(h,-22,31);
-                zlabel(h,sprintf('%s concentration',caps{p}));
+                zlabel(h,sprintf('%s concentration',this.Labels{p}));
                 colorbar('peer',h);
                 ax(end+1) = h;%#ok
             end
@@ -342,10 +370,16 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             
             step = round(length(t)/40);
             for idx=1:step:length(t)
-                h1 = doplot(xa(:,idx),ax(1));
-                h2 = doplot(ya(:,idx),ax(2));
-                h3 = doplot(xi(:,idx),ax(3));
-                h4 = doplot(yi(:,idx),ax(4));
+                doplot(1);
+                doplot(2);
+                doplot(3);
+                doplot(4);
+                if this.Model.WithInhibitors
+                    doplot(5);
+                    doplot(6);
+                    doplot(7);
+                    doplot(8);
+                end
                 set(gcf,'Name',sprintf('Plot at t=%f',t(idx)));
                 if idx ~= length(t)
                     pause;
