@@ -124,6 +124,10 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
             this.gaussian = k;
             this.fAFT = value;
         end
+        
+        function value = get.ActivationFunType(this)
+            value = this.fAFT;
+        end
     end
     
     methods(Access=protected)

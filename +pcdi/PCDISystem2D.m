@@ -1,6 +1,9 @@
 classdef PCDISystem2D < models.pcdi.BasePCDISystem
-    %PCDISystem2D The inhibited version programmed cell death model for 2D
-    %geometry.
+    % PCDISystem2D The inhibited version programmed cell death model for 2D
+    % geometry.
+    %
+    % Geometry layout is with zero in the top left corner and x+ being
+    % downwards and y+ towards right (according to matlab matrix indexing)
     % 
     % @author Daniel Wirtz @date 2013-10-23
     %
@@ -12,12 +15,6 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
     % - \c License @ref licensing
     
     properties
-        % Flag that indicates if the plot command yields a 2D plot or a 1D slice over time
-        % plot.
-        %
-        % @type logical @default false
-        Plot2D = false;
-        
         % The kernel expansion used to construct the diffusion coefficient
         % distribution.
         %
@@ -25,8 +22,8 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
         Kexp;
         
         % Gamma values to use as kernel width for diffusivity
-        Gammas = .08;
-        %Gammas = [.03 .06 .08 .1];
+%         Gammas = .08;
+        Gammas = [.03 .06 .08 .1];
     end
     
     methods
@@ -47,7 +44,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             nc = 5;
             k.Centers.xi = [.25 1   1.2 .8 .4
                             .45 .25 .65 .9 .8];
-            k.Ma = s.rand(1,nc)*10000;
+            k.Ma = s.rand(1,nc)*1e5;
             this.Kexp = k;
             
             % Spatial area (unscaled!)
@@ -72,46 +69,69 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 sprintf('Output plot for model %s',model.Name),'Time','Caspase-3 Concentration');
             %plot(h,t,y,'r','LineWidth',2);
             semilogy(h,t,y,'r','LineWidth',2);
-            if ~isempty(this.mu)
-                this.plotDiffusionCoeff(this.mu(5),pm,true);
-            end
             if isempty(varargin)
                 pm.done;
             end
         end
         
-        function varargout = plotState(this, model, t, y, varargin)
-            if ~isempty(varargin) && isa(varargin{1},'PlotManager')
-                pm = varargin{1};
-            else
+        function varargout = plotState(this, model, t, y, mode)
+            % 
+            % Mode 1: Plot line through cell center over time
+            % Mode 2: Use an imagesc plot from above with colorbars aside
+            % (with pauses)
+            % Mode 3: Plot a surface with augmented concentration
+            % differences from the mean value (with pauses)
+            
+            if nargin < 5
+%                 mode = [2 3];
+                mode = 2;
+            end
+
+            % Plot all fields into the same figure
+            
+            varargout = {};
+            if any(mode == 1)
+                this.plot1DState(model, t, y, getPM);
+            end
+            if any(mode == 2) || any(mode == 3)
+                pm1 = [];
+                if any(mode == 2) 
+                    pm1 = getPM;
+                end
+                pm2 = [];
+                if any(mode == 3) 
+                    pm2 = getPM;
+                end
+                this.plot2DState(t, y, pm1, pm2);
+            end              
+            for k=1:length(varargout)
+                varargout{k}.done;
+            end
+            
+            function pm = getPM
                 if model.WithInhibitors
                     np = 4;
                 else
                     np = 2;
                 end
                 pm = PlotManager(false,2,np);
-                if nargout == 0
-                    pm.LeaveOpen = true;
-                else
-                    varargout{1} = pm;
-                end
-            end
-            if this.Plot2D
-                this.plot2DState(model, t, y, pm);
-            else
-                this.plot1DState(model, t, y, pm);
-            end
-            if isempty(varargin)
-                pm.done;
+                % Use max 2 figures
+                pm.MaxFigures = 1;
+                pm.LeaveOpen = true;
+                varargout{end+1} = pm;
             end
         end
         
-        function pm = plotDiffusionCoeff(this, mu, pm, onlymu)
+        function pm = plotDiffusionCoeff(this, mu, pm, allparts)
             if nargin < 4
-                onlymu = false;
+                allparts = false;
             end
             if nargin < 3 || isempty(pm)
-                pm = PlotManager(false,2,2);
+                if allparts
+                    pm = PlotManager(false,2,2);
+                else
+                    pm = PlotManager;
+                end
                 if nargout == 0
                     pm.LeaveOpen = true;
                 end
@@ -120,7 +140,8 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 end
             end
             o = this.Omega / this.Model.L;
-            [x,y] = meshgrid(0:this.hs/20:o(1,2),0:this.hs/20:o(2,2));
+            %[x,y] = meshgrid(0:this.hs/20:o(1,2),0:this.hs/20:o(2,2));
+            [x,y] = meshgrid(0:this.hs:o(1,2),0:this.hs:o(2,2));
             c = zeros(size(x,1),size(x,2),length(this.Gammas));
             apm = general.AffParamMatrix;
             lso = LinearSplitOfOne('mu',length(this.Gammas));
@@ -130,18 +151,20 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 hlp = this.diffusionCoeff([x(:) y(:)]');
                 c(:,:,k) = reshape(hlp,size(x,1),[]);
                 apm.addMatrix(lso.getFunStr(k),c(:,:,k));
-                if ~onlymu
+                if allparts
                     h = pm.nextPlot(sprintf('diff_coeff_%d',k),...
                         sprintf('Spatial diffusion coefficient base c_%d(x) for \\gamma=%g',...
                         k,this.Gammas(k)),'x','y');
-                    surf(h,x,y,c(:,:,k),'EdgeColor','interp');
+                    surf(h,x,y,log10(c(:,:,k)),'EdgeColor','interp');
+                    zlabel('Log-scaled diffusivity');
                 end
             end
             for k = 1:length(mu)
                 h = pm.nextPlot(sprintf('diff_coeff_mu_%d',k),...
                     sprintf('Spatial diffusion coefficient c(x) for mu(5)=%g',...
                     mu(k)),'x','y');
-                surf(h,x,y,apm.compose(0,mu(k)),'EdgeColor','interp');
+                surf(h,x,y,log10(apm.compose(0,mu(k))),'EdgeColor','interp');
+                zlabel('Log-scaled diffusivity');
             end
             if nargin < 3
                 pm.done;
@@ -152,6 +175,8 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
     methods(Access=protected)
         function newSysDimension(this)
             m = prod(this.Dims);
+            
+            %% Initial conditions
             if this.Model.WithInhibitors
                 x0 = zeros(8*m,1);
             else
@@ -165,10 +190,10 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             end
             this.x0 = dscomponents.ConstInitialValue(x0);
             
-            % Diffusion part
+            %% Diffusion part
             this.A = this.assembleA;
             
-            % Output extraction
+            %% Output extraction
             p = .1; % 10% of each dimensions span, centered in geometry.
             d = this.Dims(1);
             d1idx = find(abs((1:d) - d/2) <= d/2 * p);
@@ -181,6 +206,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             else
                 C = sparse(1,4*m);
             end
+            % Pick the Caspase-3 concentration
             ca3 = m+1:2*m;
             C(ca3(sel)) = 1/length(sel);
             this.C = dscomponents.LinearOutputConv(C);
@@ -196,7 +222,6 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             res = dscomponents.AffLinCoreFun;
             res.TimeDependent = false;
             
-            
             % Add constant diffusion on [0, .2] interval
             A = MatUtils.laplacemat(this.hs, this.Dims(1), this.Dims(2));
             
@@ -204,6 +229,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             % functions (equally spaced)
             lso = LinearSplitOfOne('mu(5)',length(this.Gammas));
             add(lso.getFunStr(0),A);
+            
             % Then use all specified gamma widths and compute affine-linear
             % interpolation
             for k=1:length(this.Gammas)
@@ -315,7 +341,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             end
         end
 
-        function plot2DState(this, model, t, v, pm)
+        function plot2DState(this, t, v, pm1, pm2)
             % Performs a plot for this model's results.
             %
             % Parameters:
@@ -323,84 +349,86 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             % v: The system's caspase concentrations (with no output
             % projection!) @type matrix
             
-            autocols = true;
-            
             m = prod(this.Dims);
-            xa = v(1:m,:);
-            ya = v(m+1:2*m,:);
-            xi = v(2*m+1:3*m,:);
-            yi = v(3*m+1:end,:);
-            b = [min(xa(:)) max(xa(:)); min(ya(:)) max(ya(:));...
-                 min(xi(:)) max(xi(:)); min(yi(:)) max(yi(:))];
-            %% Prepare figures
-            rotate3d on;
-            hlpf = figure('Visible','off','MenuBar','none','ToolBar','none');
-            hlpax = newplot(hlpf);
-            axis tight;
-            ax = [];
-            
-            plots = 4;
-            if this.Model.WithInhibitors
-                plots = 8;
-            end
-            tags = {'c8','c3','pc8','pc3','iap','bar','yb','xb'};
-            for p = 1:plots
-                h = pm.nextPlot(sprintf('PCD2D_plot1D_%d',p),...
-                    sprintf('Model "%s", %s concentrations', model.Name, this.Labels{p}),...
-                    'Left to right','Bottom to Top');
-                axis(h,[reshape(this.Omega',1,[]) b(p,:)]);
-                ar = get(gca,'DataAspectRatio');
-                set(h,'DataAspectRatio',[ar(1)/2 ar(2:3)]);
-                %axis(a fill;
-                set(h,'Box','on','GridLineStyle','none');
-                if ~autocols
-                    set(h,'CLimMode','manual','CLim',b(p,:));
-                end
-                view(h,-22,31);
-                zlabel(h,sprintf('%s concentration',this.Labels{p}));
-                colorbar('peer',h);
-                ax(end+1) = h;%#ok
-            end
-            
+            pos = reshape(1:8*m,[],8)';
+
             %% Plot timesteps
             a = this.Omega;
             x = a(1,1):this.h:a(1,2);
             y = a(2,1):this.h:a(2,2);
             [X,Y] = meshgrid(x,y);
+            X = X';
+            Y = Y';
             
             step = round(length(t)/40);
             for idx=1:step:length(t)
-                doplot(1);
-                doplot(2);
-                doplot(3);
-                doplot(4);
-                if this.Model.WithInhibitors
-                    doplot(5);
-                    doplot(6);
-                    doplot(7);
-                    doplot(8);
+                %% Mode 2 plots
+                if ~isempty(pm1)
+                    imagescplot(1);
+                    imagescplot(2);
+                    imagescplot(3);
+                    imagescplot(4);
+                    if this.Model.WithInhibitors
+                        imagescplot(5);
+                        imagescplot(6);
+                        imagescplot(7);
+                        imagescplot(8);
+                    end
+                    pm1.done;
                 end
-                set(gcf,'Name',sprintf('Plot at t=%f',t(idx)));
+                set(gcf,'Name',sprintf('Concentration top view at t=%f',t(idx)));
+                %% Mode 3 plots
+                if ~isempty(pm2)
+                    surfplot(1);
+                    surfplot(2);
+                    surfplot(3);
+                    surfplot(4);
+                    if this.Model.WithInhibitors
+                        surfplot(5);
+                        surfplot(6);
+                        surfplot(7);
+                        surfplot(8);
+                    end
+                    pm2.done;
+                    rotate3d on;
+                end
+                set(gcf,'Name',sprintf('Augmented concentration differences at t=%f',t(idx)));
                 if idx ~= length(t)
-                    pause;
-                    delete([h1; h2; h3; h4]);
+                    pause(.1);
+                    if any(~ishandle(h))
+                        return;
+                    end
                 end
             end
             
-            close(hlpf);
+            function imagescplot(dim)
+                V = reshape(v(pos(dim,:),idx),this.Dims(1),[])';
+                h = pm1.nextPlot(sprintf('PCDI2D_plot2D_%d',this.Tags{dim}),...
+                    sprintf('%s concentrations', this.Labels{dim}),'x','y');
+                imagesc(x,y,V,'Parent',h);
+                set(h,'DataAspectRatio',[1 1 1]);
+                axis(h,'xy');
+                colorbar('peer',h,'SouthOutside');
+            end
             
-            function hs = doplot(zd, ax)       
-                V = reshape(zd,this.Dims(1),[])';
-                                
-                % bugfix: constant nonzero values cause slice to crash when
-                % setting the clim property.
-%                 if V(1) ~= 0 && all(V(1) == V(:))
-%                     V(1) = 1.0001*V(1);
-%                 end
-                %hs = mesh(hlpax,X,Y,V);
-                hs = surf(hlpax,X,Y,V);
-                set(hs,'Parent',ax);
-                set(hs,'FaceColor','interp','EdgeColor','none');
+            function surfplot(dim)
+                % Extract the data for the current cell                
+                V = reshape(v(pos(dim,:),idx),this.Dims(1),[]);
+                
+                % Augment the differences
+                mv = mean(V(:));
+                diff = V - mv;
+                diffnorm = norm(diff);
+                V = mv + diff/diffnorm;
+
+                h = pm2.nextPlot(sprintf('PCDI2D_plot2D_%d',this.Tags{dim}),...
+                    sprintf('%s concentration difference\n Mean %g, augmented by %g',...
+                    this.Labels{dim},mv,diffnorm),'x','y');
+                %delete(get(h,'Children'));
+                surf(h,X,Y,V,'FaceColor','interp','EdgeColor','none');
+                ar = get(h,'DataAspectRatio');
+                set(h,'DataAspectRatio',[1 1 ar(3)]);
+                axis(h,'tight');
             end
         end
     end

@@ -50,6 +50,9 @@ classdef BasePCDISystem < models.BaseDynSystem
         % The concentration labels
         Labels = {'Caspase-8','Caspase-3','Pro-Caspase-8','Pro-Caspase-3',...
             'IAP (iap)','BAR (bar)','Caspase-3+IAP (yb)','Caspase-8+BAR (xb)'};
+        
+        % The concentration image tags
+        Tags = {'c8','c3','pc8','pc3','iap','bar','yb','xb'};
     end
     
     methods
