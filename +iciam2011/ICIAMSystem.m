@@ -1,4 +1,4 @@
-classdef ICIAMSystem < models.BaseDynSystem & dscomponents.ParamTimeKernelCoreFun
+classdef ICIAMSystem < models.BaseDynSystem
     % Numerical experiments class for Paper WH10
     %
     % Current version works with KerMor 0.4
@@ -20,17 +20,18 @@ classdef ICIAMSystem < models.BaseDynSystem & dscomponents.ParamTimeKernelCoreFu
             
             %% System settings
             dims = model.dim;
-
-            this.f = this;
             this.MaxTimestep = [];
             
             % Sample bases
             this.svNum = 20;
             space = linspace(0,50,this.svNum);
-            this.Centers.xi = repmat(space,dims,1);
-            this.Centers.ti = [];
-            this.Centers.mui = [];
-                        
+            
+            f = dscomponents.ParamTimeKernelCoreFun(this);
+            fe = f.Expansion;
+            fe.Centers.xi = repmat(space,dims,1);
+            fe.Centers.ti = [];
+            fe.Centers.mui = [];
+            
             %% BaseCompWiseKernelApprox settings
             % Choose the kernel with such that each kernel vanishes (<
             % kerneleps) after kernelsupport support vectors. 
@@ -40,11 +41,13 @@ classdef ICIAMSystem < models.BaseDynSystem & dscomponents.ParamTimeKernelCoreFu
             d = sqrt(dims)*space(2);
             %gamma = -((kernelsupport*d)^2)/log(kerneleps) preprint
             gamma = -((kernelsupport*d))/log(kerneleps);
-            this.Kernel = kernels.GaussKernel(gamma);
-            this.Kernel.G = 1;
+            fe.Kernel = kernels.GaussKernel(gamma);
+            fe.Kernel.G = 1;
             %this.SystemKernel = kernels.GaussKernel(1);
-            this.TimeKernel = kernels.NoKernel;
-            this.ParamKernel = kernels.NoKernel;
+            fe.TimeKernel = kernels.NoKernel;
+            fe.ParamKernel = kernels.NoKernel;
+            
+            this.f = f;
         end
     end    
 end

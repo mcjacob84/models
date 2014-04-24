@@ -85,7 +85,69 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
             this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.fDim,this.xDim);
         end
         
-        function fx = evaluate(this, x, t, mu)
+        function fx = evaluate(this, x, t)
+            
+            % If this has been projected, restore full size and compute values.
+            if ~isempty(this.V)
+                x = this.V*x;
+            end
+            
+            % Allocate result vector
+            fx = zeros(size(x));
+            
+            m = this.nodes;
+            mu = this.mu;
+            
+            % Compute activation fun values (it's set up in scaled times!)
+            ud = this.activationFun(t,mu);
+            rc = this.System.ReacCoeff;
+   
+            % Extract single functions
+            xa = x(1:m);
+            xan = xa.^mu(4);
+            ya = x(m+1:2*m);
+            xi = x(2*m+1:3*m);
+            yi = x(3*m+1:end);
+
+            rb = zeros(m,1);
+
+            %% Top & Bottom
+            % bottom
+            pos = this.hlp.xd <= this.hlp.xr*mu(1)/2;
+            idx = this.idxmat(pos,1); 
+            rb(idx) = (xi(idx)*mu(2)*ud);
+            % top
+            pos = this.hlp.xd <= this.hlp.xr*mu(1)/2;
+            idx = this.idxmat(pos,end);
+            rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
+
+            %% Left & Right
+            % right
+            pos = this.hlp.yd <= this.hlp.yr*mu(1)/2;
+            idx = this.idxmat(end,pos);
+            rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
+            % left
+            pos = this.hlp.yd <= this.hlp.yr*mu(1)/2;
+            idx = this.idxmat(1,pos);
+            rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
+
+            % x_a
+            fx(1:m) = rc(1)*xi.*ya - rc(3)*xa + rb/this.hlp.hs;
+            % y_a
+            fx(m+1:2*m) = rc(2)*yi.*xan - rc(4)*ya;
+            % x_i
+            fx(2*m+1:3*m) = -rc(1)*xi.*ya - rc(5)*xi + rc(7) - rb/this.hlp.hs;
+            % y_i
+            fx(3*m+1:end) = -rc(2)*yi.*xan - rc(6)*yi + rc(8);
+            
+            
+            % If this has been projected, project back to reduced space
+            if ~isempty(this.W)
+                fx = this.W'*fx;
+            end
+        end
+        
+        function fx = evaluateMulti(this, x, t, mu)
             
             % If this has been projected, restore full size and compute values.
             if ~isempty(this.V)
@@ -100,88 +162,48 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
             % Compute activation fun values (it's set up in scaled times!)
             ud = this.activationFun(t,mu);
             rc = this.System.ReacCoeff;
-            if size(x,2) == 1
-               
-                % Extract single functions
-                xa = x(1:m);
-                xan = xa.^mu(4);
-                ya = x(m+1:2*m);
-                xi = x(2*m+1:3*m);
-                yi = x(3*m+1:end);
-    
-                rb = zeros(m,1);
-                
-                %% Top & Bottom
-                % bottom
-                pos = this.hlp.xd <= this.hlp.xr*mu(1)/2;
-                idx = this.idxmat(pos,1); 
-                rb(idx) = (xi(idx)*mu(2)*ud);
-                % top
-                pos = this.hlp.xd <= this.hlp.xr*mu(1)/2;
-                idx = this.idxmat(pos,end);
-                rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
-                
-                %% Left & Right
-                % right
-                pos = this.hlp.yd <= this.hlp.yr*mu(1)/2;
-                idx = this.idxmat(end,pos);
-                rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
-                % left
-                pos = this.hlp.yd <= this.hlp.yr*mu(1)/2;
-                idx = this.idxmat(1,pos);
-                rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
-                
-                % x_a
-                fx(1:m) = rc(1)*xi.*ya - rc(3)*xa + rb/this.hlp.hs;
-                % y_a
-                fx(m+1:2*m) = rc(2)*yi.*xan - rc(4)*ya;
-                % x_i
-                fx(2*m+1:3*m) = -rc(1)*xi.*ya - rc(5)*xi + rc(7) - rb/this.hlp.hs;
-                % y_i
-                fx(3*m+1:end) = -rc(2)*yi.*xan - rc(6)*yi + rc(8);
-            else
-                % Extract single functions
-                xa = x(1:m,:);
-                xan = xa.^mu(4,:);
-                ya = x(m+1:2*m,:);
-                xi = x(2*m+1:3*m,:);
-                yi = x(3*m+1:end,:); 
+            
+            % Extract single functions
+            xa = x(1:m,:);
+            xan = xa.^mu(4,:);
+            ya = x(m+1:2*m,:);
+            xi = x(2*m+1:3*m,:);
+            yi = x(3*m+1:end,:); 
 
-                % Compile boundary conditions
-                nd = size(x,2);
-                rb = zeros(m,nd);
-                
-                %% Top & Bottom
-                xd = repmat(this.hlp.xd,1,nd); % y distances
-                % bottom
-                pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
-                idx = this.idxmat(:,1);
-                rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                % top
-                pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
-                idx = this.idxmat(:,end);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                
-                %% Left & Right
-                yd = repmat(this.hlp.yd,1,nd);
-                % right
-                pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
-                idx = this.idxmat(end,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                % left
-                pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
-                idx = this.idxmat(1,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                
-                % Ca-8
-                fx(1:m,:) = rc(1)*xi.*ya - xa*rc(3) + rb/this.hlp.hs;
-                % Ca-3
-                fx(m+1:2*m,:) = rc(2)*yi.*xan - ya*rc(4);
-                % Pro-Ca-8
-                fx(2*m+1:3*m,:) = -rc(1)*xi.*ya - rc(5)*xi + rc(7) - rb/this.hlp.hs;
-                % Pro-Ca-3
-                fx(3*m+1:end,:) = -rc(2)*yi.*xan - rc(6)*yi + rc(8);
-            end
+            % Compile boundary conditions
+            nd = size(x,2);
+            rb = zeros(m,nd);
+
+            %% Top & Bottom
+            xd = repmat(this.hlp.xd,1,nd); % y distances
+            % bottom
+            pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
+            idx = this.idxmat(:,1);
+            rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+            % top
+            pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
+            idx = this.idxmat(:,end);
+            rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+
+            %% Left & Right
+            yd = repmat(this.hlp.yd,1,nd);
+            % right
+            pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
+            idx = this.idxmat(end,:);
+            rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+            % left
+            pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
+            idx = this.idxmat(1,:);
+            rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+
+            % Ca-8
+            fx(1:m,:) = rc(1)*xi.*ya - xa*rc(3) + rb/this.hlp.hs;
+            % Ca-3
+            fx(m+1:2*m,:) = rc(2)*yi.*xan - ya*rc(4);
+            % Pro-Ca-8
+            fx(2*m+1:3*m,:) = -rc(1)*xi.*ya - rc(5)*xi + rc(7) - rb/this.hlp.hs;
+            % Pro-Ca-3
+            fx(3*m+1:end,:) = -rc(2)*yi.*xan - rc(6)*yi + rc(8);
             
             % If this has been projected, project back to reduced space
             if ~isempty(this.W)
@@ -189,7 +211,7 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
             end
         end
         
-        function J = getStateJacobian(this, x, t, mu)
+        function J = getStateJacobian(this, x, t)
             
             % If this has been projected, restore full size and compute values.
             if ~isempty(this.V)
@@ -197,6 +219,7 @@ classdef CoreFun2D < models.pcd.BaseCoreFun
             end
             
             n = this.nodes;
+            mu = this.mu;
             rc = this.System.ReacCoeff;
             
             % Boundary stuff

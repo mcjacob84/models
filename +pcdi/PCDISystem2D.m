@@ -233,7 +233,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             
             D = this.Diff;
             
-            res = dscomponents.AffLinCoreFun;
+            res = dscomponents.AffLinCoreFun(this);
             res.TimeDependent = false;
             
             % Add constant diffusion on [0, .2] interval

@@ -288,5 +288,21 @@ classdef Tests
             save tests_PCD_DEIM_1D;
             cd(oldd);
         end 
+        
+        function res = test_PCDModels
+            m = models.pcd.PCDModel(1);
+            mu = m.getRandomParam;
+            [t,y] = m.simulate(mu);
+            m.plot(t,y);
+            m = models.pcd.PCDModel(2);
+            mu = m.getRandomParam;
+            [t,y] = m.simulate(mu);
+            m.plot(t,y);
+%             m = models.pcd.PCDModel(3);
+%             mu = m.getRandomParam;
+%             [t,y] = m.simulate(mu);
+%             m.plot(t,y);
+            res = true;
+        end
     end   
 end

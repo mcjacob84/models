@@ -11,17 +11,6 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
     % - \c Documentation http://www.morepas.org/software/kermor/index.html
     % - \c License @ref licensing
     
-    properties(Access=protected)
-        nodes;
-        
-        hlp;
-        
-        idxmat;
-        
-        Ji;
-        Jj;
-    end
-    
     methods
         
         function this = CoreFun2D(dynsys)
@@ -38,6 +27,8 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
             copy.nodes = this.nodes;
             copy.hlp = this.hlp;
             copy.idxmat = this.idxmat;
+            copy.Ji = this.Ji;
+            copy.Jj = this.Jj;
         end
         
         function newSysDimension(this)
@@ -84,7 +75,7 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
             this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.fDim,this.xDim);
         end
         
-        function fx = evaluateCoreFun(this, x, t, mu)
+        function fx = evaluate(this, x, t)
             % If this has been projected, restore full size and compute values.
             if ~isempty(this.V)
                 x = this.V*x;
@@ -94,95 +85,52 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
             fx = zeros(size(x));
             
             m = this.nodes;
+            mu = this.mu;
             
             % Compute activation fun values (it's set up in scaled times!)
             ud = this.activationFun(t,mu);
             rc = this.System.ReacCoeff;
-            if size(x,2) == 1
-                
-                % Extract single functions
-                xa = x(1:m);
-                xan = xa.^mu(4);
-                ya = x(m+1:2*m);
-                xi = x(2*m+1:3*m);
-                yi = x(3*m+1:4*m);
-                
-                rb = zeros(m,1);
-                
-                %% Top & Bottom
-                % bottom
-                pos = this.hlp.xd <= this.hlp.xr*mu(1)/2;
-                idx = this.idxmat(pos,1);
-                rb(idx) = (xi(idx)*mu(2)*ud);
-                % top
-                pos = this.hlp.xd <= this.hlp.xr*mu(1)/2;
-                idx = this.idxmat(pos,end);
-                rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
-                
-                %% Left & Right
-                % right
-                pos = this.hlp.yd <= this.hlp.yr*mu(1)/2;
-                idx = this.idxmat(end,pos);
-                rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
-                % left
-                pos = this.hlp.yd <= this.hlp.yr*mu(1)/2;
-                idx = this.idxmat(1,pos);
-                rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
-                
-                % Indices:
-                % km3 = 14, km8 = 15, km12 = 19
-                
-                % x_a
-                fx(1:m) = rc(2)*xi.*ya - rc(5)*xa + rb/this.hlp.hs;
-                % y_a
-                fx(m+1:2*m) = rc(1)*yi.*xan - rc(6)*ya;
-                % x_i
-                fx(2*m+1:3*m) = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
-                % y_i
-                fx(3*m+1:end) = -rc(1)*yi.*xan - rc(10)*yi + rc(17);
-            else
-                % Extract single functions
-                xa = x(1:m,:);
-                xan = bsxfun(@power,xa,mu(4,:));
-                ya = x(m+1:2*m,:);
-                xi = x(2*m+1:3*m,:);
-                yi = x(3*m+1:end,:);
-                
-                % Compile boundary conditions
-                nd = size(x,2);
-                rb = zeros(m,nd);
-                
-                %% Top & Bottom
-                xd = repmat(this.hlp.xd,1,nd); % y distances
-                % bottom
-                pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
-                idx = this.idxmat(:,1);
-                rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                % top
-                pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
-                idx = this.idxmat(:,end);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                
-                %% Left & Right
-                yd = repmat(this.hlp.yd,1,nd);
-                % right
-                pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
-                idx = this.idxmat(end,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                % left
-                pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
-                idx = this.idxmat(1,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                
-                % Ca-8
-                fx(1:m,:) = rc(2)*xi.*ya - xa*rc(5) + rb/this.hlp.hs;
-                % Ca-3
-                fx(m+1:2*m,:) = rc(1)*yi.*xan - ya*rc(6);
-                % Pro-Ca-8
-                fx(2*m+1:3*m,:) = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
-                % Pro-Ca-3
-                fx(3*m+1:end,:) = -rc(1)*yi.*xan - rc(10)*yi + rc(17);
-            end
+            
+            % Extract single functions
+            xa = x(1:m);
+            xan = xa.^mu(4);
+            ya = x(m+1:2*m);
+            xi = x(2*m+1:3*m);
+            yi = x(3*m+1:4*m);
+
+            rb = zeros(m,1);
+
+            %% Top & Bottom
+            % bottom
+            pos = this.hlp.xd <= this.hlp.xr*mu(1)/2;
+            idx = this.idxmat(pos,1);
+            rb(idx) = (xi(idx)*mu(2)*ud);
+            % top
+            pos = this.hlp.xd <= this.hlp.xr*mu(1)/2;
+            idx = this.idxmat(pos,end);
+            rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
+
+            %% Left & Right
+            % right
+            pos = this.hlp.yd <= this.hlp.yr*mu(1)/2;
+            idx = this.idxmat(end,pos);
+            rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
+            % left
+            pos = this.hlp.yd <= this.hlp.yr*mu(1)/2;
+            idx = this.idxmat(1,pos);
+            rb(idx) = rb(idx) + (xi(idx)*mu(2)*ud);
+
+            % Indices:
+            % km3 = 14, km8 = 15, km12 = 19
+
+            % x_a
+            fx(1:m) = rc(2)*xi.*ya - rc(5)*xa + rb/this.hlp.hs;
+            % y_a
+            fx(m+1:2*m) = rc(1)*yi.*xan - rc(6)*ya;
+            % x_i
+            fx(2*m+1:3*m) = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
+            % y_i
+            fx(3*m+1:end) = -rc(1)*yi.*xan - rc(10)*yi + rc(17);
             
             % If this has been projected, project back to reduced space
             if ~isempty(this.W)
@@ -190,7 +138,60 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
             end
         end
         
-        function J = getStateJacobian(this, x, t, mu)
+        function fx = evaluateMulti(this, x, ~, mu)
+            % Allocate result vector
+            fx = zeros(size(x));
+            
+            m = this.nodes;
+            
+            % Compute activation fun values (it's set up in scaled times!)
+            ud = this.activationFun(t, mu);
+            rc = this.System.ReacCoeff;
+            
+            % Extract single functions
+            xa = x(1:m,:);
+            xan = bsxfun(@power,xa,mu(4,:));
+            ya = x(m+1:2*m,:);
+            xi = x(2*m+1:3*m,:);
+            yi = x(3*m+1:end,:);
+
+            % Compile boundary conditions
+            nd = size(x,2);
+            rb = zeros(m,nd);
+
+            %% Top & Bottom
+            xd = repmat(this.hlp.xd,1,nd); % y distances
+            % bottom
+            pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
+            idx = this.idxmat(:,1);
+            rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+            % top
+            pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
+            idx = this.idxmat(:,end);
+            rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+
+            %% Left & Right
+            yd = repmat(this.hlp.yd,1,nd);
+            % right
+            pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
+            idx = this.idxmat(end,:);
+            rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+            % left
+            pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
+            idx = this.idxmat(1,:);
+            rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+
+            % Ca-8
+            fx(1:m,:) = rc(2)*xi.*ya - xa*rc(5) + rb/this.hlp.hs;
+            % Ca-3
+            fx(m+1:2*m,:) = rc(1)*yi.*xan - ya*rc(6);
+            % Pro-Ca-8
+            fx(2*m+1:3*m,:) = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
+            % Pro-Ca-3
+            fx(3*m+1:end,:) = -rc(1)*yi.*xan - rc(10)*yi + rc(17);
+        end
+        
+        function J = getStateJacobian(this, x, t)
             
             % If this has been projected, restore full size and compute values.
             if ~isempty(this.V)
@@ -198,6 +199,7 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
             end
             
             n = this.nodes;
+            mu = this.mu;
             rc = this.System.ReacCoeff;
             
             % Boundary stuff
@@ -250,13 +252,6 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
     end
     
     methods(Access=protected)
-        function idx = nodepos(this, nr)
-            n = this.nodes;
-            idx = zeros(1,n*length(nr));
-            for k=1:length(nr)
-                idx((k-1)*n+1:k*n) = (nr(k)-1)*this.nodes+1:nr(k)*this.nodes;
-            end
-        end
         
         function fxj = evaluateComponents(this, pts, ends, ~, ~, X, t, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into

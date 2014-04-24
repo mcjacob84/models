@@ -50,7 +50,7 @@ classdef RiemannBurgers < models.rbmatlab.RBMatlabModel
             
             aa = approx.algorithms.Componentwise;
             aa.ComputeParallel = false;
-            a = approx.KernelApprox;
+            a = approx.KernelApprox(this.System);
             a.Algorithm = aa;
             a.Kernel = kernels.GaussKernel(60);
             a.TimeKernel = kernels.GaussKernel(10*m.T/m.nt);

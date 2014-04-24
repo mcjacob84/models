@@ -56,8 +56,15 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
         ActivationFunType;
     end
     
-    properties(SetAccess=private)
-        System;
+    properties(Access=protected)
+        nodes;
+        
+        hlp;
+        
+        idxmat;
+        
+        Ji;
+        Jj;
     end
     
     properties(Access=private)
@@ -68,10 +75,8 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
     
     methods
         function this = BaseCoreFun(dynsys)
-            this = this@dscomponents.ACompEvalCoreFun;
-            this.System = dynsys;
+            this = this@dscomponents.ACompEvalCoreFun(dynsys);
             this.TimeDependent = true;
-            this.MultiArgumentEvaluations = true;
             
             this.fTau = dynsys.Model.tau;
             
@@ -81,12 +86,13 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
         function copy = clone(this, copy)
             % Call superclass method
             copy = clone@dscomponents.ACompEvalCoreFun(this, copy);
-            
-            % Dont clone the associated system
-            copy.System = this.System;
             copy.gaussian = this.gaussian.clone;
             copy.fTau = this.fTau;
             copy.fAFT = this.fAFT;
+        end
+        
+        function fx = evaluateCoreFun(this, x, t)
+            error('This model overrides evaluate directly.');
         end
         
         function plotActivationFun(this, mu, pm)
@@ -127,6 +133,15 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
     end
     
     methods(Access=protected)
+        
+        function idx = nodepos(this, nr)
+            n = this.nodes;
+            idx = zeros(1,n*length(nr));
+            for k=1:length(nr)
+                idx((k-1)*n+1:k*n) = (nr(k)-1)*this.nodes+1:nr(k)*this.nodes;
+            end
+        end
+        
         function f = activationFun(this, t, mu)
             if this.fAFT == 1
                 f = (this.gaussian.evaluateScalar(t-27)-.4).*(t<=54)/.6;

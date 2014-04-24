@@ -48,8 +48,8 @@ classdef ICIAMExperiment < models.BaseFullModel
             %x0.addMatrix('sum(mu)', e1);
             this.System.x0 = x0;
             
-            f = this.System.f;
-            f.Ma = repmat(-exp(-f.Centers.xi(1,:)/15),dims,1);
+            fexp = this.System.f.Expansion;
+            fexp.Ma = repmat(-exp(-fexp.Centers.xi(1,:)/15),dims,1);
             
             %this.System.Inputs{1} = @(t)[.04*sin(t/3); exp(-abs(10-t/2))];
             this.System.Inputs{1} = @(t)[.04*sin(t/3);.5*exp(-(12-t).^2)];

@@ -236,7 +236,7 @@ classdef Tests
             m.Sampler = s;
             
             %% Approx
-            a = approx.DEIM;
+            a = approx.DEIM(m.System);
             a.MaxOrder = 40;
             m.Approx = a;
             
@@ -245,6 +245,12 @@ classdef Tests
             r = m.buildReducedModel;
             [t,y] = r.simulate(r.getRandomParam);
             m.plot(t,y);
+            res = true;
+        end
+        
+        function res = test_BurgersModels
+            models.burgers.Tests.test_Burgers_DEIM_versions(50, 1);
+            models.burgers.Tests.test_Burgers_DEIM_versions(50, 2);
             res = true;
         end
     end

@@ -54,7 +54,7 @@ classdef RCLadder < models.BaseFullModel
             
             this.Sampler = [];
             
-            app = approx.KernelApprox;
+            app = approx.KernelApprox(this.System);
             a = approx.algorithms.VKOGA;
             a.MaxRelErr = 1e-5;
             a.MaxAbsResidualErr = 1e-3;
@@ -86,6 +86,16 @@ classdef RCLadder < models.BaseFullModel
                 error('value must be a positive integer scalar');
             end
             this.Dims = value;
+        end
+    end
+    
+    methods(Static)
+        function test_RCLadderModel
+            m = models.circ.RCLadder(100);
+            m.simulate([], 1);
+            [t,y,~,x] = m.simulate([], 2);
+            m.plot(t,y);
+            m.plotState(t,x);
         end
     end
     

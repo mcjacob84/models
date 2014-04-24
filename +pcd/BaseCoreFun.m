@@ -56,10 +56,6 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
         ActivationFunType;
     end
     
-    properties(SetAccess=private)
-        System;
-    end
-    
     properties(Access=private)
         gaussian;
         fAFT = 1;
@@ -67,10 +63,8 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
     
     methods
         function this = BaseCoreFun(dynsys)
-            this = this@dscomponents.ACompEvalCoreFun;
-            this.System = dynsys;
+            this = this@dscomponents.ACompEvalCoreFun(dynsys);
             this.TimeDependent = true;
-            this.MultiArgumentEvaluations = true;
             
             this.ActivationFunType = 1;
         end

@@ -39,11 +39,15 @@ classdef KernelTest < models.BaseFullModel
             this.T = 5;
             this.dt = .08;
             
+            %% System settings
+            this.System = models.synth.KernelTestSys(this, pos_flag);
+            this.System.MaxTimestep = this.dt;
+            
             this.Sampler = sampling.GridSampler;
             
             % This class implements a fake Approx subclass to allow access
             % to the this.Ma property for the error estimator.
-            a = approx.KernelApprox;
+            a = approx.KernelApprox(this.System);
             a.Algorithm = approx.algorithms.Componentwise;
             ec = kernels.config.ParamTimeExpansionConfig;
             ec.StateConfig = kernels.config.GaussConfig('G',1);
@@ -60,10 +64,6 @@ classdef KernelTest < models.BaseFullModel
             s.Mode = 'abs';
             s.Value = 1;
             this.SpaceReducer = s;
-            
-            %% System settings
-            this.System = models.synth.KernelTestSys(this, pos_flag);
-            this.System.MaxTimestep = this.dt;
             
             %% ODE Solver
             %this.ODESolver = solvers.MLWrapper(@ode45);

@@ -3,8 +3,6 @@ classdef Rotation < models.BaseFullModel
     
     methods
         function this = Rotation
-            this.Verbose = 0;
-            
             this.T = 25;
             this.dt = .1;
             
@@ -13,7 +11,7 @@ classdef Rotation < models.BaseFullModel
             %this.Sampler = s;
             this.Sampler = sampling.GridSampler;
             
-            this.System = models.synth.RotationDynSys;
+            this.System = models.synth.RotationDynSys(this);
             this.Name = 'Synthetic rotation model';
             
             % Space reduction setup -> no reduction as only 2D!
@@ -39,11 +37,11 @@ classdef Rotation < models.BaseFullModel
 %             a.C = 100;
 %             this.Approx = a;
             
-            a = approx.algorithms.Componentwise;
-            a.TimeKernel = kernels.GaussKernel;
-            a.Kernel = kernels.GaussKernel(2);
+            a = approx.KernelApprox(this.System);
+            a.Expansion.TimeKernel = kernels.GaussKernel;
+            a.Expansion.Kernel = kernels.GaussKernel(2);
             %a.ParamKernel = kernels.LinearKernel;
-            a.ParamKernel = kernels.GaussKernel(2);
+            a.Expansion.ParamKernel = kernels.GaussKernel(2);
             this.Approx = a;
             
             this.ODESolver = solvers.MLWrapper(@ode45);

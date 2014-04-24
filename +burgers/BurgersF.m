@@ -16,26 +16,31 @@ classdef BurgersF < dscomponents.ACompEvalCoreFun
     properties
         A;
         Ax;
-        System;
     end
     
     methods
         function this = BurgersF(sys)
-            this = this@dscomponents.ACompEvalCoreFun;
-            this.System = sys;
-            this.MultiArgumentEvaluations = true;
+            this = this@dscomponents.ACompEvalCoreFun(sys);
             this.CustomProjection = false;
             this.TimeDependent = false;
         end
         
-        function fx = evaluateCoreFun(this, x, ~, mu)
+        function fx = evaluate(this, x, ~)
+            fx = bsxfun(@times,this.A*x,this.mu(1,:)) - x.*(this.Ax*x);
+        end
+        
+        function evaluateCoreFun(varargin)
+            error('Evaluate is overridden directly');
+        end
+        
+        function fx = evaluateMulti(this, x, ~, mu)
             fx = bsxfun(@times,this.A*x,mu(1,:)) - x.*(this.Ax*x);
         end
         
-        function J = getStateJacobian(this, x, ~, mu)
+        function J = getStateJacobian(this, x, ~)
             hlp = bsxfun(@times,this.Ax,x);
             hlp = hlp + spdiags(this.Ax*x,0,size(x,1),size(x,1));
-            J = mu(1)*this.A - hlp;
+            J = this.mu(1)*this.A - hlp;
         end
         
         function newDim(this)

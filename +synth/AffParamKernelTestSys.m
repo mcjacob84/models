@@ -39,7 +39,7 @@ classdef AffParamKernelTestSys < models.BaseDynSystem
             end
             this.B = b;
             
-            this.f = models.synth.KernelTestFun(this.Model.dim, pos_flag);
+            this.f = models.synth.KernelTestFun(this, pos_flag);
         end        
     end
 end

@@ -15,14 +15,11 @@ classdef BurgersF_NoA < dscomponents.ACompEvalCoreFun
     
     properties
         Ax;
-        System;
     end
     
     methods
         function this = BurgersF_NoA(sys)
-            this = this@dscomponents.ACompEvalCoreFun;
-            this.System = sys;
-            this.MultiArgumentEvaluations = true;
+            this = this@dscomponents.ACompEvalCoreFun(sys);
             this.CustomProjection = false;
             this.TimeDependent = false;
         end

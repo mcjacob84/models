@@ -18,15 +18,12 @@ classdef KernelTestFun < dscomponents.ParamTimeKernelCoreFun
         %
         % @propclass{experimental} Test quantity.
         svNum;
-        
-        % @propclass{experimental} System dimension.
-        dim;
     end
     
     methods
-        function this = KernelTestFun(dim, pos_flag)
+        function this = KernelTestFun(sys, pos_flag)
             
-            this = this@dscomponents.ParamTimeKernelCoreFun;
+            this = this@dscomponents.ParamTimeKernelCoreFun(sys);
             this.registerProps('svNum');
             
             if nargin == 1
@@ -36,7 +33,7 @@ classdef KernelTestFun < dscomponents.ParamTimeKernelCoreFun
             % Sample bases
             this.svNum = 20;
             kexp = kernels.ParamTimeKernelExpansion;
-            kexp.Centers.xi = repmat(linspace(-24,24,this.svNum),dim,1);
+            kexp.Centers.xi = repmat(linspace(-24,24,this.svNum),sys.Model.dim,1);
             kexp.Centers.ti = .5*(1:this.svNum);
             kexp.Centers.mui = rand(2,this.svNum);
             
@@ -48,26 +45,24 @@ classdef KernelTestFun < dscomponents.ParamTimeKernelCoreFun
             end
             ai = (rand(1,this.svNum)-offset);
             
-            kexp.Ma = repmat(ai,dim,1);
+            kexp.Ma = repmat(ai,sys.Model.dim,1);
             
             %% KernelApprox settings
             %this.Kernel = kernels.GaussKernel(4*sqrt(dims));
-            kexp.Kernel = kernels.GaussKernel(sqrt(dim));
+            kexp.Kernel = kernels.GaussKernel(sqrt(sys.Model.dim));
             kexp.Kernel.G = 1;
             kexp.TimeKernel = kernels.GaussKernel(.4);
             kexp.TimeKernel.G = 1;
             kexp.ParamKernel = kernels.GaussKernel(.4);
             kexp.ParamKernel.G = 1;
             this.Expansion = kexp;
-            
-            this.dim = dim;
         end
         
         function showBaseFun(this)
             % Debug method; displays the core function for each parameter
             % sample.
             figure;
-            x = repmat(linspace(-50,50,max(this.svNum*5,100)),this.dim,1);
+            x = repmat(linspace(-50,50,max(this.svNum*5,100)),this.System.Model.dim,1);
             fx = this.evaluate(x,0,[]);
             plot(x(1,:),fx(1,:),'r');
             xlabel('x'); ylabel('f(x)');
