@@ -22,6 +22,7 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
         
         function this = InhibitCoreFun2D(dynsys)
             this = this@models.pcdi.CoreFun2D(dynsys);
+            this.MultiArgumentEvaluations = false;
         end
            
         function copy = clone(this)
@@ -83,7 +84,7 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
             this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.fDim,this.xDim);
         end
         
-        function fx = evaluate(this, x, t, mu)
+        function fx = evaluateCoreFun(this, x, t, mu)
             % If this has been projected, restore full size and compute values.
             if ~isempty(this.V)
                 x = this.V*x;
@@ -93,6 +94,7 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
             fx = zeros(size(x));
 
             m = this.nodes;
+            diff = this.System.CurCXMU;
             
             % Compute activation fun values (it's set up in scaled times!)
             ud = this.activationFun(t,mu);
@@ -140,71 +142,72 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
                 % y_a
                 fx(m+1:2*m) = rc(1)*yi.*xan - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yb;
                 % x_i
-                fx(2*m+1:3*m) = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
+                fx(2*m+1:3*m) = -rc(2)*xi.*ya - rc(9)*xi + rc(16)*diff - rb/this.hlp.hs;
                 % y_i
-                fx(3*m+1:4*m) = -rc(1)*yi.*xan - rc(10)*yi + rc(17);
+                fx(3*m+1:4*m) = -rc(1)*yi.*xan - rc(10)*yi + rc(17)*diff;
                 % iap
-                fx(4*m+1:5*m) = -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yb;
+                fx(4*m+1:5*m) = -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15)*diff + rc(14)*yb;
                 % bar
-                fx(5*m+1:6*m) = -rc(11)*xa.*bar + rc(18)*xb - rc(19)*bar + rc(19);
+                fx(5*m+1:6*m) = -rc(11)*xa.*bar + rc(18)*xb - rc(19)*bar + rc(19)*diff;
                 % yab
                 fx(6*m+1:7*m) = rc(3)*ya.*iap -(rc(14)+rc(7))*yb;
                 % xab
                 fx(7*m+1:8*m) = rc(11)*xa.*bar-(rc(18)+rc(13))*xb;
             else
-                % Extract single functions
-                xa = x(1:m,:);
-                xan = bsxfun(@power,xa,mu(4,:));
-                ya = x(m+1:2*m,:);
-                xi = x(2*m+1:3*m,:);
-                yi = x(3*m+1:4*m,:); 
-                iap = x(4*m+1:5*m,:);
-                bar = x(5*m+1:6*m,:);
-                yb = x(6*m+1:7*m,:);
-                xb = x(7*m+1:end,:);
-
-                % Compile boundary conditions
-                nd = size(x,2);
-                rb = zeros(m,nd);
-                
-                %% Top & Bottom
-                xd = repmat(this.hlp.xd,1,nd); % y distances
-                % bottom
-                pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
-                idx = this.idxmat(:,1);
-                rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                % top
-                pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
-                idx = this.idxmat(:,end);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                
-                %% Left & Right
-                yd = repmat(this.hlp.yd,1,nd);
-                % right
-                pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
-                idx = this.idxmat(end,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                % left
-                pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
-                idx = this.idxmat(1,:);
-                rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
-                
-                % x_a
-                fx(1:m,:) = rc(2)*xi.*ya - rc(5)*xa -rc(11)*xa.*bar + rc(18)*xb + rb/this.hlp.hs;
-                % y_a
-                fx(m+1:2*m,:) = rc(1)*yi.*xan - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yb;
-                % x_i
-                fx(2*m+1:3*m,:) = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
-                % y_i
-                fx(3*m+1:4*m,:) = -rc(1)*yi.*xan - rc(10)*yi + rc(17);
-                % iap
-                fx(4*m+1:5*m,:) = -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yb;
-                % bar
-                fx(5*m+1:6*m,:) = -rc(11)*xa.*bar + rc(18)*xb - rc(19)*bar + rc(19);
-                % yab
-                fx(6*m+1:7*m,:) = rc(3)*ya.*iap -(rc(14)+rc(7))*yb;
-                % xab
-                fx(7*m+1:8*m,:) = rc(11)*xa.*bar-(rc(18)+rc(13))*xb;
+                error('Not callable anymore for spatially dependent production rates etc');
+%                 % Extract single functions
+%                 xa = x(1:m,:);
+%                 xan = bsxfun(@power,xa,mu(4,:));
+%                 ya = x(m+1:2*m,:);
+%                 xi = x(2*m+1:3*m,:);
+%                 yi = x(3*m+1:4*m,:); 
+%                 iap = x(4*m+1:5*m,:);
+%                 bar = x(5*m+1:6*m,:);
+%                 yb = x(6*m+1:7*m,:);
+%                 xb = x(7*m+1:end,:);
+% 
+%                 % Compile boundary conditions
+%                 nd = size(x,2);
+%                 rb = zeros(m,nd);
+%                 
+%                 %% Top & Bottom
+%                 xd = repmat(this.hlp.xd,1,nd); % y distances
+%                 % bottom
+%                 pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
+%                 idx = this.idxmat(:,1);
+%                 rb(idx,:) = pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+%                 % top
+%                 pos = bsxfun(@lt,xd,this.hlp.xr*mu(1,:)/2);
+%                 idx = this.idxmat(:,end);
+%                 rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+%                 
+%                 %% Left & Right
+%                 yd = repmat(this.hlp.yd,1,nd);
+%                 % right
+%                 pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
+%                 idx = this.idxmat(end,:);
+%                 rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+%                 % left
+%                 pos = bsxfun(@lt,yd,this.hlp.yr*mu(1,:)/2);
+%                 idx = this.idxmat(1,:);
+%                 rb(idx,:) = rb(idx,:) + pos .* (bsxfun(@times,xi(idx,:),mu(2,:).*ud));
+%                 
+%                 % x_a
+%                 fx(1:m,:) = rc(2)*xi.*ya - rc(5)*xa -rc(11)*xa.*bar + rc(18)*xb + rb/this.hlp.hs;
+%                 % y_a
+%                 fx(m+1:2*m,:) = rc(1)*yi.*xan - rc(6)*ya - rc(3)*ya.*iap + rc(14)*yb;
+%                 % x_i
+%                 fx(2*m+1:3*m,:) = -rc(2)*xi.*ya - rc(9)*xi + rc(16) - rb/this.hlp.hs;
+%                 % y_i
+%                 fx(3*m+1:4*m,:) = -rc(1)*yi.*xan - rc(10)*yi + rc(17);
+%                 % iap
+%                 fx(4*m+1:5*m,:) = -(rc(3)+rc(4))*ya.*iap - rc(8)*iap + rc(15) + rc(14)*yb;
+%                 % bar
+%                 fx(5*m+1:6*m,:) = -rc(11)*xa.*bar + rc(18)*xb - rc(19)*bar + rc(19);
+%                 % yab
+%                 fx(6*m+1:7*m,:) = rc(3)*ya.*iap -(rc(14)+rc(7))*yb;
+%                 % xab
+%                 fx(7*m+1:8*m,:) = rc(11)*xa.*bar-(rc(18)+rc(13))*xb;
             end
             
             % If this has been projected, project back to reduced space
@@ -300,7 +303,7 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
     end
     
     methods(Access=protected)
-        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, t, mu)
+        function fxj = evaluateComponents(this, pts, ends, globidx, ~, X, t, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into
             % the components x_a, y_a, x_i, y_i
             %
@@ -321,6 +324,7 @@ classdef InhibitCoreFun2D < models.pcdi.CoreFun2D
             nd = size(X,2);
             fxj = zeros(length(pts),nd);
             rc = this.System.ReacCoeff;
+            diff = this.System.CurCXMU;
             if nd > 1
                 bottom = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(1,:)/2);
                 top = bsxfun(@lt,this.hlp.xd,this.hlp.xr*mu(1,:)/2);

@@ -84,7 +84,7 @@ classdef CoreFun2D < models.pcdi.BaseCoreFun
             this.JSparsityPattern = sparse(i,j,ones(length(i),1),this.fDim,this.xDim);
         end
         
-        function fx = evaluate(this, x, t, mu)
+        function fx = evaluateCoreFun(this, x, t, mu)
             % If this has been projected, restore full size and compute values.
             if ~isempty(this.V)
                 x = this.V*x;

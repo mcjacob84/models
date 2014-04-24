@@ -89,10 +89,6 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
             copy.fAFT = this.fAFT;
         end
         
-        function evaluateCoreFun(varargin)
-            error('dont call me (direct overload of evaluate for efficiency)');
-        end
-        
         function plotActivationFun(this, mu, pm)
             if nargin < 3
                 pm = PlotManager;
