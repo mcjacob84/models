@@ -30,7 +30,7 @@ classdef RCLadderFun < dscomponents.ACoreFun
             fx = vdb - vdf;
         end
         
-        function fx = evaluateMulti(~, v, ~)
+        function fx = evaluateMulti(~, v, ~, ~)
             vd = exp(40*(v(1:end-1,:)-v(2:end,:)));
             vdf = [vd; ones(1,size(v,2))];
             vdb = [-exp(40*v(1,:)) + 2; vd];

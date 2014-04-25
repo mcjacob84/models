@@ -135,7 +135,7 @@ classdef CoreFun3D < models.pcd.BaseCoreFun
     end
     
     methods(Access=protected)
-        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, t, mu)
+        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, t)
             error('Not yet implemented');
         end
     end

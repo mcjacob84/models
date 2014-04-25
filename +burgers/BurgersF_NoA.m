@@ -90,5 +90,9 @@ classdef BurgersF_NoA < dscomponents.ACompEvalCoreFun
                 fxj(idx,:) = - x(self(xidx),:) .* (this.Ax(pt,argidx(xidx))*x);
             end
         end
+        
+        function fxj = evaluateComponentsMulti(this, varargin)
+            fxj = this.evaluateComponents(varargin{:});
+        end
     end
 end

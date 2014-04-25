@@ -328,7 +328,11 @@ classdef InhibitCoreFun2D < models.pcdi.BaseCoreFun
     end
     
     methods(Access=protected)
-        function fxj = evaluateComponents(this, pts, ends, globidx, ~, X, t, mu)
+        function fxj = evaluateComponents(this, pts, ends, globidx, ~, X, t)
+            fxj = this.evaluateComponentsMulti(pts, ends, globidx, [], X, t, this.mu);
+        end
+        
+        function fxj = evaluateComponentsMulti(this, pts, ends, globidx, ~, X, t, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into
             % the components x_a, y_a, x_i, y_i
             %

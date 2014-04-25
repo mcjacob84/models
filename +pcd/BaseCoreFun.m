@@ -72,9 +72,6 @@ classdef BaseCoreFun < dscomponents.ACompEvalCoreFun
         function copy = clone(this, copy)
             % Call superclass method
             copy = clone@dscomponents.ACompEvalCoreFun(this, copy);
-            
-            % Dont clone the associated system
-            copy.System = this.System;
             % Sets gaussian etc
             copy.ActivationFunType = this.ActivationFunType;
         end

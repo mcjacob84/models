@@ -32,7 +32,7 @@ classdef CoreFun1D < models.pcd.BaseCoreFun
         end
         
         function copy = clone(this)
-            copy = models.pcd.CoreFun1D(this.sys);
+            copy = models.pcd.CoreFun1D(this.System);
             
             % Call superclass method
             copy = clone@models.pcd.BaseCoreFun(this, copy);
@@ -97,7 +97,7 @@ classdef CoreFun1D < models.pcd.BaseCoreFun
             m = this.nodes;
             n = this.System.Model.n;
             
-            mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu];
+            mu = [repmat(this.System.ReacCoeff,1,size(mu,2)); mu];
             % Extract single functions
             xa = x(1:m,:);
             xan = xa.^n;
@@ -107,7 +107,7 @@ classdef CoreFun1D < models.pcd.BaseCoreFun
 
             % Boundary conditions
             rb = zeros(m,size(xi,2));
-            rb(end,:) = (xi(end,:).*mu(9,:))/this.sys.hs;
+            rb(end,:) = (xi(end,:).*mu(9,:))/this.System.hs;
 
             fx(1:m,:) = bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xa,mu(3,:)) + rb;
             fx(m+1:2*m,:) = bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,ya,mu(4,:));
@@ -117,7 +117,11 @@ classdef CoreFun1D < models.pcd.BaseCoreFun
     end
     
     methods(Access=protected)
-        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, ~, mu)
+        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, ~)
+            fxj = this.evaluateComponentsMulti(pts, ends, [], [], X, [], this.mu);
+        end
+        
+        function fxj = evaluateComponentsMulti(this, pts, ends, ~, ~, X, ~, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into
             % the components x_a, y_a, x_i, y_i
             %
@@ -135,10 +139,11 @@ classdef CoreFun1D < models.pcd.BaseCoreFun
             % fxj: A matrix with pts-many component function evaluations `f_i(\vx)` as rows and as
             % many columns as `\vX` had.
             m = this.nodes;
-            n = this.sys.Model.n;
+            s = this.System;
+            n = s.Model.n;
             fxj = zeros(length(pts),size(X,2));
             
-            mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu];
+            mu = [repmat(s.ReacCoeff,1,size(mu,2)); mu];
             for idx=1:length(pts)
                 j = pts(idx);
                 if idx == 1
@@ -157,7 +162,7 @@ classdef CoreFun1D < models.pcd.BaseCoreFun
                     fj = mu(1,:).*x(3,:).*x(2,:) - mu(3,:).*x(1,:);
                     % Boundary condition
                     if j == m
-                        fj = fj + x(3,:).*mu(9,:)/this.sys.hs;
+                        fj = fj + x(3,:).*mu(9,:)/s.hs;
                     end
                     
                 % Y_a
@@ -173,7 +178,7 @@ classdef CoreFun1D < models.pcd.BaseCoreFun
                     fj = -mu(1,:).*x(2,:).*x(1,:) - mu(5,:).*x(2,:) + mu(7,:);
                     % Boundary condition
                     if j == 3*m
-                        fj = fj - x(2,:).*mu(9,:)/this.sys.hs;
+                        fj = fj - x(2,:).*mu(9,:)/s.hs;
                     end
                     
                 % Y_i
