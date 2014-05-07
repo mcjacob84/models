@@ -10,6 +10,10 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
 % - \c Homepage http://www.morepas.org/software/index.html
 % - \c Documentation http://www.morepas.org/software/kermor/index.html
 % - \c License @ref licensing
+
+    properties
+        g;
+    end
     
     methods
         function this = PCDSystem3D(model)
@@ -40,7 +44,7 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             this.addParam('rate_bottom', [0, rate_max], 1);
         end
       
-        function plot(this, model, t, v)
+        function plotState(this, model, t, v)
             % Performs a plot for this model's results.
             %
             % Parameters:
@@ -154,15 +158,28 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             x0(2*m+1:end) = 1e-9;
             this.x0 = dscomponents.ConstInitialValue(x0);
             
+            d = this.Dims;
+            ge = general.geometry.RectGrid3D(d(1),d(2),d(3));
+            this.g = ge;
+            A = MatUtils.laplacemat3D(this.h, ge);
+            D = this.Diff;
+            A = blkdiag(A,D(1)*A,D(2)*A,D(3)*A);
+            this.A = dscomponents.LinearCoreFun(A);
+            
+%             [i,j] = find(this.A);
+%             i = [i; i+n; i+2*n; i+3*n];
+%             j = [j; j+n; j+2*n; j+3*n];
+%             this.JSparsityPattern = sparse(i,j,ones(length(i),1),4*n,4*n);
+            
             p = .1; % 10% of each dimensions span, centered in geometry.
-            d = this.dim1;
+            d = this.Dims(1);
             d1idx = find(abs((1:d) - d/2) <= d/2 * p);
-            d = this.dim2;
+            d = this.Dims(2);
             d2idx = find(abs((1:d) - d/2) <= d/2 * p);
-            d = this.dim3;
+            d = this.Dims(3);
             d3idx = find(abs((1:d) - d/2) <= d/2 * p);
             [d1,d2,d3] = meshgrid(d1idx,d2idx,d3idx);
-            sel = reshape(sub2ind([this.dim1,this.dim2,this.dim3],d1,d2,d3),1,[]);
+            sel = reshape(sub2ind([this.Dims(1),this.Dims(2),this.Dims(3)],d1,d2,d3),1,[]);
             C = zeros(1,4*m);
             ca3 = m+1:2*m;
             C(ca3(sel)) = 1/length(sel);

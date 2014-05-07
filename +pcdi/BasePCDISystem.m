@@ -96,6 +96,10 @@ classdef BasePCDISystem < models.BaseDynSystem
             p.Spacing = 'lin';
         end
         
+        function setConfig(this, mu, inputidx)
+            setConfig@models.BaseDynSystem(this, mu, inputidx)
+        end
+        
         function h = get.h(this)
             h = this.fh;
         end

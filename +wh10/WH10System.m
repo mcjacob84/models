@@ -1,9 +1,9 @@
-classdef WH10System < models.BaseDynSystem & dscomponents.ParamTimeKernelCoreFun
+classdef WH10System < models.BaseDynSystem
     % Numerical experiments class for Paper WH10
     %
     % Current version works with KerMor 0.4
     
-    properties(SetObservable) 
+    properties(SetObservable)
         % SV's
         %
         % @propclass{experimental}
@@ -19,33 +19,32 @@ classdef WH10System < models.BaseDynSystem & dscomponents.ParamTimeKernelCoreFun
             this.registerProps('svNum');
             
             %% System settings
-            dims = model.dim;
-            this.xDim = dims;
-            this.fDim = dims;
-
-            this.f = this;
             this.MaxTimestep = [];
             
             % Sample bases
             this.svNum = 20;
             space = linspace(0,50,this.svNum);
-            this.Centers.xi = repmat(space,dims,1);
-            this.Centers.ti = [];
-            this.Centers.mui = [];
-                        
+            
+            f = dscomponents.ParamTimeKernelCoreFun(this);
+            fe = f.Expansion;
+            fe.Centers.xi = repmat(space,model.dim,1);
+            fe.Centers.ti = [];
+            fe.Centers.mui = [];
+            
             %% BaseCompWiseKernelApprox settings
             % Choose the kernel with such that each kernel vanishes (<
-            % kerneleps) after kernelsupport support vectors. 
+            % kerneleps) after kernelsupport support vectors.
             kernelsupport = 2;
             kerneleps = 0.00001;
             
-            d = sqrt(dims)*space(2);
+            d = sqrt(model.dim)*space(2);
             %gamma = -((kernelsupport*d)^2)/log(kerneleps) preprint
             gamma = -((kernelsupport*d))/log(kerneleps)
-            this.Kernel = kernels.GaussKernel(gamma);
-            this.TimeKernel = kernels.NoKernel;
-            this.ParamKernel = kernels.NoKernel;
+            fe.Kernel = kernels.GaussKernel(gamma);
+            fe.TimeKernel = kernels.NoKernel;
+            fe.ParamKernel = kernels.NoKernel;
+            this.f = f;
         end
-    end    
+    end
 end
 

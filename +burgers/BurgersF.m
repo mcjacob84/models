@@ -16,26 +16,31 @@ classdef BurgersF < dscomponents.ACompEvalCoreFun
     properties
         A;
         Ax;
-        System;
     end
     
     methods
         function this = BurgersF(sys)
-            this = this@dscomponents.ACompEvalCoreFun;
-            this.System = sys;
-            this.MultiArgumentEvaluations = true;
+            this = this@dscomponents.ACompEvalCoreFun(sys);
             this.CustomProjection = false;
             this.TimeDependent = false;
         end
         
-        function fx = evaluateCoreFun(this, x, ~, mu)
+        function fx = evaluate(this, x, ~)
+            fx = bsxfun(@times,this.A*x,this.mu(1,:)) - x.*(this.Ax*x);
+        end
+        
+        function evaluateCoreFun(varargin)
+            error('Evaluate is overridden directly');
+        end
+        
+        function fx = evaluateMulti(this, x, ~, mu)
             fx = bsxfun(@times,this.A*x,mu(1,:)) - x.*(this.Ax*x);
         end
         
-        function J = getStateJacobian(this, x, ~, mu)
+        function J = getStateJacobian(this, x, ~)
             hlp = bsxfun(@times,this.Ax,x);
             hlp = hlp + spdiags(this.Ax*x,0,size(x,1),size(x,1));
-            J = mu(1)*this.A - hlp;
+            J = this.mu(1)*this.A - hlp;
         end
         
         function newDim(this)
@@ -52,11 +57,6 @@ classdef BurgersF < dscomponents.ACompEvalCoreFun
             this.fDim = n;
         end
         
-%         function target = project(this, V, W)
-%             target = this.clone;
-%             target = project@dscomponents.ACoreFun()
-%         end
-        
         function copy = clone(this)
             copy = clone@dscomponents.ACompEvalCoreFun(this, models.burgers.BurgersF(this.System));
             copy.A = this.A;
@@ -65,7 +65,7 @@ classdef BurgersF < dscomponents.ACompEvalCoreFun
     end
     
     methods(Access=protected)
-        function fxj = evaluateComponents(this, pts, ends, argidx, self, X, ~, mu)
+        function fxj = evaluateComponents(this, pts, ends, argidx, self, X, ~)
             % Evaluates the burgers nonlinearity pointwise.
             %
             % Parameters:
@@ -86,6 +86,22 @@ classdef BurgersF < dscomponents.ACompEvalCoreFun
             % Return values:
             % fxj: A matrix with pts-many component function evaluations `f_i(\vx)` as rows and as
             % many columns as `\vX` had.
+            fxj = zeros(length(pts),size(X,2));
+            for idx=1:length(pts)
+                pt = pts(idx);
+                if idx == 1
+                    st = 0;
+                else
+                    st = ends(idx-1);
+                end
+                % Select the elements of x that are effectively used in f
+                xidx = (st+1):ends(idx);
+                x = X(xidx);
+                fxj(idx) = this.mu(1).*(this.A(pt,argidx(xidx))*x) - x(self(xidx)).*(this.Ax(pt,argidx(xidx))*x);
+            end
+        end
+        
+        function fxj = evaluateComponentsMulti(this, pts, ends, argidx, self, X, ~, mu)
             fxj = zeros(length(pts),size(X,2));
             for idx=1:length(pts)
                 pt = pts(idx);

@@ -29,7 +29,7 @@ classdef BurgersSys < models.BaseDynSystem
         function newDim(this)
             m = this.Model;
             xs  = linspace(m.Omega(1), m.Omega(2), m.Dimension+2)';
-            f = inline('exp(-(15.*(x-.5)).^2)','x');
+            f = @(x)exp(-(15.*(x-.5)).^2);
             x = xs(2:m.Dimension+1);
             x0 = f(x)-f(0);
             this.x0 = dscomponents.ConstInitialValue(x0);

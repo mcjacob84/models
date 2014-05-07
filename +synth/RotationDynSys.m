@@ -1,23 +1,21 @@
-classdef RotationDynSys < models.BaseDynSystem & dscomponents.ACoreFun
+classdef RotationDynSys < models.BaseDynSystem
     %ROTATIONDYNSYS Synthetic 2D dynamical system with rotation
     %   Also implements the ACoreFun interface as the target function is
     %   quite simple.
         
     methods
-        function this = RotationDynSys
-            this = this@dscomponents.ACoreFun;
-            this.TimeDependent = false;
+        function this = RotationDynSys(model)
+            this = this@models.BaseDynSystem(model);
             
-            this.x0 = @(mu)[0;1];
+            this.x0 = dscomponents.ConstInitialValue([0; 1]);
             
             % Add params
             this.addParam('Rotation-speed', [pi/2-.5, pi/2+.5], 3);
             this.addParam('Angle offset', [-0.02,0.02], 3);
 %             this.addParam('Rotation-speed', pi/2, 1);
 %             this.addParam('Angle offset', 0, 1);
-            
-            % This class implements the ACoreFun interface!
-            this.f = this;
+
+            this.f = models.synth.RotationFun(this);
         end
         
         function plot(this, model, t, y)

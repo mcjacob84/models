@@ -19,7 +19,7 @@ function [m, r, d] = ICIAMMain(dim)
     %d.SingleFigures = true;
     d.setModel(r);
 %     
-    d.start(mu,in);
+    d.compute(mu,in);
 %     
 %     ma = ModelAnalyzer;
 %     ma.SingleFigures = d.SingleFigures;

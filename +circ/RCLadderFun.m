@@ -14,17 +14,23 @@ classdef RCLadderFun < dscomponents.ACoreFun
 % - \c License @ref licensing
     
     methods
-        function this = RCLadderFun(dim)
-            this = this@dscomponents.ACoreFun;
-            
-            this.MultiArgumentEvaluations = true;
+        function this = RCLadderFun(sys, dim)
+            this = this@dscomponents.ACoreFun(sys);
             this.CustomProjection = true;
             this.TimeDependent = false;
             this.xDim = dim;
             this.fDim = dim;
         end
         
-        function fx = evaluateCoreFun(~, v, ~, ~)
+        function fx = evaluateCoreFun(~, v, ~)
+            vd = exp(40*(v(1:end-1,:)-v(2:end,:)));
+            vdf = [vd; ones(1,size(v,2))];
+            vdb = [-exp(40*v(1,:)) + 2; vd];
+            
+            fx = vdb - vdf;
+        end
+        
+        function fx = evaluateMulti(~, v, ~, ~)
             vd = exp(40*(v(1:end-1,:)-v(2:end,:)));
             vdf = [vd; ones(1,size(v,2))];
             vdb = [-exp(40*v(1,:)) + 2; vd];

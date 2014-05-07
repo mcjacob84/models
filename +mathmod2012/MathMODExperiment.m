@@ -52,7 +52,7 @@ classdef MathMODExperiment < models.BaseFullModel
             %x0.addMatrix('sum(mu)', e1);
             this.System.x0 = x0;
             
-            f = this.System.f;
+            f = this.System.f.Expansion;
             f.Ma = repmat(-exp(-f.Centers.xi(1,:)/15),dims,1);
             
             this.System.Inputs{1} = @(t)[.4*sin(t/3); exp(-(12-t).^2)];

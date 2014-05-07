@@ -19,7 +19,7 @@ classdef KernelTestSys < models.BaseDynSystem
             %% System settings
             this.x0 = dscomponents.ConstInitialValue(ones(this.Model.dim,1)*.5);
             
-            this.f = models.synth.KernelTestFun(this.Model.dim, pos_flag);
+            this.f = models.synth.KernelTestFun(this, pos_flag);
         end
     end
 end

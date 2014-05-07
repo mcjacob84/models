@@ -23,7 +23,14 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
         
         % Gamma values to use as kernel width for diffusivity
 %         Gammas = .08;
+<<<<<<< HEAD
         Gammas = [.01 .02 .03 .04 .05];
+=======
+        Gammas = [.03 .06 .08 .1];
+        
+        DiscreteCXMU;
+        CurCXMU;
+>>>>>>> d369ad802ed7aae7fe5740c492e7f33a39c3269b
     end
     
     methods
@@ -52,6 +59,14 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             
             % Scaled!
             this.h = .5 * this.Model.L;
+        end
+        
+        function setConfig(this, mu, inputidx)
+            setConfig@models.pcdi.BasePCDISystem(this, mu, inputidx)
+            %% Precompute diffusivity c(x,mu) on current grid
+            cxmu = this.DiscreteCXMU.compose(0,mu);
+            % Use same linear indexing as other quantities on grid
+            this.CurCXMU = cxmu(:);
         end
         
         function varargout = plot(this, model, t, y, varargin)
@@ -140,22 +155,15 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 end
             end
             o = this.Omega / this.Model.L;
-            %[x,y] = meshgrid(0:this.hs/20:o(1,2),0:this.hs/20:o(2,2));
-            [x,y] = meshgrid(0:this.hs:o(1,2),0:this.hs:o(2,2));
-            c = zeros(size(x,1),size(x,2),length(this.Gammas));
-            apm = general.AffParamMatrix;
-            lso = LinearSplitOfOne('mu',length(this.Gammas));
-            apm.addMatrix(lso.getFunStr(0),ones(size(x)));
-            for k=1:length(this.Gammas)
-                this.Kexp.Kernel.Gamma = this.Gammas(k);
-                hlp = this.diffusionCoeff([x(:) y(:)]');
-                c(:,:,k) = reshape(hlp,size(x,1),[]);
-                apm.addMatrix(lso.getFunStr(k),c(:,:,k));
-                if allparts
+            fineness = 1;
+            [x,y] = meshgrid(0:this.hs/fineness:o(1,2),0:this.hs/fineness:o(2,2));
+            apm = this.getAffParamCX(x,y,'mu');
+            if allparts
+                for k=1:length(this.Gammas)
                     h = pm.nextPlot(sprintf('diff_coeff_%d',k),...
                         sprintf('Spatial diffusion coefficient base c_%d(x) for \\gamma=%g',...
                         k,this.Gammas(k)),'x','y');
-                    surf(h,x,y,log10(c(:,:,k)),'EdgeColor','interp');
+                    surf(h,x,y,log10(apm.getMatrix(k)),'EdgeColor','interp','FaceColor','interp');
                     zlabel('Log-scaled diffusivity');
                 end
             end
@@ -163,7 +171,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
                 h = pm.nextPlot(sprintf('diff_coeff_mu_%d',k),...
                     sprintf('Spatial diffusion coefficient c(x) for mu(5)=%g',...
                     mu(k)),'x','y');
-                surf(h,x,y,log10(apm.compose(0,mu(k))),'EdgeColor','interp');
+                surf(h,x,y,log10(apm.compose(0,mu(k))),'EdgeColor','interp','FaceColor','interp');
                 zlabel('Log-scaled diffusivity');
             end
             if nargin < 3
@@ -176,19 +184,29 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
         function newSysDimension(this)
             m = prod(this.Dims);
             
+            %% Compute c(x,mu) on current grid
+            o = this.Omega / this.Model.L;
+            [x,y] = meshgrid(0:this.hs:o(1,2),0:this.hs:o(2,2));
+            this.DiscreteCXMU = this.getAffParamCX(x,y,'mu(5)');
+            
             %% Initial conditions
+            x0 = dscomponents.AffineInitialValue;
             if this.Model.WithInhibitors
-                x0 = zeros(8*m,1);
+                x0part = zeros(8*m,1);
             else
-                x0 = zeros(4*m,1);
+                x0part = zeros(4*m,1);
             end
-            x0(1:2*m) = 5e-13;
-            x0(2*m+1:4*m) = 3e-8;
-            if this.Model.WithInhibitors
-                x0(4*m+1:6*m) = 3e-8;
-                x0(6*m+1:end) = 5e-13;
+            for k = 1:this.DiscreteCXMU.N
+                M = this.DiscreteCXMU.getMatrix(k);
+                x0part(1:2*m) = [M(:); M(:)]*5e-13;
+                x0part(2*m+1:4*m) = [M(:); M(:)]*3e-8;
+                if this.Model.WithInhibitors
+                    x0part(4*m+1:6*m) = [M(:); M(:)]*3e-8;
+                    x0part(6*m+1:end) = [M(:); M(:)]*5e-13;
+                end
+                x0.addMatrix(this.DiscreteCXMU.funStr{k},x0part);
             end
-            this.x0 = dscomponents.ConstInitialValue(x0);
+            this.x0 = x0;
             
             %% Diffusion part
             this.A = this.assembleA;
@@ -219,7 +237,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             
             D = this.Diff;
             
-            res = dscomponents.AffLinCoreFun;
+            res = dscomponents.AffLinCoreFun(this);
             res.TimeDependent = false;
             
             % Add constant diffusion on [0, .2] interval
@@ -272,6 +290,21 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             A2 = MatUtils.divcdivumat(x,y,@this.nablaC);
             
             A = A1 + A2;
+        end
+        
+        function apm = getAffParamCX(this, x, y, muarg)
+            % Computes the affine-linear diffusion coefficients on the
+            % spatial grid (of the cell) given by x,y
+            c = zeros(size(x,1),size(x,2),length(this.Gammas));
+            apm = general.AffParamMatrix;
+            lso = LinearSplitOfOne(muarg,length(this.Gammas));
+            apm.addMatrix(lso.getFunStr(0),ones(size(x)));
+            for k=1:length(this.Gammas)
+                this.Kexp.Kernel.Gamma = this.Gammas(k);
+                hlp = this.diffusionCoeff([x(:) y(:)]');
+                c(:,:,k) = reshape(hlp,size(x,1),[]);
+                apm.addMatrix(lso.getFunStr(k),c(:,:,k));
+            end
         end
         
         function c = diffusionCoeff(this, x)

@@ -15,14 +15,11 @@ classdef BurgersF_NoA < dscomponents.ACompEvalCoreFun
     
     properties
         Ax;
-        System;
     end
     
     methods
         function this = BurgersF_NoA(sys)
-            this = this@dscomponents.ACompEvalCoreFun;
-            this.System = sys;
-            this.MultiArgumentEvaluations = true;
+            this = this@dscomponents.ACompEvalCoreFun(sys);
             this.CustomProjection = false;
             this.TimeDependent = false;
         end
@@ -92,6 +89,10 @@ classdef BurgersF_NoA < dscomponents.ACompEvalCoreFun
                 x = X(xidx,:);
                 fxj(idx,:) = - x(self(xidx),:) .* (this.Ax(pt,argidx(xidx))*x);
             end
+        end
+        
+        function fxj = evaluateComponentsMulti(this, varargin)
+            fxj = this.evaluateComponents(varargin{:});
         end
     end
 end

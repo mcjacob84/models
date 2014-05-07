@@ -1,4 +1,4 @@
-classdef CoreFun1D < dscomponents.ACompEvalCoreFun
+classdef CoreFun1D < models.pcd.BaseCoreFun
 % The core nonlinear function of the PCD model.
 %
 % @author Daniel Wirtz @date 2010-03-16
@@ -20,13 +20,6 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
 % - \c License @ref licensing
     
     properties(Access=private)
-        % The assoc. dynamical system
-        % (need some values from that)
-        sys;
-    
-        % The diffusion matrix
-%         A;
-        
         % The number of nodes
         nodes;
     end
@@ -34,26 +27,20 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
     methods
                 
         function this = CoreFun1D(dynsys)
-            this = this@dscomponents.ACompEvalCoreFun;
-            this.sys = dynsys;
-            this.MultiArgumentEvaluations = true;
+            this = this@models.pcd.BaseCoreFun(dynsys);
             this.TimeDependent = false;
         end
         
         function copy = clone(this)
-            copy = models.pcd.CoreFun1D(this.sys);
+            copy = models.pcd.CoreFun1D(this.System);
             
             % Call superclass method
-            copy = clone@dscomponents.ACompEvalCoreFun(this, copy);
-            
-            % copy reference!
-            %copy.sys = this.sys; % already done in constructor
-%             copy.A = this.A;
+            copy = clone@models.pcd.BaseCoreFun(this, copy);
             copy.nodes = this.nodes;
         end
         
         function newSysDimension(this)
-            n = this.sys.Dims(1);
+            n = this.System.Dims(1);
             % Add x_a dependencies
             % 1=x_a, 2=y_a, 3=x_i {, y_i}
             i = [(1:n)'; (1:n)'; (1:n)']; 
@@ -76,55 +63,65 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
             this.nodes = n;
         end
         
-        function fx = evaluateCoreFun(this, x, ~, mu)
+        function fx = evaluate(this, x, ~)
             % Allocate result vector
             fx = zeros(size(x));
             
             m = this.nodes;
-            n = this.sys.Model.n;
+            n = this.System.Model.n;
             
             % Non-Multidimensional case
-            if size(x,2) == 1
-                mu = [this.sys.ReacCoeff; mu];
-                
-                % Extract single functions
-                xa = x(1:m);
-                xan = xa.^n;
-                ya = x(m+1:2*m);
-                xi = x(2*m+1:3*m);
-                yi = x(3*m+1:end);
+            mu = [this.System.ReacCoeff; this.mu];
 
-                % Boundary conditions
-                rb = zeros(m,1);
-                rb(end) = xi(end)*mu(9)/this.sys.hs; %max((500-t)/500,0)*
+            % Extract single functions
+            xa = x(1:m);
+            xan = xa.^n;
+            ya = x(m+1:2*m);
+            xi = x(2*m+1:3*m);
+            yi = x(3*m+1:end);
 
-                fx(1:m) = mu(1)*xi.*ya - mu(3)*xa + rb;
-                fx(m+1:2*m) = mu(2)*yi.*xan - mu(4)*ya;
-                fx(2*m+1:3*m) = -mu(1)*xi.*ya - mu(5)*xi + mu(7) - rb;
-                fx(3*m+1:end) = -mu(2)*yi.*xan - mu(6)*yi + mu(8);
-            else
-                mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu];
-                % Extract single functions
-                xa = x(1:m,:);
-                xan = xa.^n;
-                ya = x(m+1:2*m,:);
-                xi = x(2*m+1:3*m,:);
-                yi = x(3*m+1:end,:);
+            % Boundary conditions
+            rb = zeros(m,1);
+            rb(end) = xi(end)*mu(9)/this.System.hs; %max((500-t)/500,0)*
 
-                % Boundary conditions
-                rb = zeros(m,size(xi,2));
-                rb(end,:) = (xi(end,:).*mu(9,:))/this.sys.hs;
+            fx(1:m) = mu(1)*xi.*ya - mu(3)*xa + rb;
+            fx(m+1:2*m) = mu(2)*yi.*xan - mu(4)*ya;
+            fx(2*m+1:3*m) = -mu(1)*xi.*ya - mu(5)*xi + mu(7) - rb;
+            fx(3*m+1:end) = -mu(2)*yi.*xan - mu(6)*yi + mu(8);
+        end
+        
+        function fx = evaluateMulti(this, x, ~, mu)
+            % Allocate result vector
+            fx = zeros(size(x));
+            
+            m = this.nodes;
+            n = this.System.Model.n;
+            
+            mu = [repmat(this.System.ReacCoeff,1,size(mu,2)); mu];
+            % Extract single functions
+            xa = x(1:m,:);
+            xan = xa.^n;
+            ya = x(m+1:2*m,:);
+            xi = x(2*m+1:3*m,:);
+            yi = x(3*m+1:end,:);
 
-                fx(1:m,:) = bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xa,mu(3,:)) + rb;
-                fx(m+1:2*m,:) = bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,ya,mu(4,:));
-                fx(2*m+1:3*m,:) = -bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xi,mu(5,:)) + bsxfun(@times,ones(size(xi)),mu(7,:)) - rb;
-                fx(3*m+1:end,:) = -bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,yi,mu(6,:)) + bsxfun(@times,ones(size(xi)),mu(8,:));
-            end
-        end 
+            % Boundary conditions
+            rb = zeros(m,size(xi,2));
+            rb(end,:) = (xi(end,:).*mu(9,:))/this.System.hs;
+
+            fx(1:m,:) = bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xa,mu(3,:)) + rb;
+            fx(m+1:2*m,:) = bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,ya,mu(4,:));
+            fx(2*m+1:3*m,:) = -bsxfun(@times,xi.*ya,mu(1,:)) - bsxfun(@times,xi,mu(5,:)) + bsxfun(@times,ones(size(xi)),mu(7,:)) - rb;
+            fx(3*m+1:end,:) = -bsxfun(@times,yi.*xan,mu(2,:)) - bsxfun(@times,yi,mu(6,:)) + bsxfun(@times,ones(size(xi)),mu(8,:));
+        end
     end
     
     methods(Access=protected)
-        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, ~, mu)
+        function fxj = evaluateComponents(this, pts, ends, ~, ~, X, ~)
+            fxj = this.evaluateComponentsMulti(pts, ends, [], [], X, [], this.mu);
+        end
+        
+        function fxj = evaluateComponentsMulti(this, pts, ends, ~, ~, X, ~, mu)
             % The vector embedding results from the fixed ordering of the full 4*m-vector into
             % the components x_a, y_a, x_i, y_i
             %
@@ -142,10 +139,11 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
             % fxj: A matrix with pts-many component function evaluations `f_i(\vx)` as rows and as
             % many columns as `\vX` had.
             m = this.nodes;
-            n = this.sys.Model.n;
+            s = this.System;
+            n = s.Model.n;
             fxj = zeros(length(pts),size(X,2));
             
-            mu = [repmat(this.sys.ReacCoeff,1,size(mu,2)); mu];
+            mu = [repmat(s.ReacCoeff,1,size(mu,2)); mu];
             for idx=1:length(pts)
                 j = pts(idx);
                 if idx == 1
@@ -164,7 +162,7 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
                     fj = mu(1,:).*x(3,:).*x(2,:) - mu(3,:).*x(1,:);
                     % Boundary condition
                     if j == m
-                        fj = fj + x(3,:).*mu(9,:)/this.sys.hs;
+                        fj = fj + x(3,:).*mu(9,:)/s.hs;
                     end
                     
                 % Y_a
@@ -180,7 +178,7 @@ classdef CoreFun1D < dscomponents.ACompEvalCoreFun
                     fj = -mu(1,:).*x(2,:).*x(1,:) - mu(5,:).*x(2,:) + mu(7,:);
                     % Boundary condition
                     if j == 3*m
-                        fj = fj - x(2,:).*mu(9,:)/this.sys.hs;
+                        fj = fj - x(2,:).*mu(9,:)/s.hs;
                     end
                     
                 % Y_i

@@ -68,7 +68,7 @@ classdef Burgers < models.BaseFullModel
             this.SpaceReducer = spacereduction.PODGreedy;
             this.SpaceReducer.Eps = 1e-9;
             
-            a = approx.DEIM;
+            a = approx.DEIM(this.System);
             a.MaxOrder = 80;
             this.Approx = a;
             

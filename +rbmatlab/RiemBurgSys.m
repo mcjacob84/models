@@ -1,4 +1,4 @@
-classdef RiemBurgSys_Fun < models.BaseDynSystem & dscomponents.ACoreFun
+classdef RiemBurgSys < models.BaseDynSystem
 % RiemBurgSys: 
 %
 %
@@ -14,15 +14,14 @@ classdef RiemBurgSys_Fun < models.BaseDynSystem & dscomponents.ACoreFun
 % - \c License @ref licensing
     
     methods
-        function this = RiemBurgSys_Fun(model)
+        function this = RiemBurgSys(model)
             this = this@models.BaseDynSystem(model);
-            this = this@dscomponents.ACoreFun;
             this.TimeDependent = true;
             
             this.x0 = dscomponents.PointerInitialValue(@(mu)this.getx0(mu));
             
             % DS-Components
-            this.f = this;
+            this.f = models.rbmatlab.RiemBurgFun(this);
             this.B = [];
             this.Inputs = {};
             
@@ -35,13 +34,6 @@ classdef RiemBurgSys_Fun < models.BaseDynSystem & dscomponents.ACoreFun
             %c = zeros(1, params.xnumintervals*params.ynumintervals);
             %c(round(.75*params.xnumintervals)) = 1;
             %this.C = dscomponents.PointerOutputConv(@(t,mu)c,false);
-        end
-        
-        function y = evaluateCoreFun(this, x, t, mu)
-            rbm = this.Model.RBMModel;
-            rbm = rbm.set_mu(rbm,mu);
-            rbm = rbm.set_time(rbm,t);
-            y = -rbm.L_E_local_ptr(rbm, this.Model.RBMDataCont.RBMData, x, []);
         end
         
         function x0 = getx0(this, mu)

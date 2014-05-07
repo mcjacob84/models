@@ -33,7 +33,7 @@ classdef RCLadderSys < models.BaseDynSystem
             
             this.C = dscomponents.LinearOutputConv(B');
             
-            this.f = models.circ.RCLadderFun(dim);
+            this.f = models.circ.RCLadderFun(this, dim);
             
             this.Inputs = {@(t)exp(-t),@(t)(cos(2*pi*t/10) + 1)/2,...
                 @(t)double((t-.3)>0),@(t)(cos(pi*t)+1)/(t+1),...
