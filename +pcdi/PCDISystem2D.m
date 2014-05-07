@@ -23,7 +23,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
         
         % Gamma values to use as kernel width for diffusivity
 %         Gammas = .08;
-        Gammas = [.03 .06 .08 .1];
+        Gammas = [.01 .02 .03 .04 .05];
     end
     
     methods
