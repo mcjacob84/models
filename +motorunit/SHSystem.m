@@ -51,6 +51,19 @@ classdef SHSystem < models.BaseDynSystem
         noiseGen;
     end
     
+    properties(Access=private)
+        % The upper limit polynomial for maximum mean current dependent on
+        % the fibre type.
+        %
+        % This polynomial has been computed using the
+        % models.motoneuron.Model (which is also included here, but has
+        % been established as single model for speed and exemplatory
+        % purposes), where the fibre type and mean activation current along
+        % the 60Hz-contour have been used to fit a polynomial that yields
+        % the maximum mean input current for any fibre type.
+        upperlimit_poly = [14.3686  -13.0963    4.0613    4.1101];
+    end
+    
     properties(Access=private, Transient)
         peakstart = false;
     end
@@ -88,10 +101,23 @@ classdef SHSystem < models.BaseDynSystem
         end
         
         function setConfig(this, mu, inputidx)
-            % Helper method to reset the "peak counter" of the dynamics.
+            % Sets the configuration for the upcoming simulation of the
+            % model.
+            %
+            % Limits the mean input current to a maximum value depending on
+            % the fibre type, so that the frequency of 60Hz is not
+            % exceeded.
+            %
+            % See also: models.motoneuron.ParamDomainDetection upperlimit_poly
+            
+            % Limit mean current depending on fibre type
+            mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
+            
+            % Use "fitted" mu
             setConfig@models.BaseDynSystem(this, mu, inputidx);
-            this.noiseGen.setMu(mu);
+            this.noiseGen.setFibreType(mu(1));
             this.MaxTimestep = this.Model.dt*100;
+            % Helper method to reset the "peak counter" of the dynamics.
             if this.Model.SinglePeakMode
                 this.peakstart = false;
             end
@@ -154,81 +180,16 @@ classdef SHSystem < models.BaseDynSystem
         end
                 
         function x0 = getConstInitialStates(~)
-            % initial states
-            x0_sarc = zeros(58,1);
+            % initial states from original work Shorten
+            x0_sarc = zeros(56,1);
             x0_sarc(1:14) = [-79.974; -80.2; 5.9; 150.9; 5.9; 12.7; 133;...
                 133; 0.009466; 0.9952; 0.0358; 0.4981; 0.581; 0.009466];
             x0_sarc(15:37) = [0.9952; 0.0358; 0.4981; 0.581; 0; 0; 0; 0; 0; 1;...
                 0; 0; 0; 0; 0.1; 1500; 0.1; 1500; 25; 615; 615; 811; 811];
             x0_sarc(38:45) = [16900; 16900; 0.4; 0.4; 7200; 7200; 799.6; 799.6];
             x0_sarc(46:54) = [1000; 1000; 3; 0.8; 1.2; 3; 0.3; 0.23; 0.23];
-            x0_sarc(55:58) = [0.23; 0.23; 0.0; 0.05];
+            x0_sarc(55:56) = [0.23; 0.23]; %0.0; 0.05
             x0 = [zeros(6,1); x0_sarc];
-            
-%             x0 = 1e4*[0.000002105216220
-%                0.000003621385002
-%                0.000002909625708
-%                0.000099590346266
-%                0.000003791919729
-%                0.000000015081509
-%               -0.008220103158330
-%               -0.008213826304369
-%                0.000616422489154
-%                0.015090303609523
-%                0.000588455048963
-%                0.001269826128002
-%                0.013186084039038
-%                0.013301169961923
-%                0.000000688872253
-%                0.000099542136254
-%                0.000002706918371
-%                0.000059557827555
-%                0.000059087570477
-%                0.000000695103658
-%                0.000099638277984
-%                0.000002728603130
-%                0.000059289421401
-%                0.000059082262288
-%                0.000000000176541
-%                0.000000000559251
-%                0.000000000664353
-%                0.000000000350759
-%                0.000000000069447
-%                0.000088270373229
-%                0.000011185010563
-%                0.000000531482664
-%                0.000000011224301
-%                0.000000000088892
-%                0.000081729161448
-%                0.149193283547150
-%                0.000036457584391
-%                0.149272225466980
-%                0.002645213006267
-%                0.061500000000000
-%                0.061500000000000
-%                0.081100000000000
-%                0.081100000000000
-%                1.686302951356341
-%                1.686709766870293
-%                0.000206227516784
-%                0.000138893833514
-%                0.724232562918369
-%                0.724234577079512
-%                0.075561209564849
-%                0.075626529086977
-%                0.095765941567035
-%                0.095765438026699
-%                0.000395940593721
-%                0.000102616321003
-%                0.000162655158102
-%                0.000391688669685
-%                0.000040793527447
-%                0.000032519348632
-%                0.000023060913139
-%                0.000032393965109
-%                0.000013164858422
-%                                0
-%                0.000005000000000];
         end
         
     end

@@ -57,8 +57,8 @@ classdef NoiseGenerator < handle
             this.baseMean = mean(p.noiseP);
         end
         
-        function setMu(this, mu)
-            rs = RandStream('mt19937ar','Seed',this.RandSeed*mu(1));
+        function setFibreType(this, mu_fibretype)
+            rs = RandStream('mt19937ar','Seed',round(this.RandSeed*mu_fibretype*100));
             noiseSI = filter(this.b,this.a,rs.randn(1,length(this.baseNoise)));
             % Independent noise
             iNoise = this.factor/std(noiseSI)*noiseSI;

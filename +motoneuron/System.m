@@ -70,7 +70,7 @@ classdef System < models.BaseDynSystem
         
         function setConfig(this, mu, inputidx)
             setConfig@models.BaseDynSystem(this, mu, inputidx);
-            this.noiseGen.setMu(mu);
+            this.noiseGen.setFibreType(mu(1));
             this.MaxTimestep = this.Model.dt*1000;            
         end
         

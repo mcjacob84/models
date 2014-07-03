@@ -11,10 +11,6 @@ classdef Shorten < models.BaseFullModel
     % kernel-approximation of the motor unit w.r.t. the activation and
     % fibre type relation to the force development.
     %
-    % ToDos:
-    % - Feststellen, welches der insgesamt zu betrachtende
-    % Simulationszeitraum sein sollte (abh. vom aktuellen parameterbereich)
-    %
     % @author Daniel Wirtz @date 2014-01-16
     %
     % @new{0,7,dw,2014-01-16} Added this class.
@@ -71,7 +67,7 @@ classdef Shorten < models.BaseFullModel
                 this.T = 500; % [ms]
             end
             % DO NOT INCREASE! Peaks from Motoneuron are not correctly
-            % resolved if larger timesteps are used.
+            % resolved (at least visually) if larger timesteps are used.
             this.dt = .1; % [ms]
             
             this.SaveTag = 'motorunit';
@@ -91,7 +87,7 @@ classdef Shorten < models.BaseFullModel
             
             % Set parameter domain already
             s = sampling.RandomSampler;
-            s.Domain = models.motorunit.ParamDomain;
+            s.Domain = models.motoneuron.ParamDomain;
             this.Sampler = s;
             
             this.DefaultMu = [.1; 3];
@@ -166,9 +162,9 @@ classdef Shorten < models.BaseFullModel
     
     methods(Static, Access=protected)
         function this = loadobj(this)
-            if ~isa(this, 'models.motorunit.Model')
+            if ~isa(this, 'models.motorunit.Shorten')
                 sobj = this;
-                this = models.motorunit.Model;
+                this = models.motorunit.Shorten;
                 this = loadobj@models.BaseFullModel(this, sobj);
             else
                 this = loadobj@models.BaseFullModel(this);
