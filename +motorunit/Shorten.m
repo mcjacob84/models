@@ -61,8 +61,9 @@ classdef Shorten < models.BaseFullModel
             this.SinglePeakMode = singlepeakmode;
             this.DynamicInitialConditions = dynamic_ic;
             
+            this.dt = .1;
             if singlepeakmode
-                this.T = 150; % [ms]
+                this.T = 2000; % [ms]
             else
                 this.T = 500; % [ms]
             end
@@ -70,13 +71,14 @@ classdef Shorten < models.BaseFullModel
             % resolved (at least visually) if larger timesteps are used.
             this.dt = .1; % [ms]
             
-            this.SaveTag = 'motorunit';
+            this.SaveTag = sprintf('motorunit_shorten_sp%d_dynic%d',singlepeakmode,dynamic_ic);
             this.Data = data.ModelData(this);
             this.Data.useFileTrajectoryData;
             
-            this.Name = 'Motor unit model';
+            this.Name = sprintf('Motor unit model: Single peak mode: %d, Dynamic Initial Conditions: %d',singlepeakmode,dynamic_ic);
             this.System = models.motorunit.SHSystem(this);
             this.TrainingInputs = 1;
+            this.EnableTrajectoryCaching = true;
             
             s = solvers.MLWrapper(@ode15s);
             if singlepeakmode
