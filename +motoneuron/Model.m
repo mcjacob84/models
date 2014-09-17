@@ -17,6 +17,11 @@ classdef Model < models.BaseFullModel
 %
 % @new{0,7,dw,2013-07-05} Added this class.
 %
+
+    properties(Constant)
+        FILE_UPPERLIMITPOLY = fullfile(fileparts(mfilename('fullpath')),'upperlimitpoly.mat');
+    end
+
     properties(Dependent)
         UseNoise;
     end

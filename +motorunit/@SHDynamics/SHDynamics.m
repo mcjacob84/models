@@ -84,7 +84,6 @@ classdef SHDynamics < dscomponents.ACoreFun
             prepareSimulation@dscomponents.ACoreFun(this, mu);
             
             % Precompute motoneuron/sarcomere constants
-            
             this.motoconst = this.getMotoConst(mu(1));
             this.sarcoconst = this.getSarcoConst(mu(1));
             

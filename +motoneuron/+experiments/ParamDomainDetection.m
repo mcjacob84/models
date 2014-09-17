@@ -88,9 +88,9 @@ basedir = fileparts(mfilename('fullpath'));
 % x_ft = ft1(j);
 % fx_mc = mc1(i);
 % upperlimit_poly = polyfit(x_ft,fx_mc,3);
-
+% 
 % save(fullfile(basedir,'paramdomaindetection_withnoise'), 'ct', 'modeldir', 'ps', 'Hz', 'cmap', 'MinHz', 'MaxHz','upperlimit_poly','x_ft','fx_mc');
-% save(fullfile(basedir,'..','upperlimit_poly'), 'upperlimit_poly');
+% save(models.motoneuron.Model.FILE_UPPERLIMITPOLY, 'upperlimit_poly');
 
 %% Plots
 load(fullfile(basedir,'paramdomaindetection_withnoise'));

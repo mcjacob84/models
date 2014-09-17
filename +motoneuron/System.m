@@ -56,7 +56,7 @@ classdef System < models.BaseDynSystem
             this.Inputs{1} = @ng.getInput;
             
             % Load mean current limiting polynomial
-            s = load(fullfile(fileparts(mfilename('fullpath')),'upperlimitpoly'));
+            s = load(models.motoneuron.Model.FILE_UPPERLIMITPOLY);
             this.upperlimit_poly = s.upperlimit_poly;
             
             %% Set system components
@@ -79,10 +79,22 @@ classdef System < models.BaseDynSystem
             this.x0 = dscomponents.ConstInitialValue(zeros(6,1));
         end
         
-        function setConfig(this, mu, inputidx)
+        function prepareSimulation(this, mu, inputidx)
+            % Limits the mean input current to a maximum value depending on
+            % the fibre type, so that the frequency of 60Hz is not
+            % exceeded.
+            %
+            % See also: models.motoneuron.ParamDomainDetection upperlimit_poly
+            
+            % Limit mean current depending on fibre type
             if this.Model.FibreTypeDepMaxMeanCurrent
                 mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
             end
+            
+            prepareSimulation@models.BaseDynSystem(this, mu, inputidx);
+        end
+        
+        function setConfig(this, mu, inputidx)
             setConfig@models.BaseDynSystem(this, mu, inputidx);
             this.noiseGen.setFibreType(mu(1));
             this.MaxTimestep = this.Model.dt*1000;            

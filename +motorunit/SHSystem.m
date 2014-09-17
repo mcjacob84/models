@@ -53,7 +53,7 @@ classdef SHSystem < models.BaseDynSystem
         noiseGen;
     end
     
-    properties(Access=private)
+    properties(SetAccess=private)
         % The upper limit polynomial for maximum mean current dependent on
         % the fibre type.
         %
@@ -63,7 +63,7 @@ classdef SHSystem < models.BaseDynSystem
         % purposes), where the fibre type and mean activation current along
         % the 60Hz-contour have been used to fit a polynomial that yields
         % the maximum mean input current for any fibre type.
-        upperlimit_poly = [14.3686  -13.0963    4.0613    4.1101];
+        upperlimit_poly;
     end
     
     properties(Access=private, Transient)
@@ -82,6 +82,10 @@ classdef SHSystem < models.BaseDynSystem
             %% Set system components
             % Core nonlinearity
             this.f = models.motorunit.SHDynamics(this);
+            
+            % Load mean current limiting polynomial
+            s = load(models.motoneuron.Model.FILE_UPPERLIMITPOLY);
+            this.upperlimit_poly = s.upperlimit_poly;
             
             % Setup noise input
             ng = models.motoneuron.NoiseGenerator;
@@ -103,10 +107,7 @@ classdef SHSystem < models.BaseDynSystem
             end
         end
         
-        function setConfig(this, mu, inputidx)
-            % Sets the configuration for the upcoming simulation of the
-            % model.
-            %
+        function prepareSimulation(this, mu, inputidx)
             % Limits the mean input current to a maximum value depending on
             % the fibre type, so that the frequency of 60Hz is not
             % exceeded.
@@ -116,7 +117,12 @@ classdef SHSystem < models.BaseDynSystem
             % Limit mean current depending on fibre type
             mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
             
-            % Use "fitted" mu
+            prepareSimulation@models.BaseDynSystem(this, mu, inputidx);
+        end
+        
+        function setConfig(this, mu, inputidx)
+            % Sets the configuration for the upcoming simulation of the
+            % model.
             setConfig@models.BaseDynSystem(this, mu, inputidx);
             this.noiseGen.setFibreType(mu(1));
             this.MaxTimestep = this.Model.dt*100;
