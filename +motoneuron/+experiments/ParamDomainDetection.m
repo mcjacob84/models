@@ -90,6 +90,7 @@ basedir = fileparts(mfilename('fullpath'));
 % upperlimit_poly = polyfit(x_ft,fx_mc,3);
 
 % save(fullfile(basedir,'paramdomaindetection_withnoise'), 'ct', 'modeldir', 'ps', 'Hz', 'cmap', 'MinHz', 'MaxHz','upperlimit_poly','x_ft','fx_mc');
+% save(fullfile(basedir,'..','upperlimit_poly'), 'upperlimit_poly');
 
 %% Plots
 load(fullfile(basedir,'paramdomaindetection_withnoise'));

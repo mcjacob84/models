@@ -43,6 +43,8 @@ classdef SHSystem < models.BaseDynSystem
         % ForceOutputScalingPolyCoeff = 1e5*[0.142559788512870  -1.052260908967481   3.446953882000253  -6.597894914676725   8.180848326826332  -6.875124492949854   3.967796548608296  -1.549518903381187   0.388781656140931  -0.054972337733183   0.002625376146421   0.000246831617001   0.000019186970434];
         %
         % @type rowvec<double>
+        %
+        % See also: models.motorunit.experiments.SarcoScaling
         ForceOutputScalingPolyCoeff = 1e5*[0.072141692014344  -0.456658053996476   1.274105896595146  -2.041231359447655   2.058191740934228  -1.353159489096666   0.584711952400098  -0.164458365881107   0.029358733675881  -0.003174883073694   0.000165817182406    0.000048348565452   0.000012193246968];
     end
     
@@ -93,6 +95,7 @@ classdef SHSystem < models.BaseDynSystem
             this.C = this.assembleC;
             
             % Constant initial values
+            % See also: models.motorunit.experiment.InitialConditions
             if model.DynamicInitialConditions
                 this.x0 = this.assembleX0;
             else
@@ -143,6 +146,8 @@ classdef SHSystem < models.BaseDynSystem
             % creates an affine-initial value that produces the suitable
             % initial conditions determined by long-time simulations of
             % different fibre-types with no active input.
+            %
+            % See also: models.motorunit.experiment.InitialConditions
             mc = metaclass(this);
             s = load(fullfile(fileparts(which(mc.Name)),'x0coeff.mat'));
             x0 = dscomponents.AffineInitialValue;
@@ -175,8 +180,11 @@ classdef SHSystem < models.BaseDynSystem
             % Extract V_s
             C.addMatrix('1',sparse(1,7,1,2,this.dm+this.dsa));
             % Add scaling for force output A_s
-            C.addMatrix(['polyval([' sprintf('%g ',this.ForceOutputScalingPolyCoeff) '],mu(1))'],...
-                sparse(2,59,1,2,this.dm+this.dsa));
+            str = '1';
+            if this.Model.SingleTwitchOutputForceScaling
+                str = ['polyval([' sprintf('%g ',this.ForceOutputScalingPolyCoeff) '],mu(1))'];
+            end
+            C.addMatrix(str, sparse(2,59,1,2,this.dm+this.dsa));
         end
                 
         function x0 = getConstInitialStates(~)
