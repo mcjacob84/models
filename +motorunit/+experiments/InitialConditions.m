@@ -5,15 +5,21 @@
 % learned by a 7-degree polynomial for each dimension.
 % This in turn is used to build a affine-linear initial condition for the
 % motorunit.System
-
+%
 %% New version:
 % In principle the same, but the original shorten IC's are used, a single
 % twitch is executed and the value after 2000ms is used as initial
 % condition.
+%
+%% Usage
+% The resulting "coeff" matrix is stored in the models.motorunit package
+% folder as x0coeff.mat and read upon model construction.
+
 
 % Create with no dynamic initial conditions as this script is intended to
 % compute them :-)
 file = fullfile(fileparts(mfilename('fullpath')),'ic_singletwitch');
+filex0 = fullfile(fileparts(mfilename('fullpath')),'..','x0coeff');
 if exist(file,'file') == 2
     load(file);
 else
@@ -71,3 +77,4 @@ semilogy(p(1,:),Norm.L2(endvals_afflin-endvals)./Norm.L2(endvals));
 title(sprintf('Relative errors of initial values for %d increasing mu_1',n));
 
 save(file, 'a', 'endvals_afflin', 'err', 'coeff', '-APPEND');
+save(filex0, 'coeff');

@@ -12,14 +12,38 @@ classdef Model < models.BaseFullModel
 %
 % @author Daniel Wirtz @date 2012-11-22
 %
+% @new{1,0,dw,2014-09-17} Added the upper limit polynomial for mean_current
+% dependent on fibre type.
+%
 % @new{0,7,dw,2013-07-05} Added this class.
 %
     properties(Dependent)
         UseNoise;
     end
     
+    properties(SetAccess=private)
+        % Flag that determines if the mean current parameter is constrained
+        % depending on the fibre type parameter.
+        %
+        % The actually applicable parameter domain of fibre_type and
+        % mean_current is not a square if only "useful" frequencies in the
+        % range of 10-60 Hz are required.
+        %
+        % An experimentally determined polynomial is used to limit the
+        % mean_current.
+        %
+        % @type logical @default true
+        %
+        % See also: models.motoneuron.experiments.ParamDomainDetection
+        FibreTypeDepMaxMeanCurrent = true;
+    end
+    
     methods
-        function this = Model
+        function this = Model(limit_meancurrent)
+            if nargin < 1
+                limit_meancurrent = true;
+            end
+            this.FibreTypeDepMaxMeanCurrent = limit_meancurrent;
             % Creates a new motoneuron model
             %
             this.Name = 'Motoneuron model';

@@ -33,6 +33,13 @@ classdef System < models.BaseDynSystem
     properties(SetAccess=private)
         % The NoiseGenerator to obtain the inputs u(t)      
         noiseGen;
+        
+        % The upper limit polynomial for maximum mean current dependent on
+        % the fibre type.
+        %
+        % See also: models.motoneuron.Model.FibreTypeDepMaxMeanCurrent
+        % models.motoneuron.experiments.ParamDomainDetection
+        upperlimit_poly;
     end
     
     methods
@@ -47,6 +54,10 @@ classdef System < models.BaseDynSystem
             ng = models.motoneuron.NoiseGenerator;
             this.noiseGen = ng;
             this.Inputs{1} = @ng.getInput;
+            
+            % Load mean current limiting polynomial
+            s = load(fullfile(fileparts(mfilename('fullpath')),'upperlimitpoly'));
+            this.upperlimit_poly = s.upperlimit_poly;
             
             %% Set system components
             % Core nonlinearity
@@ -69,6 +80,9 @@ classdef System < models.BaseDynSystem
         end
         
         function setConfig(this, mu, inputidx)
+            if this.Model.FibreTypeDepMaxMeanCurrent
+                mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
+            end
             setConfig@models.BaseDynSystem(this, mu, inputidx);
             this.noiseGen.setFibreType(mu(1));
             this.MaxTimestep = this.Model.dt*1000;            

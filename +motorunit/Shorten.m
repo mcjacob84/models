@@ -41,25 +41,41 @@ classdef Shorten < models.BaseFullModel
         % degree seven on each dimension for the parameter range [0,1]
         %
         % @type logical @default true
+        %
+        % See also: models.motorunit.experiment.InitialConditions
         DynamicInitialConditions = true;
+        
+        % Flag to determine if the output force (e.g. calcium
+        % concentration) should be re-scaled so that the forces using a
+        % single twitch are the same maximal forces (=1) for each fibre
+        % type.
+        %
+        % @type logical @default true
+        %
+        % See also: models.motorunit.experiments.SarcoScaling 
+        SingleTwitchOutputForceScaling = true;
     end
     
     methods
-        function this = Shorten(dynamic_ic, singlepeakmode)
+        function this = Shorten(dynamic_ic, singlepeakmode, outputscaling)
             % Creates a new motor unit model
             %
             % Parameters:
             % singlepeakmode: A flag that determines if this model should
             % only ever produce one force peak @type logical @default false
             
-            if nargin < 2
-                singlepeakmode = false;
-                if nargin < 1
-                    dynamic_ic = true;
+            if nargin < 3
+                outputscaling = true;
+                if nargin < 2
+                    singlepeakmode = false;
+                    if nargin < 1
+                        dynamic_ic = true;
+                    end
                 end
             end
             this.SinglePeakMode = singlepeakmode;
             this.DynamicInitialConditions = dynamic_ic;
+            this.SingleTwitchOutputForceScaling = outputscaling;
             
             this.dt = .1;
             if singlepeakmode

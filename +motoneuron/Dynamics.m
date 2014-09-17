@@ -25,8 +25,11 @@ classdef Dynamics < dscomponents.ACoreFun
         end
         
         function prepareSimulation(this, mu)
+            if this.System.Model.FibreTypeDepMaxMeanCurrent
+                mu(2) = min(polyval(this.System.upperlimit_poly,mu(1)),mu(2));
+            end
             prepareSimulation@dscomponents.ACoreFun(this, mu);
-            this.mc = this.getMotoConst(mu(1,:));
+            this.mc = this.getMotoConst(mu(1));
         end
         
         function dy = evaluate(this, y, ~, ~)
