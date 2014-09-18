@@ -81,7 +81,7 @@ classdef Shorten < models.BaseFullModel
             if singlepeakmode
                 this.T = 2000; % [ms]
             else
-                this.T = 500; % [ms]
+                this.T = 150; % [ms]
             end
             % DO NOT INCREASE! Peaks from Motoneuron are not correctly
             % resolved (at least visually) if larger timesteps are used.

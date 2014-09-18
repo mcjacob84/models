@@ -63,6 +63,9 @@ classdef SHSystem < models.BaseDynSystem
         % purposes), where the fibre type and mean activation current along
         % the 60Hz-contour have been used to fit a polynomial that yields
         % the maximum mean input current for any fibre type.
+        %
+        % See also: models.motoneuron.Model.FibreTypeDepMaxMeanCurrent
+        % models.motoneuron.experiments.ParamDomainDetection
         upperlimit_poly;
     end
     

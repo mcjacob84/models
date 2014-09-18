@@ -23,8 +23,7 @@ c = this.sarcoconst;
 c36c37 = c(36)*c(37);
 
 % Conditional statements
-% See dytd_sarcomere; % h76 is not even required in the jacobian (constant
-% in dy)
+% See dytd_sarcomere;
 alg72 = y(55)*0.001*y(32) - c(98);
 h73 = alg72 > 0;
 h74 = alg72 <= 0;
