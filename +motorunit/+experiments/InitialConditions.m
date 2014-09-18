@@ -18,7 +18,7 @@
 
 % Create with no dynamic initial conditions as this script is intended to
 % compute them :-)
-file = fullfile(fileparts(mfilename('fullpath')),'ic_singletwitch');
+file = fullfile(fileparts(mfilename('fullpath')),'ic_singletwitch.mat');
 filex0 = fullfile(fileparts(mfilename('fullpath')),'..','x0coeff');
 if exist(file,'file') == 2
     load(file);
@@ -31,7 +31,7 @@ else
     s.Samples = p;
 
     m.off1_createParamSamples;
-    m.T = 2000;
+    m.T = 5000;
     m.dt = .1;
 
     n = size(p,2);
@@ -47,7 +47,7 @@ else
         pi.step;%#ok
     end
     % Collect all trajectories into the local/main model
-    m.Data.TrajectoryData.consolidate;
+    m.Data.TrajectoryData.consolidate(m);
     pi.stop;
     m.save;
     save(file, 'm', 'endvals', 'p', 'ctimes');
