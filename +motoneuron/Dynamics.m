@@ -123,34 +123,34 @@ classdef Dynamics < dscomponents.ACoreFun
     
     methods(Access=private)
         function c = getMotoConst(~, moto_mu)
-        % getMotoConst: private getter function for motoneuron constants
-        %
-        % moto_mu is assumed to be in [0,1]
+            % getMotoConst: private getter function for motoneuron constants
+            %
+            % moto_mu is assumed to be in [0,1]
 
-        Cm=1;
-        Ri=70/1000;
-        c = zeros(11,length(moto_mu));
-        Rmd = 14.4+6.05-coolExp(6.05,14.4,moto_mu);  % cf. Cisi and Kohn 2008, Table 2, page 7
-        Rms=1.15+0.65-coolExp(0.65,1.15,moto_mu);
+            Cm=1;
+            Ri=70/1000;
+            c = zeros(11,length(moto_mu));
+            Rmd = 14.4+6.05-coolExp(6.05,14.4,moto_mu);  % cf. Cisi and Kohn 2008, Table 2, page 7
+            Rms=1.15+0.65-coolExp(0.65,1.15,moto_mu);
 
-        ld=coolExp(0.55,1.06,moto_mu);
-        ls=coolExp(77.5e-6*100,113e-6*100,moto_mu);
+            ld=coolExp(0.55,1.06,moto_mu);
+            ls=coolExp(77.5e-6*100,113e-6*100,moto_mu);
 
-        rd=coolExp(41.5e-6*100,92.5e-6*100,moto_mu)/2;
-        rs=coolExp(77.5e-6*100,113e-6*100,moto_mu)/2;
+            rd=coolExp(41.5e-6*100,92.5e-6*100,moto_mu)/2;
+            rs=coolExp(77.5e-6*100,113e-6*100,moto_mu)/2;
 
-        c(1,:) = 2*pi*rd.*ld./Rmd;   % para.Gld
-        c(2,:) = 4*2*pi*rs.*ls;      % para.Gkf
-        c(3,:) = 16*2*pi*rs.*ls;     % para.Gks
-        c(4,:) = 30*2*pi*rs.*ls;     % para.Gna
-        c(5,:) = 2./(Ri*ld./(pi*rd.^2)+Ri*ls./(pi*rs.^2));     % para.Gc
-        c(6,:) = 2*pi*rs.*ls./Rms;   % para.Gls
-        c(7,:) = 2*pi*rd.*ld*Cm;     % para.Cd
-        c(8,:) = 2*pi*rs.*ls*Cm;     % para.Cs
-        s = ones(size(moto_mu));
-        c(9,:) = 120*s;     % para.Vna
-        c(10,:) = -10*s;     % para.Vk
-        c(11,:) = 0*s;     % para.Vl
+            c(1,:) = 2*pi*rd.*ld./Rmd;   % para.Gld
+            c(2,:) = 4*2*pi*rs.*ls;      % para.Gkf
+            c(3,:) = 16*2*pi*rs.*ls;     % para.Gks
+            c(4,:) = 30*2*pi*rs.*ls;     % para.Gna
+            c(5,:) = 2./(Ri*ld./(pi*rd.^2)+Ri*ls./(pi*rs.^2));     % para.Gc
+            c(6,:) = 2*pi*rs.*ls./Rms;   % para.Gls
+            c(7,:) = 2*pi*rd.*ld*Cm;     % para.Cd
+            c(8,:) = 2*pi*rs.*ls*Cm;     % para.Cs
+            s = ones(size(moto_mu));
+            c(9,:) = 120*s;     % para.Vna
+            c(10,:) = -10*s;     % para.Vk
+            c(11,:) = 0*s;     % para.Vl
 
             function v = coolExp(a,b,mu)
                 v = exp(log(100)*mu)*(b-a)/100 + a;
