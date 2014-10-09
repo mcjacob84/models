@@ -4,6 +4,13 @@ basedir = fileparts(mfilename('fullpath'));
 file = fullfile(basedir, 'paramdomaindetection_withnoise.mat');
 load(file);
 
+%% Plot raw data
+pm = PlotManager;
+pm.FigureSize = [1024 768];
+ax = pm.nextPlot('raw_data','Frequencies by detector','Fibre type \tau','Mean current \kappa');
+tri = delaunay(ps(1,:),ps(2,:));
+trisurf(tri,ps(1,:),ps(2,:),Hz,'Parent',ax,'FaceColor','interp','EdgeColor','interp');
+
 %% assemble training data
 m = min(ps,[],2);
 M = max(ps,[],2);
@@ -25,8 +32,9 @@ for k = 1:runs
     HZ = conv2(HZ,stencil,'same');
 end
 HZ = HZ(padsize+1:end-padsize,padsize+1:end-padsize);
-mesh(FT,MC,HZ);
-axis tight;
+ax2 = pm.nextPlot('smoothed','Smoothed frequency surface','Fibre type \tau','Mean current \kappa');
+surf(ax2,FT,MC,HZ,'FaceColor','interp','EdgeColor','interp');
+axis(ax2,'tight');
 
 %% Init
 s = load(fullfile(basedir,'../','upperlimitpoly.mat'));
@@ -51,8 +59,18 @@ kexp = alg.computeApproximation(atd);
 afx = kexp.evaluate([FT(:) MC(:)]');
 FX = reshape(afx,200,[]);
 FX(~valid) = Inf;
-mesh(FT,MC,FX);
+ax3 = pm.nextPlot('approx','Learned smoothed frequency surface','Fibre type \tau','Mean current \kappa');
+surf(ax3,FT,MC,FX,'FaceColor','interp','EdgeColor','interp');
+axis(ax3,'tight');
 
+%% Save stuff
+pm.UseFileTypeFolders = false;
+pm.ExportDPI = 150;
+pm.FilePrefix = 'freq';
+pm.NoTitlesOnSave = true;
+zlim(ax2,zlim(ax));
+zlim(ax3,zlim(ax));
+pm.savePlots(basedir,'Format','jpg','Close',true);
 file = fullfile(basedir, 'FreqencyLearning.mat');
 save(file, 'alg', 'atd', 'HZ', 'FT', 'MC', 'valid');
 file = fullfile(basedir, 'FrequencyKexp.mat');
