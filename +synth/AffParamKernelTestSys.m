@@ -29,8 +29,8 @@ classdef AffParamKernelTestSys < models.BaseDynSystem
             end
             this.x0 = ai;
             
-            this.addParam('mu1',[0 1],3);
-            this.addParam('mu2',[0 .5],4);
+            this.addParam('mu1', .5 , 'Range', [0 1], 'Desired', 3);
+            this.addParam('mu2', .25, 'Range', [0 .5], 'Desired', 4);
             
             this.Inputs{1} = @(t)[.5*sin(t); 2*exp(-t)];
             b = dscomponents.AffLinInputConv;

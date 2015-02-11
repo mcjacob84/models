@@ -30,12 +30,12 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             this.MaxTimestep = [];
             
             %% Modellparameter
-            % d1 = 0.3 Dämpfungsfaktor vor Massenmatrix (Luftwiderstand)
-            this.addParam('d1',[0 2],10);
-            % d2 = .01 Dämpfungsfaktor vor Steifigkeitsmatrix (Materialdämpfung)
-            this.addParam('d2',[0 .1],10);
+            % d1 = 0.3 Dï¿½mpfungsfaktor vor Massenmatrix (Luftwiderstand)
+            this.addParam('d1',1,'Range',[0 2]);
+            % d2 = .01 Dï¿½mpfungsfaktor vor Steifigkeitsmatrix (Materialdï¿½mpfung)
+            this.addParam('d2',.05,'Range',[0 .1]);
             % Add the 3rd parameter, the local gravity factor
-            this.addParam('gravity constant',[-20 20],10);
+            this.addParam('gravity constant',9.81,'Range',[-20 20]);
             
             % Input coordinate one is for constant force term b (previously in Ax+b in corefun)
             % Fake constant gravity
@@ -56,7 +56,7 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             
             data = this.Model.data;
             
-            %% Assemblieren der Massenmatrix & Steifigkeitsmatrix für t=0
+            %% Assemblieren der Massenmatrix & Steifigkeitsmatrix fï¿½r t=0
             % Mass matrix (M is actually the full M (including dirichlet
             % nodes), but is projected at the end of this method to the
             % size of actual DoFs)

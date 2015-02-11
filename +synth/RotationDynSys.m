@@ -10,10 +10,8 @@ classdef RotationDynSys < models.BaseDynSystem
             this.x0 = dscomponents.ConstInitialValue([0; 1]);
             
             % Add params
-            this.addParam('Rotation-speed', [pi/2-.5, pi/2+.5], 3);
-            this.addParam('Angle offset', [-0.02,0.02], 3);
-%             this.addParam('Rotation-speed', pi/2, 1);
-%             this.addParam('Angle offset', 0, 1);
+            this.addParam('Rotation-speed', pi/2, 'Range', [pi/2-.5, pi/2+.5], 'Desired', 3);
+            this.addParam('Angle offset', 0, 'Range', [-0.02,0.02], 'Desired', 3);
 
             this.f = models.synth.RotationFun(this);
         end

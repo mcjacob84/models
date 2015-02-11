@@ -29,19 +29,19 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             % Add params
             rate_max = 1e-4;
             % Param indices 9-14
-            this.addParam('area_front', [.3, .8], 3);
-            this.addParam('area_back', [0, 0], 2);
-            this.addParam('area_left', [.3, .8], 3);
-            this.addParam('area_right', [0, 0], 2);
-            this.addParam('area_top', [.3, .8], 2);
-            this.addParam('area_bottom', [0, 0], 2);
+            this.addParam('area_front', .5, 'Range', [.3, .8], 3);
+            this.addParam('area_back', 0, 'Range', [0, 0], 2);
+            this.addParam('area_left', .5, 'Range', [.3, .8], 3);
+            this.addParam('area_right', 0, [0, 0], 2);
+            this.addParam('area_top', .5, 'Range', [.3, .8], 2);
+            this.addParam('area_bottom', 0, 'Range', [0, 0], 2);
             % Param indices 15-20
-            this.addParam('rate_front', [0, rate_max], 4);
-            this.addParam('rate_back', [0, rate_max], 1);
-            this.addParam('rate_left', [0, rate_max], 4);
-            this.addParam('rate_right', [0, rate_max], 1);
-            this.addParam('rate_top', [0, rate_max], 4);
-            this.addParam('rate_bottom', [0, rate_max], 1);
+            this.addParam('rate_front', rate_max/2, 'Range', [0, rate_max], 4);
+            this.addParam('rate_back', rate_max/2, 'Range', [0, rate_max], 1);
+            this.addParam('rate_left', rate_max/2, 'Range', [0, rate_max], 4);
+            this.addParam('rate_right', rate_max/2, 'Range', [0, rate_max], 1);
+            this.addParam('rate_top', rate_max/2, 'Range', [0, rate_max], 4);
+            this.addParam('rate_bottom', rate_max/2, 'Range', [0, rate_max], 1);
         end
       
         function plotState(this, model, t, v)

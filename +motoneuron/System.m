@@ -47,8 +47,8 @@ classdef System < models.BaseDynSystem
             % Call superclass constructor
             this = this@models.BaseDynSystem(model);
             
-            this.addParam('fibre_type', [0 1], 10);
-            this.addParam('mean_current_factor', [.5 10], 10);
+            this.addParam('fibre_type', 0, 'Range', [0 1]);
+            this.addParam('mean_current_factor', 3, 'Range', [0 9]);
             
             % Setup noise input
             ng = models.motoneuron.NoiseGenerator;

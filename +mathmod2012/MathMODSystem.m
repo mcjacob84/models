@@ -23,9 +23,9 @@ classdef MathMODSystem < models.BaseDynSystem
             
             this.MaxTimestep = [];
             
-            this.addParam('input shift',[1 1],1);
-            this.addParam('expansion param',[0 10],1);
-            this.addParam('initial value',[0 1],1);
+            this.addParam('input shift',1);
+            this.addParam('expansion param',5,'Range',[0 10]);
+            this.addParam('initial value',.5,'Range',[0 1]);
             this.DependentParamIndices = 2;
             
             % Sample bases

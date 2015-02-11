@@ -74,25 +74,25 @@ classdef BasePCDISystem < models.BaseDynSystem
             % Set state scaling
             this.StateScaling = this.Model.tc;
                           
-            % Add parameters
+             % Add parameters
             % Activation area
-            p = this.addParam('area', [.01, 1], 10);
+            p = this.addParam('area', .1, 'Range', [.01, 1], 'Desired', 10);
             p.Spacing = 'lin';
             
             % Activation rate
-            p = this.addParam('rate', [0.0005, 1], 15);
+            p = this.addParam('rate', .001, 'Range', [0.0005, 1], 'Desired', 15);
             p.Spacing = 'log';
             
             % Activation time
-            p = this.addParam('atime', [0, 1], 5);
+            p = this.addParam('atime', .5, 'Range', [0, 1], 'Desired', 5);
             p.Spacing = 'lin';
             
             % Exponent
-            p = this.addParam('exponent', [1, 4], 5);
+            p = this.addParam('exponent', 2, 'Range', [1, 4], 'Desired', 5);
             p.Spacing = 'lin';
             
             % Diffusion density
-            p = this.addParam('diffusionstrength', [0, 1], 5);
+            p = this.addParam('diffusionstrength', .5, 'Range', [0, 1], 'Desired', 5);
             p.Spacing = 'lin';
         end
         

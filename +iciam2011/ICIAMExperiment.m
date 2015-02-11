@@ -35,10 +35,9 @@ classdef ICIAMExperiment < models.BaseFullModel
             this.T = 20;
             this.dt = 0.05;
             
-            this.System.addParam('mu1',[0 1],4);
-            this.System.addParam('mu2',[1 1],1);
+            this.System.addParam('mu1', .5, 'Range', [0 1], 'Desired', 4);
+            this.System.addParam('mu2', 1);
             this.Sampler = sampling.GridSampler;
-            %m.System.addParam('mu3',[3 3],1);
             
             e1 = [ones(dims,1) zeros(dims,1)];
             e2 = [zeros(dims,1) ones(dims,1)];

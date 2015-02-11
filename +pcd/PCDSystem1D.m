@@ -26,7 +26,7 @@ classdef PCDSystem1D < models.pcd.BasePCDSystem
             
             % Add input param (is getting inserted after the BasePCDSystem
             % constructor params, so number 9!)
-            this.addParam('U', [1e-5, 1e-2], 50);
+            this.addParam('U', 1e-3, 'Range', [1e-5, 1e-2], 'Desired', 50);
         end
 
         function plot(this, model, t, y)

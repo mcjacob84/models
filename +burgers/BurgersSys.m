@@ -23,7 +23,7 @@ classdef BurgersSys < models.BaseDynSystem
             % Set core function
             this.f = models.burgers.BurgersF(this);
             
-            this.addParam('v', [0, 1], 100);
+            this.addParam('v', .5,'Range', [0, 1], 'Desired', 100);
         end
         
         function newDim(this)

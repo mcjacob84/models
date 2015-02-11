@@ -26,9 +26,9 @@ classdef RiemBurgSys < models.BaseDynSystem
             this.Inputs = {};
             
             % Parameters
-            this.addParam('ULeft', [.3, .3], 1);
-            this.addParam('URight', [.1, 1], 30);
-            this.addParam('xFlux', [-.5, -.5], 1);
+            this.addParam('ULeft', .3);
+            this.addParam('URight', .5, 'Range', [.1, 1], 'Desired', 30);
+            this.addParam('xFlux', -.5);
             
             % Output conversion
             %c = zeros(1, params.xnumintervals*params.ynumintervals);
