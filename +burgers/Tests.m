@@ -248,6 +248,45 @@ classdef Tests
             res = true;
         end
         
+        function [res, m] = test_Burgers_PartialReduction(dim, version)
+            if nargin < 2
+                version = 2;
+                if nargin < 1
+                    dim = 40;
+                end
+            end
+            m = models.burgers.Burgers(dim, version);
+            m.ErrorEstimator = [];
+            
+            %% Sampling - manual
+            s = sampling.ManualSampler;
+            s.Samples = logspace(log10(0.04),log10(0.08),10);
+            m.Sampler = s;
+            
+            %% Approx
+            %a = approx.DEIM(m.System);
+            %a.MaxOrder = 40;
+            m.Approx = [];
+            
+            %% DAE-fake test
+            %m.System.AlgebraicConditionDoF = dim-10:dim;
+            % Keep each second DoF!
+            m.System.AlgebraicConditionDoF = 1:2:dim;
+            
+            s = spacereduction.PODReducer;
+            s.Mode = 'abs';
+            s.Value = 30;
+            m.SpaceReducer = s;
+            
+            %% Crunch
+            m.offlineGenerations;
+            %a.Order = [5 2];
+            r = m.buildReducedModel;
+            [t, y, ct, x] = r.simulate(r.getRandomParam);
+            m.plot(t,y);
+            res = true;
+        end
+        
         function res = test_BurgersModels
             models.burgers.Tests.test_Burgers_DEIM_versions(50, 1);
             models.burgers.Tests.test_Burgers_DEIM_versions(50, 2);
