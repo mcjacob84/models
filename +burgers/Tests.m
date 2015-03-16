@@ -280,10 +280,22 @@ classdef Tests
             
             %% Crunch
             m.offlineGenerations;
-            %a.Order = [5 2];
             r = m.buildReducedModel;
             [t, y, ct, x] = r.simulate(r.getRandomParam);
             m.plot(t,y);
+            
+            %% Part II: Create two subspaces
+            m.System.AlgebraicConditionDoF = 1:10;
+            s.TargetDimensions = {11:floor(dim/2) (floor(dim/2)+1):dim};
+            m.offlineGenerations;
+            
+            r = m.buildReducedModel;
+            [t, y, ct, x] = r.simulate(r.getRandomParam);
+            m.plot(t,y);
+            
+            ma = ModelAnalyzer(r);
+            ma.plotReductionOverview;
+            
             res = true;
         end
         
