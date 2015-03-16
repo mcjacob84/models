@@ -285,8 +285,20 @@ classdef Tests
             m.plot(t,y);
             
             %% Part II: Create two subspaces
+            %
+            % This is done by setting up two space reducer instances with
+            % different TargetDimensions.
+            %
+            % The composition of the global projection matrix is done at
+            % setFullModel of models.ReducedModel.
             m.System.AlgebraicConditionDoF = 1:10;
-            s.TargetDimensions = {11:floor(dim/2) (floor(dim/2)+1):dim};
+            s.TargetDimensions = 11:floor(dim/2);
+            s = spacereduction.PODReducer;
+            s.Mode = 'abs';
+            s.Value = 20;
+            s.TargetDimensions = (floor(dim/2)+1):dim;
+            m.SpaceReducer(2) = s;
+            
             m.offlineGenerations;
             
             r = m.buildReducedModel;
