@@ -1,4 +1,4 @@
-classdef SHSystem < models.BaseDynSystem
+classdef SHSystem < models.BaseFirstOrderSystem
 % SHSystem: The global dynamical system used within the Shorten motorunit
 % model
 %
@@ -76,7 +76,7 @@ classdef SHSystem < models.BaseDynSystem
     methods
         function this = SHSystem(model)
             % Call superclass constructor
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseFirstOrderSystem(model);
             
             this.addParam('fibre_type', 0, 'Range', [0 1]);
             this.addParam('mean_current_factor', 3, 'Range', [0 9]);

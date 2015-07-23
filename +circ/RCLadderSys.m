@@ -1,4 +1,4 @@
-classdef RCLadderSys < models.BaseDynSystem
+classdef RCLadderSys < models.BaseFirstOrderSystem
 % RCLadderSys: 
 %
 %
@@ -15,9 +15,10 @@ classdef RCLadderSys < models.BaseDynSystem
     
     methods
         function this = RCLadderSys(model)
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseFirstOrderSystem(model);
             
             dim = this.Model.Dims;
+            this.NumStateDofs = dim;
             
             this.x0 = dscomponents.ConstInitialValue(zeros(this.Model.Dims,1));
             
@@ -40,7 +41,9 @@ classdef RCLadderSys < models.BaseDynSystem
                 @(t)(cos(pi*t*.5)+1)/(t+1),@(t)2*(t>1.3),@(t)(cos(3*pi*t)+1)/(2*t+1)};
             
             this.MaxTimestep = [];
-            this.StateScaling = 1;            
+            this.StateScaling = 1;
+            
+            this.updateDimensions;
         end
     end
     

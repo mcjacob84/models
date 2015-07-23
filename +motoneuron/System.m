@@ -1,4 +1,4 @@
-classdef System < models.BaseDynSystem
+classdef System < models.BaseFirstOrderSystem
 % MotoSystem: The global dynamical system used within the MotoModel
 %
 %
@@ -45,10 +45,12 @@ classdef System < models.BaseDynSystem
     methods
         function this = System(model)
             % Call superclass constructor
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseFirstOrderSystem(model);
             
             this.addParam('fibre_type', 0, 'Range', [0 1]);
             this.addParam('mean_current_factor', 3, 'Range', [0 9]);
+            
+            this.NumStateDofs = 6;
             
             % Setup noise input
             ng = models.motoneuron.NoiseGenerator;
@@ -77,6 +79,8 @@ classdef System < models.BaseDynSystem
             
             % Constant initial values
             this.x0 = dscomponents.ConstInitialValue(zeros(6,1));
+            
+            this.updateDimensions;
         end
         
         function prepareSimulation(this, mu, inputidx)
@@ -91,11 +95,11 @@ classdef System < models.BaseDynSystem
                 mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
             end
             
-            prepareSimulation@models.BaseDynSystem(this, mu, inputidx);
+            prepareSimulation@models.BaseFirstOrderSystem(this, mu, inputidx);
         end
         
         function setConfig(this, mu, inputidx)
-            setConfig@models.BaseDynSystem(this, mu, inputidx);
+            setConfig@models.BaseFirstOrderSystem(this, mu, inputidx);
             this.noiseGen.setFibreType(mu(1));
             this.MaxTimestep = this.Model.dt*1000;            
         end
