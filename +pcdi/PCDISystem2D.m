@@ -188,11 +188,7 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             
             %% Initial conditions
             x0 = dscomponents.AffineInitialValue;
-            if this.Model.WithInhibitors
-                x0part = zeros(8*m,1);
-            else
-                x0part = zeros(4*m,1);
-            end
+            x0part = zeros(this.NumStateDofs,1);
             for k = 1:this.DiscreteCXMU.N
                 M = this.DiscreteCXMU.getMatrix(k);
                 x0part(1:2*m) = [M(:); M(:)]*5e-13;
@@ -212,15 +208,17 @@ classdef PCDISystem2D < models.pcdi.BasePCDISystem
             p = .1; % 10% of each dimensions span, centered in geometry.
             d = this.Dims(1);
             d1idx = find(abs((1:d) - d/2) <= d/2 * p);
+            if isempty(d1idx)
+                d1idx = 1;
+            end
             d = this.Dims(2);
             d2idx = find(abs((1:d) - d/2) <= d/2 * p);
+            if isempty(d2idx)
+                d2idx = 1;
+            end
             [d1,d2] = meshgrid(d1idx,d2idx);
             sel = reshape(sub2ind(this.Dims,d1,d2),1,[]);
-            if this.Model.WithInhibitors
-                C = sparse(1,8*m);
-            else
-                C = sparse(1,4*m);
-            end
+            C = sparse(1,this.NumStateDofs);
             % Pick the Caspase-3 concentration
             ca3 = m+1:2*m;
             C(ca3(sel)) = 1/length(sel);

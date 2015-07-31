@@ -206,12 +206,21 @@ classdef PCDIModel < models.BaseFullModel
         end
     end
     
-    methods%(Access=protected)
+    methods(Access=protected)
         % Function to determine the steady states, depending on the current
         % parameter mu (i.e. the exponent n which is one parameter)
         %
         % Function defined in separate file in class folder.
         ss = getSteadyStates(this, n);
+    end
+    
+    methods(Static)
+        function res = test_PCDIModel_Simulation
+            m = models.pcdi.PCDIModel;
+            [t,y] = m.simulate;
+            m.plot(t,y);
+            res = 1;
+        end
     end
 end
 

@@ -1,4 +1,4 @@
-classdef BasePCDISystem < models.BaseDynSystem
+classdef BasePCDISystem < models.BaseFirstOrderSystem
     %BasePCDISystem The base dynamical system class for the the Programmed
     % Cell Death Model by Markus Daub.
     %
@@ -57,7 +57,7 @@ classdef BasePCDISystem < models.BaseDynSystem
     
     methods
         function this = BasePCDISystem(model)
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseFirstOrderSystem(model);
             
             % Scale diffusion coefficients
             m = this.Model;
@@ -97,7 +97,7 @@ classdef BasePCDISystem < models.BaseDynSystem
         end
         
         function setConfig(this, mu, inputidx)
-            setConfig@models.BaseDynSystem(this, mu, inputidx)
+            setConfig@models.BaseFirstOrderSystem(this, mu, inputidx)
         end
         
         function h = get.h(this)
@@ -111,7 +111,7 @@ classdef BasePCDISystem < models.BaseDynSystem
             end
             this.fh = value;
             this.hs = value / this.Model.L;
-            this.updateDims;
+            this.updateDimensions;
             
             m = this.Model;
             this.MaxTimestep = [];
@@ -142,19 +142,26 @@ classdef BasePCDISystem < models.BaseDynSystem
             this.fOmega = value;
             
             % Update the dimensions
-            this.updateDims;
+            this.updateDimensions;
         end
     end
     
-    methods(Access=private)
+    methods(Access=protected)
         
-        function updateDims(this)
+        function updateDimensions(this)
             if ~isempty(this.fh) && ~isempty(this.fOmega)
                 nd = size(this.fOmega,1);
                 this.Dims = zeros(1,nd);
                 for d=1:nd
                     this.Dims(d) = length(this.fOmega(d,1):this.h:this.fOmega(d,2));
                 end
+                m = prod(this.Dims);
+                if this.Model.WithInhibitors
+                    this.NumStateDofs = 8*m;
+                else
+                    this.NumStateDofs = 4*m;
+                end
+                updateDimensions@models.BaseFirstOrderSystem(this);
                 
                 % Set new initial values and output in 1D-3D systems
                 this.newSysDimension;
