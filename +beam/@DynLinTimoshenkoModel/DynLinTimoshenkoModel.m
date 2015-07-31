@@ -184,10 +184,7 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel
             this.Sampler = sampling.GridSampler;
             %this.Sampler.Samples = 20;
             
-            %% Function & ODE solver setup
-            if this.NonlinearModel
-                this.System.f = models.beam.DLTNonlinearCoreFun(this.System);
-            end
+            %% ODE solver setup
             o = solvers.MLode15i;
 %             o = solvers.MLWrapper(@ode15i);
             o.MaxStep = this.dt;

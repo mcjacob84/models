@@ -82,7 +82,9 @@ classdef DynLinTimoshenkoSystem < models.BaseSecondOrderSystem
             K = this.K0(m.free,m.free);
             
             %% Stiffness matrix
-            if ~m.NonlinearModel
+            if m.NonlinearModel
+                this.f = models.beam.DLTNonlinearCoreFun(this);
+            else
                 this.A = dscomponents.LinearCoreFun(-K);
             end
             
