@@ -7,12 +7,14 @@ classdef RotationFun < dscomponents.ACoreFun
         function this = RotationFun(sys)
             this = this@dscomponents.ACoreFun(sys);
             this.TimeDependent = false;
+            this.xDim = 2;
+            this.fDim = 2;
         end
         
-        function fx = evaluateCoreFun(~, x, ~, mu)
+        function fx = evaluateCoreFun(this, x, t)
             % Implements ACoreFun.evaluate
-            a = mu(1);
-            b = a+mu(2);
+            a = t*this.mu(1);
+            b = a+this.mu(2);
             %b = a+mu(2)+sin(t)/2;
             A = [cos(a) -sin(b); 
                  sin(a) cos(b)];

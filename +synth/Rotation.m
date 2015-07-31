@@ -1,10 +1,9 @@
 classdef Rotation < models.BaseFullModel
-    %ROTATION Synthetic rotation model
     
     methods
         function this = Rotation
-            this.T = 25;
-            this.dt = .1;
+            this.T = 10;
+            this.dt = .025;
             
             %s = sampling.RandomSampler;
             %s.Samples = 10;
@@ -14,11 +13,7 @@ classdef Rotation < models.BaseFullModel
             this.System = models.synth.RotationDynSys(this);
             this.Name = 'Synthetic rotation model';
             
-            % Space reduction setup -> no reduction as only 2D!
-%             sr = spacereduction.PODReducer;
-%             sr.Mode = 'rel';
-%             sr.Value = .2;
-%             this.SpaceReducer = sr;
+            this.SpaceReducer = [];
 %             
             % Core Approximation
 %             a = approx.algorithms.Componentwise;
@@ -47,6 +42,27 @@ classdef Rotation < models.BaseFullModel
             this.ODESolver = solvers.MLWrapper(@ode45);
         end
         
+        function plot(~, t, y)
+            pm = PlotManager(false,1,2);
+            ax = pm.nextPlot('3d','3D plot over time (z-axis)','x_1','x_2');
+            plot3(ax,y(2,:),y(1,:),t,'r');
+            ax = pm.nextPlot('1d','Plot over time','t','x_1,x_2');
+            plot(ax,t,y(2,:),'r',t,y(1,:),'b');
+            pm.LeaveOpen = true;
+            pm.done;
+        end
+        
+    end
+    
+    methods(Static)
+        function test_Rotation_Simulation
+            m = models.synth.Rotation;
+            for k = 1:4
+                mu = m.getRandomParam;
+                [t,y] = m.simulate(mu);
+                m.plot(t,y);
+            end
+        end
     end
     
 end
