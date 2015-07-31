@@ -12,7 +12,7 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
 % - \c License @ref licensing
 
     properties
-        g;
+        geo;
     end
     
     methods
@@ -29,19 +29,19 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             % Add params
             rate_max = 1e-4;
             % Param indices 9-14
-            this.addParam('area_front', .5, 'Range', [.3, .8], 3);
-            this.addParam('area_back', 0, 'Range', [0, 0], 2);
-            this.addParam('area_left', .5, 'Range', [.3, .8], 3);
-            this.addParam('area_right', 0, [0, 0], 2);
-            this.addParam('area_top', .5, 'Range', [.3, .8], 2);
-            this.addParam('area_bottom', 0, 'Range', [0, 0], 2);
+            this.addParam('area_front', .5, 'Range', [.3, .8], 'Desired', 3);
+            this.addParam('area_back', 0, 'Range', [0, 0], 'Desired', 2);
+            this.addParam('area_left', .5, 'Range', [.3, .8],'Desired', 3);
+            this.addParam('area_right', 0, 'Range', [0, 0], 'Desired', 2);
+            this.addParam('area_top', .5, 'Range', [.3, .8], 'Desired', 2);
+            this.addParam('area_bottom', 0, 'Range', [0, 0], 'Desired', 2);
             % Param indices 15-20
-            this.addParam('rate_front', rate_max/2, 'Range', [0, rate_max], 4);
-            this.addParam('rate_back', rate_max/2, 'Range', [0, rate_max], 1);
-            this.addParam('rate_left', rate_max/2, 'Range', [0, rate_max], 4);
-            this.addParam('rate_right', rate_max/2, 'Range', [0, rate_max], 1);
-            this.addParam('rate_top', rate_max/2, 'Range', [0, rate_max], 4);
-            this.addParam('rate_bottom', rate_max/2, 'Range', [0, rate_max], 1);
+            this.addParam('rate_front', rate_max/2, 'Range', [0, rate_max], 'Desired', 4);
+            this.addParam('rate_back', rate_max/2, 'Range', [0, rate_max], 'Desired', 1);
+            this.addParam('rate_left', rate_max/2, 'Range', [0, rate_max], 'Desired', 4);
+            this.addParam('rate_right', rate_max/2, 'Range', [0, rate_max], 'Desired', 1);
+            this.addParam('rate_top', rate_max/2, 'Range', [0, rate_max], 'Desired', 4);
+            this.addParam('rate_bottom', rate_max/2, 'Range', [0, rate_max], 'Desired', 1);
         end
       
         function plotState(this, model, t, v)
@@ -110,6 +110,7 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             y = a(2,1):this.h:a(2,2);
             z = a(3,1):this.h:a(3,2);
             [X,Y,Z] = meshgrid(x,y,z);
+            xpos = mean(x); ypos = mean(y); zpos = mean(z);
             
             step = round(length(t)/40);
             for idx=1:step:length(t)
@@ -138,7 +139,7 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
                 if V(1) ~= 0 && all(V(1) == V(:))
                     V(1) = 1.0001*V(1);
                 end
-                hs = slice(hlpax,X,Y,Z,V,.5,.5,.5);
+                hs = slice(hlpax,X,Y,Z,V,xpos,ypos,zpos);
                 set(hs,'Parent',ax(2),'FaceColor','interp','EdgeColor','none');
                 if plotback
                     hs2 = slice(hlpax,X,Y,Z,V,a(1,2),a(2,1),a(3,1));
@@ -160,7 +161,7 @@ classdef PCDSystem3D < models.pcd.BasePCDSystem
             
             d = this.Dims;
             ge = general.geometry.RectGrid3D(d(1),d(2),d(3));
-            this.g = ge;
+            this.geo = ge;
             A = MatUtils.laplacemat3D(this.h, ge);
             D = this.Diff;
             A = blkdiag(A,D(1)*A,D(2)*A,D(3)*A);

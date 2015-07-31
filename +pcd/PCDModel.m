@@ -136,6 +136,7 @@ classdef PCDModel < models.BaseFullModel
             
             switch dim
                 case 3
+                    error('Fixme! Currently not working :-(');
                     s = models.pcd.PCDSystem3D(this);
                     this.Name = 'Programmed Cell Death 3D';
                 case 2 

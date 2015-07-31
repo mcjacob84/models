@@ -53,7 +53,7 @@ classdef CoreFun3D < models.pcd.BaseCoreFun
             
             % Create diffusion matrix
             n = prod(this.System.Dims);
-            this.nodes = this.System.g.Points;
+            this.nodes = this.System.geo.Points;
             this.fDim = 4*n;
             this.xDim = 4*n;
         end
@@ -65,7 +65,7 @@ classdef CoreFun3D < models.pcd.BaseCoreFun
             m = this.nodes;
             s = this.System;
             n = this.xDim;
-            g = s.g;
+            g = s.geo;
             
             % Uncomment if reaction coeffs become real params again
             mu = [s.ReacCoeff; this.mu];

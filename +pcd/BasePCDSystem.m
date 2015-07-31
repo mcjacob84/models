@@ -1,4 +1,4 @@
-classdef BasePCDSystem < models.BaseDynSystem
+classdef BasePCDSystem < models.BaseFirstOrderSystem
     %PCDSYSTEM The 2D dynamical system of the Programmed Cell Death Model
     %by Markus Daub.
     %
@@ -71,7 +71,7 @@ classdef BasePCDSystem < models.BaseDynSystem
     
     methods
         function this = BasePCDSystem(model)
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseFirstOrderSystem(model);
             
             % Scale diffusion coefficients
             m = this.Model;
@@ -112,7 +112,7 @@ classdef BasePCDSystem < models.BaseDynSystem
             end
             this.fh = value;
             this.hs = value / this.Model.L;
-            this.updateDims;
+            this.updateDimensions;
             
             m = this.Model;
             this.MaxTimestep = [];
@@ -143,11 +143,11 @@ classdef BasePCDSystem < models.BaseDynSystem
             this.fOmega = value;
             
             % Update the dimensions
-            this.updateDims;
+            this.updateDimensions;
         end
         
         function setConfig(this, mu, inputidx)
-            setConfig@models.BaseDynSystem(this, mu, inputidx);
+            setConfig@models.BaseFirstOrderSystem(this, mu, inputidx);
             m = this.Model;
             this.ReacCoeff = [m.Kc1_real m.Kc2_real m.Kd1_real ...
                               m.Kd2_real m.Kd3_real m.Kd4_real ...
@@ -155,9 +155,9 @@ classdef BasePCDSystem < models.BaseDynSystem
         end
     end
     
-    methods(Access=private)
+    methods(Access=protected)
         
-        function updateDims(this)
+        function updateDimensions(this)
             if ~isempty(this.fh) && ~isempty(this.fOmega)
                 nd = size(this.fOmega,1);
                 this.Dims = zeros(1,nd);
@@ -165,6 +165,9 @@ classdef BasePCDSystem < models.BaseDynSystem
                     this.Dims(d) = length(this.fOmega(d,1):this.h:this.fOmega(d,2));
                 end
                 m = prod(this.Dims);
+                
+                this.NumStateDofs = 4*m;
+                updateDimensions@models.BaseFirstOrderSystem(this);
                 
                 % Set state scaling
                 ss = zeros(4*m,1);

@@ -87,8 +87,14 @@ classdef PCDSystem2D < models.pcd.BasePCDSystem
             p = .1; % 10% of each dimensions span, centered in geometry.
             d = this.Dims(1);
             d1idx = find(abs((1:d) - d/2) <= d/2 * p);
+            if isempty(d1idx)
+                d1idx = 1;
+            end
             d = this.Dims(2);
             d2idx = find(abs((1:d) - d/2) <= d/2 * p);
+            if isempty(d2idx)
+                d2idx = 1;
+            end
             [d1,d2] = meshgrid(d1idx,d2idx);
             sel = reshape(sub2ind(this.Dims,d1,d2),1,[]);
             C = sparse(1,4*m);
