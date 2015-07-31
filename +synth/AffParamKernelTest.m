@@ -51,14 +51,15 @@ classdef AffParamKernelTest < models.BaseFullModel
             s.Value = 1;
             this.SpaceReducer = s;
             
-            %this.ODESolver = solvers.MLWrapper(@ode45);
             this.ODESolver = solvers.ExplEuler;
-            %this.ODESolver = solvers.Heun;
-            this.ODESolver.MaxStep = [];
             
             %% System settings
             this.System = models.synth.AffParamKernelTestSys(this, pos_flag);
+            this.DefaultInput = 1;
             this.TrainingInputs = 1;
+            
+            %% Error estimator
+            this.ErrorEstimator = error.IterationCompLemmaEstimator;
         end
         
         function set.dim(this,value)
@@ -71,21 +72,33 @@ classdef AffParamKernelTest < models.BaseFullModel
       
     methods(Static)
         
+        function res = test_RunAffParamKernelTests
+            t = [];
+            for k=1:11
+                eval(sprintf('t = models.synth.AffParamKernelTest.getTest%d;',k))
+                fprintf('--------------- Running test getTest%d ---------------\n',k);
+                models.synth.AffParamKernelTest.runTest(t);
+            end
+            res = true;
+        end
+        
         function r = runTest(model)
             model.offlineGenerations;
             r = model.buildReducedModel;
-            r.analyze;
+            ma = ModelAnalyzer(r);
+            pm = ma.analyzeError;
+            pm.LeaveOpen = true;
         end
         
         function m = getTest1(varargin)
-            m = models.synth.KernelTest(varargin{:});
+            m = models.synth.AffParamKernelTest(varargin{:});
             
             V = ones(m.dim,1)*sqrt(1/m.dim);
             m.SpaceReducer = spacereduction.ManualReduction(V);
         end
         
         function m = getTest2(varargin)
-            m = models.synth.KernelTest(varargin{:});
+            m = models.synth.AffParamKernelTest(varargin{:});
             
             m.System.Inputs{1} = @(t)4;
             m.System.B = dscomponents.LinearInputConv(ones(m.dim,1));
@@ -95,30 +108,26 @@ classdef AffParamKernelTest < models.BaseFullModel
         end
         
         function m = getTest3(varargin)
-            m = models.synth.KernelTest(varargin{:});
-            
-            x0 = rand(m.dim,1);
-            m.System.x0 = @(mu)x0;
+            m = models.synth.AffParamKernelTest(varargin{:});
+            m.System.x0 = dscomponents.ConstInitialValue(rand(m.dim,1));
         end
         
         function m = getTest4(varargin)
-            m = models.synth.KernelTest(varargin{:});
-            
-            x0 = rand(m.dim,1);
-            m.System.x0 = @(mu)x0;
+            m = models.synth.AffParamKernelTest(varargin{:});
+            m.System.x0 = dscomponents.ConstInitialValue(rand(m.dim,1));
             V = ones(m.dim,1)*sqrt(1/m.dim);
             m.SpaceReducer = spacereduction.ManualReduction(V);
         end
         
         function m = getTest5(varargin)
-            m = models.synth.KernelTest(varargin{:});
+            m = models.synth.AffParamKernelTest(varargin{:});
             
             m.System.B = dscomponents.LinearInputConv(rand(m.dim,1));
             m.System.Inputs{1} = @(t)4;
         end
         
         function m = getTest6(varargin)
-            m = models.synth.KernelTest(varargin{:});
+            m = models.synth.AffParamKernelTest(varargin{:});
             
             m.System.B = dscomponents.LinearInputConv(rand(m.dim,1));
             m.System.Inputs{1} = @(t)4;
@@ -128,7 +137,7 @@ classdef AffParamKernelTest < models.BaseFullModel
         end
         
         function m = getTest7(varargin)
-            m = models.synth.KernelTest(varargin{:});
+            m = models.synth.AffParamKernelTest(varargin{:});
             
             m.System.Inputs{1} = @(t)4;
             
@@ -138,7 +147,7 @@ classdef AffParamKernelTest < models.BaseFullModel
         end
         
         function m = getTest8(varargin)
-            m = models.synth.KernelTest(varargin{:});
+            m = models.synth.AffParamKernelTest(varargin{:});
             
             m.System.Inputs{1} = @(t)4;
             
@@ -151,12 +160,11 @@ classdef AffParamKernelTest < models.BaseFullModel
         end
         
         function m = getTest9(varargin)
-            m = models.synth.KernelTest(varargin{:});
+            m = models.synth.AffParamKernelTest(varargin{:});
             
             m.System.Inputs{1} = @(t)4;
             
-            x0 = (rand(m.dim,1)-.5)*3;
-            m.System.x0 = @(mu)x0;
+            m.System.x0 = dscomponents.ConstInitialValue((rand(m.dim,1)-.5)*3);
             
             B = ones(m.dim,1);
             B(1:m.dim/2) = -1;
@@ -167,13 +175,12 @@ classdef AffParamKernelTest < models.BaseFullModel
         end
         
         function m = getTest10(varargin)
-            m = models.synth.KernelTest(varargin{:});
+            m = models.synth.AffParamKernelTest(varargin{:});
             m.T = 20;
             
             m.System.Inputs{1} = @(t)sin(2*t);
             
-            x0 = (rand(m.dim,1)-.5)*3;
-            m.System.x0 = @(mu)x0;
+            m.System.x0 = dscomponents.ConstInitialValue((rand(m.dim,1)-.5)*3);
             
             B = ones(m.dim,1);
             B(1:m.dim/2) = -1;
@@ -184,7 +191,7 @@ classdef AffParamKernelTest < models.BaseFullModel
         end
         
         function m = getTest11(varargin)
-            m = models.synth.KernelTest(varargin{:});
+            m = models.synth.AffParamKernelTest(varargin{:});
             m.T = 20;
             
             m.System.B = dscomponents.LinearInputConv(rand(m.dim,1));

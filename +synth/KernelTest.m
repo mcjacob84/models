@@ -66,10 +66,7 @@ classdef KernelTest < models.BaseFullModel
             this.SpaceReducer = s;
             
             %% ODE Solver
-            %this.ODESolver = solvers.MLWrapper(@ode45);
             this.ODESolver = solvers.ExplEuler;
-            %this.ODESolver = solvers.Heun;
-            this.ODESolver.MaxStep = [];
             
             %% Error estimator
             this.ErrorEstimator = error.IterationCompLemmaEstimator;
@@ -85,10 +82,22 @@ classdef KernelTest < models.BaseFullModel
       
     methods(Static)
         
+        function res = test_RunKernelTests
+            t = [];
+            for k=1:11
+                eval(sprintf('t = models.synth.KernelTest.getTest%d;',k))
+                fprintf('--------------- Running test getTest%d ---------------\n',k);
+                models.synth.KernelTest.runTest(t);
+            end
+            res = true;
+        end
+        
         function r = runTest(model)
             model.offlineGenerations;
             r = model.buildReducedModel;
-            r.analyze;
+            ma = ModelAnalyzer(r);
+            pm = ma.analyzeError(model.getRandomParam);
+            pm.LeaveOpen = true;
         end
         
         function m = getTest1(varargin)
@@ -103,6 +112,7 @@ classdef KernelTest < models.BaseFullModel
             
             m.System.Inputs{1} = @(t)4;
             m.System.B = dscomponents.LinearInputConv(ones(m.dim,1));
+            m.DefaultInput = 1;
             
             V = ones(m.dim,1)*sqrt(1/m.dim);
             m.SpaceReducer = spacereduction.ManualReduction(V);
@@ -110,16 +120,12 @@ classdef KernelTest < models.BaseFullModel
         
         function m = getTest3(varargin)
             m = models.synth.KernelTest(varargin{:});
-            
-            x0 = rand(m.dim,1);
-            m.System.x0 = @(mu)x0;
+            m.System.x0 = dscomponents.ConstInitialValue(rand(m.dim,1));
         end
         
         function m = getTest4(varargin)
             m = models.synth.KernelTest(varargin{:});
-            
-            x0 = rand(m.dim,1);
-            m.System.x0 = @(mu)x0;
+            m.System.x0 = dscomponents.ConstInitialValue(rand(m.dim,1));
             V = ones(m.dim,1)*sqrt(1/m.dim);
             m.SpaceReducer = spacereduction.ManualReduction(V);
         end
@@ -129,6 +135,7 @@ classdef KernelTest < models.BaseFullModel
             
             m.System.B = dscomponents.LinearInputConv(rand(m.dim,1));
             m.System.Inputs{1} = @(t)4;
+            m.DefaultInput = 1;
         end
         
         function m = getTest6(varargin)
@@ -136,6 +143,7 @@ classdef KernelTest < models.BaseFullModel
             
             m.System.B = dscomponents.LinearInputConv(rand(m.dim,1));
             m.System.Inputs{1} = @(t)4;
+            m.DefaultInput = 1;
             
             V = ones(m.dim,1)*sqrt(1/m.dim);
             m.SpaceReducer = spacereduction.ManualReduction(V);
@@ -145,6 +153,7 @@ classdef KernelTest < models.BaseFullModel
             m = models.synth.KernelTest(varargin{:});
             
             m.System.Inputs{1} = @(t)4;
+            m.DefaultInput = 1;
             
             B = ones(m.dim,1);
             B(1:m.dim/2) = -1;
@@ -155,6 +164,7 @@ classdef KernelTest < models.BaseFullModel
             m = models.synth.KernelTest(varargin{:});
             
             m.System.Inputs{1} = @(t)4;
+            m.DefaultInput = 1;
             
             B = ones(m.dim,1);
             B(1:m.dim/2) = -1;
@@ -168,9 +178,9 @@ classdef KernelTest < models.BaseFullModel
             m = models.synth.KernelTest(varargin{:});
             
             m.System.Inputs{1} = @(t)4;
+            m.DefaultInput = 1;
             
-            x0 = (rand(m.dim,1)-.5)*3;
-            m.System.x0 = @(mu)x0;
+            m.System.x0 = dscomponents.ConstInitialValue((rand(m.dim,1)-.5)*3);
             
             B = ones(m.dim,1);
             B(1:m.dim/2) = -1;
@@ -185,9 +195,9 @@ classdef KernelTest < models.BaseFullModel
             m.T = 20;
             
             m.System.Inputs{1} = @(t)sin(2*t);
+            m.DefaultInput = 1;
             
-            x0 = (rand(m.dim,1)-.5)*3;
-            m.System.x0 = @(mu)x0;
+            m.System.x0 = dscomponents.ConstInitialValue((rand(m.dim,1)-.5)*3);
             
             B = ones(m.dim,1);
             B(1:m.dim/2) = -1;
@@ -203,6 +213,7 @@ classdef KernelTest < models.BaseFullModel
             
             m.System.B = dscomponents.LinearInputConv(rand(m.dim,1));
             m.System.Inputs{1} = @(t)sin(2*t);
+            m.DefaultInput = 1;
         end
     end
     

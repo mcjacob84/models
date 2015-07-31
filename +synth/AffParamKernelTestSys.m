@@ -1,4 +1,4 @@
-classdef AffParamKernelTestSys < models.BaseDynSystem
+classdef AffParamKernelTestSys < models.BaseFirstOrderSystem
     % Kernel core function test model using affine parametric initial values, input and output.
     %
     % This class implements the dynamical system!
@@ -9,8 +9,6 @@ classdef AffParamKernelTestSys < models.BaseDynSystem
     % - \c Documentation http://www.morepas.org/software/kermor/index.html
     % - \c License @ref licensing    
         
-   
-    
     methods
         
         function this = AffParamKernelTestSys(m, pos_flag)
@@ -19,10 +17,14 @@ classdef AffParamKernelTestSys < models.BaseDynSystem
                 pos_flag = false;
             end
             
-            this = this@models.BaseDynSystem(m);
+            this = this@models.BaseFirstOrderSystem(m);
+            
+            this.NumStateDofs = this.Model.dim;
+            this.updateDimensions;
             
             %% System settings
-            this.MaxTimestep = [];
+            this.MaxTimestep = m.dt;
+            
             ai = dscomponents.AffineInitialValue;
             for i=1:4
                 ai.addMatrix(['exp(' num2str(i) '*mu(1))+mu(2)'],ones(this.Model.dim,1)*i);
