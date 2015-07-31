@@ -329,6 +329,25 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel
             r = m.buildReducedModel;
             save experiment1 m r;
         end
+        
+        function test_TimoshenkoModel
+            % Linear
+            m = models.beam.DynLinTimoshenkoModel;
+            run(m);
+            % Nonlinear
+            m = models.beam.DynLinTimoshenkoModel('Simpel1.txt',true);
+            run(m);
+            
+            function run(m)
+                for np = 1:4
+                    mu = m.getRandomParam;
+                    for in = 1:m.System.InputCount
+                        fprintf('Running with input %d, mu=%s\n',in,num2str(mu));
+                        [t,y] = m.simulate(mu,in);
+                    end
+                end
+            end
+        end
     end
     
 end
