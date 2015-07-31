@@ -187,28 +187,17 @@ classdef DynLinTimoshenkoModel < models.BaseFullModel
             %% Function & ODE solver setup
             if this.NonlinearModel
                 this.System.f = models.beam.DLTNonlinearCoreFun(this.System);
-                
-                % ODE Solver -> Use Matlab ode15i
-%                 o = solvers.MLode15i;
-%                 o.RelTol = 1e-3;
-%                 o.AbsTol = 1e-3;
-                
-                o = solvers.FullyImplEuler(this);
-                
-                %o = solvers.MLWrapper(@ode45);
-                %o.MaxStep = this.dt;
-                
-                this.ODESolver = o;
-            else
-                this.System.f = models.beam.DLTLinearCoreFun(this.System);
-                this.ODESolver = solvers.LinearImplEuler(this);
             end
+            o = solvers.MLode15i;
+%             o = solvers.MLWrapper(@ode15i);
+            o.MaxStep = this.dt;
+            this.ODESolver = o;
             
             % Train with all inputs
             this.TrainingInputs = 1:this.System.InputCount;
             
             % Setup JKerMor export
-            je = export.JKerMorExport;
+            je = JKerMorExport;
             je.JavaExportPackage = 'models.beam.dynlintimo';
             je.Short = this.Name;
             je.GeometryExportCallback = @this.exportGeometry;

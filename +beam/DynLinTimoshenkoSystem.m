@@ -1,4 +1,4 @@
-classdef DynLinTimoshenkoSystem < models.BaseDynSystem
+classdef DynLinTimoshenkoSystem < models.BaseSecondOrderSystem
 % DynLinTimoshenkoSystem: 
 %
 %
@@ -14,10 +14,6 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
 % - \c License @ref licensing
 
     properties(SetAccess=private)
-        % The small mass matrix of half dimension; corresponds to the lower
-        % right half block of this.M
-        M_small;
-        
         % The stiffness matrix for t=0, used in the linear model and also
         % in the nonlinear model to compute C.
         K0;
@@ -25,7 +21,7 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
         
     methods
         function this = DynLinTimoshenkoSystem(model)
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseSecondOrderSystem(model);
             
             this.MaxTimestep = [];
             
@@ -53,14 +49,14 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
         function buildElementDependentComponents(this)
             % Creates all beam element-dependent components like mass matrix and force
             % conversion matrix.
-            
-            data = this.Model.data;
+            m = this.Model;
+            data = m.data;
             
             %% Assemblieren der Massenmatrix & Steifigkeitsmatrix f�r t=0
             % Mass matrix (M is actually the full M (including dirichlet
             % nodes), but is projected at the end of this method to the
             % size of actual DoFs)
-            e = this.Model.Elements;
+            e = m.Elements;
             i = []; j = [];
             M = []; K = [];
             for k = 1:length(e)
@@ -75,19 +71,37 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
                 K = [K; K_lok(:)];
             end
             nk = data.num_knots;
+            
+            %% Mass matrix
             M = sparse(i,j,M,7*nk,7*nk);
             % Project M to effectively needed entries
-            M = M(this.Model.free,this.Model.free);
-            this.M = dscomponents.ConstMassMatrix(blkdiag(speye(size(M)), M));
-            this.M_small = M;
+            M = M(m.free,m.free);
+            this.M = dscomponents.ConstMassMatrix(M);
             % Create full K0 matrix
             this.K0 = sparse(i,j,K,7*nk,7*nk);
+            K = this.K0(m.free,m.free);
             
-            dim = length(this.Model.free);
+            %% Stiffness matrix
+            if ~m.NonlinearModel
+                this.A = dscomponents.LinearCoreFun(-K);
+            end
+            
+            %% Fill inner AffLinCoreFun with matrices
+            % Dämpfungsmodell 1: M a_t + (d1*M + d2*K) v_t + K u_t = f
+            % d1 = 0.3 Dämpfungsfaktor vor Massenmatrix (Luftwiderstand)
+            % d2 = .01 Dämpfungsfaktor vor Steifigkeitsmatrix (Materiald�mpfung)
+            d = dscomponents.AffLinCoreFun(this);
+            d.addMatrix('mu(1)',M);
+            d.addMatrix('mu(2)',-K);
+            this.D = d;
+            
+            dim = length(m.free);
+            this.NumStateDofs = dim;
+            this.NumDerivativeDofs = dim;
+            this.updateDimensions;
             
             %% Initial values
-            x0 = zeros(2*dim,1);
-            this.x0 = dscomponents.ConstInitialValue(x0);
+            this.x0 = dscomponents.ConstInitialValue(zeros(dim,1));
                         
             %% Model input (gravity + const term)
             % Affine-parametric matrix models const. 
@@ -96,21 +110,21 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             
             %% 1*[f_const 0 0 0]
             % Neumann forces (computed in Model.preprocess_data)
-            f_const = this.Model.f_neum;
-            f_const = f_const(this.Model.free);
+            f_const = m.f_neum;
+            f_const = f_const(m.free);
             % Dirichlet forces only for linear model
-            if ~this.Model.NonlinearModel
+            if ~m.NonlinearModel
                 % Reconstruct fake u vector which has entries only at
                 % dirichlet points. Used for computation of constant forces due
                 % to dirichlet values.
                 u = zeros(7*nk,1);
-                u(this.Model.dir_u) = this.Model.u_dir;
+                u(m.dir_u) = m.u_dir;
                 f_dir = -this.K0*u;
-                f_const = f_const + f_dir(this.Model.free);
+                f_const = f_const + f_dir(m.free);
             end
-            Fc = sparse(2*dim,4);
-            Fc(dim+1:end,4) = f_const;
-            B.addMatrix('1',Fc);
+            Fconst = sparse(dim,4);
+            Fconst(:,1) = f_const;
+            B.addMatrix('1',Fconst);
             
             %% \mu_3*[0 F]
             i = []; j = [];
@@ -126,8 +140,8 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             end
             
             F = sparse(i,j,F,7*nk,3);
-            F = F(this.Model.free,:);
-            F = [sparse(size(F,1),3); F];
+            F = F(m.free,:);
+            %F = [sparse(size(F,1),3); F];
             % Add zero column to front
             F = [sparse(size(F,1),1) F];
             B.addMatrix('mu(3)',F);
@@ -137,14 +151,14 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             
             %% Output setup (dim = 3*space + 3*velo + 1*temp)
             %xdim = (dim - (dim/7))/2;
-            nf = length(this.Model.free);
+            nf = length(m.free);
             C = speye(nf);
             % Remove velocity entries
             %C(repmat(logical([0 0 0 1 1 1]'),nf/6,1),:) = [];
             C = [C 0*C];
             this.C = dscomponents.LinearOutputConv(C);
             % Export settings
-            je = this.Model.JKerMorExport;
+            je = m.JKerMorExport;
             je.DoFFields = 6;
             
             f = struct;
@@ -157,6 +171,14 @@ classdef DynLinTimoshenkoSystem < models.BaseDynSystem
             f(4).Type = 'RealValue';
             f(4).Name = 'Z-Velocity';
             je.LogicalFields = f;
+            
+            this.updateSparsityPattern;
+        end
+    end
+    
+    methods(Access=protected)
+        function val = getDerivativeDirichletValues(this, t)
+            val = [];
         end
     end
 end

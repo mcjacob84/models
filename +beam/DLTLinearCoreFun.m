@@ -26,25 +26,9 @@ classdef DLTLinearCoreFun < models.beam.DLTBaseCoreFun & dscomponents.AffLinCore
             
             m = this.sys.Model;
             
-            %% Fill inner AffLinCoreFun with matrices
-            % Dämpfungsmodell 1: M a_t + (d1*M + d2*K) v_t + K u_t = f
-            % d1 = 0.3 Dämpfungsfaktor vor Massenmatrix (Luftwiderstand)
-            % d2 = .01 Dämpfungsfaktor vor Steifigkeitsmatrix (Materialdämpfung)
-            % C = (mu(1)*M + mu(2)*K_0);
-            K = this.sys.K0(m.free,m.free);
-            s = length(m.free);
-            null = sparse(s,s);
-            % Clear affine parametric matrix
-            this.AffParamMatrix.clear;
-            % Add constant term
-            this.addMatrix('1',[null -speye(s);...
-                                K null]);
-                            % Remember: this.M is a ConstantMassMatrix
-                            % class which has the M property as matrix!
-            this.addMatrix('mu(1)',[null null;...
-                                    null this.sys.M_small]);
-            this.addMatrix('mu(2)',[null null;...
-                                    null K]);
+            
+            
+            
         end
     end
 end

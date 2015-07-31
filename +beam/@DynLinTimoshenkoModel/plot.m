@@ -49,7 +49,8 @@ set(ctrl,'String','Cancel','Callback',@(h,e)set(h,'UserData',1));
 hold on;
 
 for tidx=1:length(t)
-    if get(ctrl,'UserData') == 1
+    if ~ishandle(ctrl) || ...
+            (~isempty(get(ctrl,'UserData')) && get(ctrl,'UserData') == 1)
         break;
     end
     model.plotSingle(t(tidx), u(:,tidx), h);
