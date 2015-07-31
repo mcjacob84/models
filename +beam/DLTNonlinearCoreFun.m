@@ -1,4 +1,4 @@
-classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
+classdef DLTNonlinearCoreFun < dscomponents.ACoreFun
 % DLTNonlinearCoreFun: 
 %
 %
@@ -14,39 +14,34 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
 % - \c License @ref licensing
     
     properties(Access=private)
-        Kx_big;
+        Kx;
         currentx = [];
-        B_big;
-        B_big_const;
-        dKx_big;
+        dKx;
     end
     
     methods
         function this = DLTNonlinearCoreFun(system)
-            this = this@models.beam.DLTBaseCoreFun(system);
-            this.initialize;
+            this = this@dscomponents.ACoreFun(system);
+            
+            free = this.System.Model.free;
+            K0 = this.System.K0(free,free);
+            this.fDim = size(K0,1);
+            this.xDim = size(K0,2);
+            this.JSparsityPattern = logical(K0);
         end
         
-        function initialize(this)
-            initialize@models.beam.DLTBaseCoreFun(this);
-            % Initialize the constant part of B
-            s = length(this.sys.Model.free);
-            null = sparse(s,s);
-            this.B_big_const = [null -speye(s); null null];
-        end
-        
-        function fx = evaluateCoreFun(this, x, t, mu)%#ok
+        function fx = evaluateCoreFun(this, x, t)%#ok
             % Daten nicht aktuell? (check inside)
-            this.updateB(x, mu);
+            this.updateB(x);
             % Funktion f auswerten
-            fx = -this.B_big*x - this.Kx_big;
+            fx = -this.Kx;
         end
         
         function J = getStateJacobian(this, x, t, mu)%#ok
             % Daten nicht aktuell? (check inside)
-            this.updateB(x, mu);
+            this.updateB(x);
             % Jacobi-Matrix ausgeben
-            J = -this.B_big - this.dKx_big;
+            J = -this.dKx;
         end
         
         function pr = project(this, V, W)%#ok
@@ -55,30 +50,22 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
     end
     
     methods(Access=private)
-        function updateB(this, x, mu)
-            m = this.sys.Model;
+        function updateB(this, x)
+            m = this.System.Model;
             % Updates the x, J and R big versions (if needed)
             if isempty(this.currentx) || (norm(this.currentx - x) > 1e-8)
-                s = length(m.free);
                 
                 % Only pass the spatial part of x to the weak form!
-                [Kx, dKx] = this.weak_form(x(1:length(m.free)));
+                [Kx_full, dKx_full] = this.weak_form(x(1:length(m.free)));
 
                 % K(x)
-                Kx = Kx(m.free);
-                this.Kx_big = [0*Kx; Kx];
+                this.Kx = Kx_full(m.free);
                 
                 % \partial K|\partial x
                 % dKx = [0 0; dK 0]
-                this.dKx_big = sparse(2*s,2*s);
-                this.dKx_big(s+1:end,1:s) = dKx(m.free, m.free);
-                
-                % Assemble damping matrix (dep. on parameter)
-                K0 = this.sys.K0(m.free,m.free);
-                C_big = sparse(2*s,2*s);
-                C_big(s+1:end,s+1:end) = mu(1)*K0 + mu(2)*this.sys.M_small;
-                % B = [0 -I; 0 C]
-                this.B_big = this.B_big_const + C_big;
+                this.dKx = dKx_full(m.free, m.free);
+                % Augment to represent zero velocity dof dependency
+                this.dKx = [this.dKx zeros(size(this.dKx))];
                 
                 this.currentx = x;
             end
@@ -86,11 +73,11 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
         
         function [R, K] = weak_form(this, u)
             % Nichtlineare Funktion (Schwache Form, R-f_s) und ihre Ableitung (nach den Freiheitsgraden) (tangentielle Steifigkeitsmatrix, K)
-            m = this.sys.Model;
+            m = this.System.Model;
             data = m.data;
             % Full dimension
             fdim = 7*data.num_knots;
-            % Steifigkeitsmatrix für u und T
+            % Steifigkeitsmatrix fï¿½r u und T
             K = sparse(fdim, fdim);
             % Residuumsvektor
             R = sparse(fdim, 1);
@@ -108,7 +95,7 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
                 [K_lok, R_lok] = el{k}.getLocalTangentials(u_full(index_glob));
                 
                 % Unklar welche alternative schneller ist; muss man in
-                % späteren tests mal profilen. Idealerweise müssen die i,j
+                % spï¿½teren tests mal profilen. Idealerweise mï¿½ssen die i,j
                 % etc vektoren auch vorinitialisiert werden..
 %                 [li,lj] = meshgrid(index_glob);
 %                 i = [i; li(:)];
@@ -120,7 +107,7 @@ classdef DLTNonlinearCoreFun < models.beam.DLTBaseCoreFun
                 K(index_glob, index_glob) = K(index_glob, index_glob) + K_lok;
                 R(index_glob) = R(index_glob) + R_lok;
             end
-%             % Steifigkeitsmatrix für u und T
+%             % Steifigkeitsmatrix fï¿½r u und T
 %             K = sparse(i,j,K,7 * data.num_knots, 7 * data.num_knots);
 %             % Residuumsvektor
 %             R = sparse(ir,ones(size(ir)),R, 7 * data.num_knots, 1);
