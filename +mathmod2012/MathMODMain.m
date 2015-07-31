@@ -42,7 +42,7 @@ function [m, r, d] = MathMODMain(dim)
 %     pm.savePlots(loc,'Format',{'jpg','fig'},'Close',true);
     
     % Pure inner dynamics without inputs and initial value -.2
-    pm.SingleSize = [800 500];
+    pm.FigureSize = [800 500];
     ParamSweep(r, [0; 3; -.2], 1, 1, 0:.1:1, pm);
     view(40,10);
     pm.FilePrefix = 'mmod_inputpar';

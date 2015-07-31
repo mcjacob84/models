@@ -1,4 +1,4 @@
-classdef MathMODSystem < models.BaseDynSystem
+classdef MathMODSystem < models.BaseFirstOrderSystem
     % Numerical experiments class for Paper WH10
     %
     % Current version works with KerMor 0.4
@@ -14,12 +14,13 @@ classdef MathMODSystem < models.BaseDynSystem
         
         function this = MathMODSystem(model)
             
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseFirstOrderSystem(model);
             
             this.registerProps('svNum');
             
             %% System settings
             dims = model.dim;
+            this.NumStateDofs = dims;
             
             this.MaxTimestep = [];
             
@@ -61,6 +62,9 @@ classdef MathMODSystem < models.BaseDynSystem
             pk.setGammaForDistance(sqrt(this.ParamCount)*pspace(2)*20,kerneleps);
             fe.ParamKernel = pk;
             fe.Centers.mui = [zeros(1,this.svNum); pspace; zeros(1,this.svNum)];
+            
+            this.updateDimensions;
+            this.updateSparsityPattern;
         end
     end    
 end
