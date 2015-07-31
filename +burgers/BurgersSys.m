@@ -1,4 +1,4 @@
-classdef BurgersSys < models.BaseDynSystem
+classdef BurgersSys < models.BaseFirstOrderSystem
 % BurgersSys: 
 %
 %
@@ -18,7 +18,7 @@ classdef BurgersSys < models.BaseDynSystem
     
     methods
         function this = BurgersSys(model)
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseFirstOrderSystem(model);
             
             % Set core function
             this.f = models.burgers.BurgersF(this);
@@ -27,13 +27,21 @@ classdef BurgersSys < models.BaseDynSystem
         end
         
         function newDim(this)
+            this.updateDimensions;
+        end
+    end
+    
+    methods(Access=protected)
+        function updateDimensions(this)
             m = this.Model;
             xs  = linspace(m.Omega(1), m.Omega(2), m.Dimension+2)';
             f = @(x)exp(-(15.*(x-.5)).^2);
             x = xs(2:m.Dimension+1);
             x0 = f(x)-f(0);
             this.x0 = dscomponents.ConstInitialValue(x0);
+            this.NumStateDofs = m.Dimension;
             this.f.newDim;
+            updateDimensions@models.BaseFirstOrderSystem(this);
         end
     end
     

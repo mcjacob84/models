@@ -50,6 +50,7 @@ classdef Burgers < models.BaseFullModel
             end
             this.T = 1;
             this.dt = .01;
+            
             if version == 1
                 this.System = models.burgers.BurgersSys(this);
                 this.ODESolver = solvers.MLode15i;
