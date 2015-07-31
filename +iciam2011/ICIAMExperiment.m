@@ -22,18 +22,18 @@ classdef ICIAMExperiment < models.BaseFullModel
             % This class implements a fake Approx subclass to allow access
             % to the this.Ma property for the error estimator.
             this.Approx = [];
+                                    
+            %% System settings
+            this.System = models.iciam2011.ICIAMSystem(this);
+            
+            this.T = 20;
+            this.dt = 0.05;
             
             %s = solvers.MLWrapper(@ode45);
             s = solvers.ExplEuler;
             s.MaxStep = [];
             %s = solvers.Heun;
             this.ODESolver = s;
-            
-            %% System settings
-            this.System = models.iciam2011.ICIAMSystem(this);
-            
-            this.T = 20;
-            this.dt = 0.05;
             
             this.System.addParam('mu1', .5, 'Range', [0 1], 'Desired', 4);
             this.System.addParam('mu2', 1);
@@ -77,6 +77,10 @@ classdef ICIAMExperiment < models.BaseFullModel
             s.Dims = 100;
             s.Degree = 0.05;
             this.SpaceReducer = s;
+            
+            e = error.IterationCompLemmaEstimator;
+            e.UseTimeDiscreteC = true;
+            this.ErrorEstimator = e;
         end
     end
     

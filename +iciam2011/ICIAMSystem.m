@@ -1,4 +1,4 @@
-classdef ICIAMSystem < models.BaseDynSystem
+classdef ICIAMSystem < models.BaseFirstOrderSystem
     % Numerical experiments class for Paper WH10
     %
     % Current version works with KerMor 0.4
@@ -14,13 +14,14 @@ classdef ICIAMSystem < models.BaseDynSystem
         
         function this = ICIAMSystem(model)
             
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseFirstOrderSystem(model);
             
             this.registerProps('svNum');
             
             %% System settings
             dims = model.dim;
-            this.MaxTimestep = [];
+            this.NumStateDofs = dims;
+            this.MaxTimestep = model.dt;
             
             % Sample bases
             this.svNum = 20;
@@ -48,6 +49,8 @@ classdef ICIAMSystem < models.BaseDynSystem
             fe.ParamKernel = kernels.NoKernel;
             
             this.f = f;
+            this.updateDimensions;
+            this.updateSparsityPattern;
         end
     end    
 end

@@ -5,7 +5,7 @@ function [m, r, d] = ICIAMMain(dim)
     if nargin == 0
         dim = 1000;
     end
-    
+    %%
     mu = [.5; 1];
     in = 1;
     
@@ -13,6 +13,7 @@ function [m, r, d] = ICIAMMain(dim)
     m.offlineGenerations;
     r = m.buildReducedModel;
     
+    %% Analyze
     d = EstimatorAnalyzer;
     d.EstimatorIterations = [1 2];
     d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
@@ -25,13 +26,13 @@ function [m, r, d] = ICIAMMain(dim)
 %     ma.SingleFigures = d.SingleFigures;
 %     ma.analyze(r, mu, in);
     
-%     PlotParamSweep(r, mu, in, 1, 0:.1:.2); %-.9:.5:1.5
-    PlotParamSweep(r, mu, in, 1, 0:.1:1);
+%     ParamSweep(r, mu, in, 1, 0:.1:.2); %-.9:.5:1.5
+    [pm,Y,E] = ParamSweep(r, mu, in, 1, 0:.1:1);
     
     %% Experiments regardign the initial value
-    PlotParamSweep(r, [1; 1], in, 2, 0.25:.1:1.2);
-    PlotParamSweep(r, [.5; 1], in, 2, 0.25:.1:1.2);
-    PlotParamSweep(r, [0; 1], in, 2, 0.25:.1:1.2);
+    [pm,Y,E] = ParamSweep(r, [1; 1], in, 2, 0.25:.1:1.2);
+    [pm,Y,E] = ParamSweep(r, [.5; 1], in, 2, 0.25:.1:1.2);
+    [pm,Y,E] = ParamSweep(r, [0; 1], in, 2, 0.25:.1:1.2);
     % Extranah
-%     PlotParamSweep(r, [.7; 1], 1, 2, 0.9:.001:.94);
+%     ParamSweep(r, [.7; 1], 1, 2, 0.9:.001:.94);
 end
