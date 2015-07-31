@@ -31,10 +31,20 @@ classdef WH10Experiment < models.BaseFullModel
             
             %% System settings
             this.System = models.wh10.WH10System(this);
+            this.System.MaxTimestep = this.dt;
         end
     end    
     
     methods(Static)
+        
+        function res = test_WH10_RunExperiments
+            models.wh10.WH10Experiment.Experiment1(100);
+            % These are not updated to new - might do some time or not
+            %models.wh10.WH10Experiment.Experiment2(d);
+            %models.wh10.WH10Experiment.Experiment3(d);
+            %models.wh10.WH10Experiment.Experiment4(d);
+            res = true;
+        end
         
         function [d, rmodels] = Experiment1(dim, dir)
             % Experiment with manual reduction and rotation as error source
@@ -51,35 +61,39 @@ classdef WH10Experiment < models.BaseFullModel
             
             m.T = 20;
             m.dt = 0.05;
-            
-            f = m.System.f;
-            
-            f.x0 = dscomponents.ConstInitialValue(ones(dim,1));
+            s = m.System;
+            f = s.f.Expansion;
             f.Ma = repmat(-exp(-f.Centers.xi(1,:)/15),dim,1);
             
-            %m.System.Inputs{1} = @(t).4*exp(-t/4); % alter input
-            m.System.Inputs{1} = @(t).04*sin(t/3);
-            m.System.Inputs{2} = @(t)exp(-abs(10-t/2)); % Gutes Beispiel!
-            m.System.Inputs{3} = @(t).5*exp(-(12-t).^2); % Sehr interessante dynamik
-            m.System.Inputs{4} = @(t)(t>10)*.1; % okay, aber nicht so spannend
-            m.System.B = dscomponents.LinearInputConv(ones(m.dim,1));
+            s.x0 = dscomponents.ConstInitialValue(ones(dim,1));
+            
+            % Commented out some inputs to speed up simulations when in
+            % test_ mode.
+            %s.Inputs{1} = @(t).4*exp(-t/4); % alter input
+            s.Inputs{1} = @(t).04*sin(t/3);
+            s.Inputs{2} = @(t)exp(-abs(10-t/2)); % Gutes Beispiel!
+%             s.Inputs{3} = @(t).5*exp(-(12-t).^2); % Sehr interessante dynamik
+%             s.Inputs{4} = @(t)(t>10)*.1; % okay, aber nicht so spannend
+            s.B = dscomponents.LinearInputConv(ones(m.dim,1));
+            m.DefaultInput = 1;
             
             %% No training necessary!
             m.TrainingInputs = [];
             
-            m.System.C = dscomponents.LinearOutputConv(ones(1,m.dim)/m.dim);
+            s.C = dscomponents.LinearOutputConv(ones(1,m.dim)/m.dim);
             
             V = ones(dim,1)/sqrt(dim);
-            s = spacereduction.ManualReduction(V,V);
-            s = spacereduction.RotationDecorator(s);
-            s.Dims = 100;
-            m.SpaceReducer = s;
+            sr = spacereduction.ManualReduction(V,V);
+            sr = spacereduction.RotationDecorator(sr);
+            sr.Dims = 100;
+            m.SpaceReducer = sr;
             
             d = EstimatorAnalyzer;
             d.EstimatorIterations = [1 2 5];
             d.EstimatorVersions = [1 1 0 0 1 0 0 1 1];
             
-            degs = [.0005 .005 .05 .5];
+            %degs = [.0005 .005 .05 .5];
+            degs = .0005;
             rmodels = {};
             
             pm = PlotManager;
@@ -89,13 +103,13 @@ classdef WH10Experiment < models.BaseFullModel
             
             %% Create estimation plots
             for didx = 1:length(degs)
-                s.Degree = degs(didx);
+                sr.Degree = degs(didx);
                 d.setModel(m);
                 
                 rmodels{didx} = d.ReducedModel;%#ok<*AGROW>
 
-                for idx=1:m.System.InputCount
-                    m.Name = sprintf('\\theta=%.4f',s.Degree);
+                for idx=1:s.InputCount
+                    m.Name = sprintf('\\theta=%.4f',sr.Degree);
                     [errs, relerrs, ctimes] = d.compute([],idx);
                     d.createPlots(errs, relerrs, ctimes, pm);
                     
@@ -108,8 +122,8 @@ classdef WH10Experiment < models.BaseFullModel
                     axis(gca(2),[0 m.T md.MinRelErr*.9 min(1,relmax)]);
                     set(gca(3),'XScale','log');
                     
-                    pm.FilePrefix = sprintf('WH10_in%d_deg%f',idx,s.Degree);
-                    pm.savePlots(dir,'Format','eps','Close',true);
+                    pm.FilePrefix = sprintf('WH10_in%d_deg%f',idx,sr.Degree);
+                    %pm.savePlots(dir,'Format','eps','Close',true);
                 end
             end
             
@@ -119,23 +133,12 @@ classdef WH10Experiment < models.BaseFullModel
             d.ReducedModel.ErrorEstimator = d.Est(7).Estimator;
             ma.analyzeError([],3,pm);
             pm.FilePrefix = 'WH10_in3_deg05';
-            pm.savePlots(dir,'Format','eps','Close',true,'Selection',3);
+            %pm.savePlots(dir,'Format','eps','Close',true,'Selection',3);
             
             %% Table stuff
             range = 1:4:13;
             sort = [range (range)+1 (range)+2 (range)+3];
             d.createStatsTables(sort);
-        end
-        
-        function getExp1SysPlots(rmodels)
-            ma = ModelAnalyzer;
-            ma.SingleFigures = true;
-            
-            % Pick 0.05 model
-            r = rmodels(3);
-            h = ma.analyze(r,[],3);
-            title(h(2),'');
-            Utils.saveFigure(f,'Sys_U3','eps');
         end
         
         function d = Experiment4(dim)
@@ -157,15 +160,16 @@ classdef WH10Experiment < models.BaseFullModel
             s.Dims = 5;
             m.SpaceReducer = s;
             
-            f = m.System.f;
-            f.x0 = @(mu)ones(dim,1);
+            s = m.System;
+            f = s.f.Expansion;
+            s.x0 = dscomponents.ConstInitialValue(ones(dim,1));
             f.Ma = repmat(-exp(-f.Centers.xi(1,:)/15),dim,1);
             
             m.System.Inputs{1} = @(t).2*sin(t);
             %B = rnd.rand(m.dim,1);
             B = linspace(0,1,m.dim)';
             m.System.B = dscomponents.LinearInputConv(B);
-            
+            m.DefaultInput = 1;
             m.TrainingInputs = 1;
             
             m.Name = 'Sinus input, mean output mapping, larger error';

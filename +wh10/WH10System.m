@@ -1,4 +1,4 @@
-classdef WH10System < models.BaseDynSystem
+classdef WH10System < models.BaseFirstOrderSystem
     % Numerical experiments class for Paper WH10
     %
     % Current version works with KerMor 0.4
@@ -14,9 +14,12 @@ classdef WH10System < models.BaseDynSystem
         
         function this = WH10System(model)
             
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseFirstOrderSystem(model);
             
             this.registerProps('svNum');
+            
+            this.NumStateDofs = model.dim;
+            this.updateDimensions;
             
             %% System settings
             this.MaxTimestep = [];
