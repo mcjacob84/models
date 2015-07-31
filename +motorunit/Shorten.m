@@ -178,6 +178,15 @@ classdef Shorten < models.BaseFullModel
         end
     end
     
+    methods(Static)
+        function res = test_Shorten
+            m = models.motorunit.Shorten;
+            [t,y] = m.simulate;
+            m.plot(t,y);
+            res = 1;
+        end
+    end
+    
     methods(Static, Access=protected)
         function this = loadobj(this)
             if ~isa(this, 'models.motorunit.Shorten')

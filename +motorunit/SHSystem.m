@@ -81,6 +81,9 @@ classdef SHSystem < models.BaseFirstOrderSystem
             this.addParam('fibre_type', 0, 'Range', [0 1]);
             this.addParam('mean_current_factor', 3, 'Range', [0 9]);
             
+            this.NumStateDofs = this.dm+this.dsa;
+            this.updateDimensions;
+            
             %% Set system components
             % Core nonlinearity
             this.f = models.motorunit.SHDynamics(this);
@@ -107,6 +110,8 @@ classdef SHSystem < models.BaseFirstOrderSystem
             else
                 this.x0 = dscomponents.ConstInitialValue(this.getConstInitialStates);
             end
+            
+            this.updateSparsityPattern;
         end
         
         function prepareSimulation(this, mu, inputidx)
@@ -119,13 +124,13 @@ classdef SHSystem < models.BaseFirstOrderSystem
             % Limit mean current depending on fibre type
             mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
             
-            prepareSimulation@models.BaseDynSystem(this, mu, inputidx);
+            prepareSimulation@models.BaseFirstOrderSystem(this, mu, inputidx);
         end
         
         function setConfig(this, mu, inputidx)
             % Sets the configuration for the upcoming simulation of the
             % model.
-            setConfig@models.BaseDynSystem(this, mu, inputidx);
+            setConfig@models.BaseFirstOrderSystem(this, mu, inputidx);
             this.noiseGen.setFibreType(mu(1));
             this.MaxTimestep = this.Model.dt*100;
             % Helper method to reset the "peak counter" of the dynamics.
