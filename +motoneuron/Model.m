@@ -84,6 +84,15 @@ classdef Model < models.BaseFullModel
         end
     end
     
+    methods(Static)
+        function res = test_Motoneuron
+            m = models.motoneuron.Model;
+            [t,y] = m.simulate;
+            m.plot(t,y);
+            res = true;
+        end
+    end
+    
     methods(Static, Access=protected)
         function this = loadobj(this)
             if ~isa(this, 'models.motoneuron.Model')
