@@ -12,9 +12,9 @@ function [JK, Jalpha, JLamDot] = getStateJacobianImpl(this, uvwdof, t)
 %     end
      
     mc = sys.Model.Config; 
-    fe_pos = mc.PosFE;
+    fe_pos = mc.FEM;
     geo = fe_pos.Geometry;
-    fe_press = mc.PressFE;
+    fe_press = mc.PressureFEM;
     pgeo = fe_press.Geometry;
 
     N = geo.NumNodes;
@@ -208,7 +208,7 @@ function [JK, Jalpha, JLamDot] = getStateJacobianImpl(this, uvwdof, t)
                         Fdota0 = Fdot*fibres(:,1);
                         % Also update the current lambda_dot so that
                         % further calls within the getStateJacobian of the
-                        % fullmuscle.Dynamics have the correct values!
+                        % fullmodels.muscle.Dynamics have the correct values!
                         this.lambda_dot(k) = Fa0'*Fdota0/lambdaf;
 
                         %% Assemble dLdot / du[i] and dLdot / dv[i]

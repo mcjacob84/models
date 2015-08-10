@@ -1,4 +1,4 @@
-classdef MuscleTendonMix < muscle.AModelConfig
+classdef MuscleTendonMix < models.muscle.AMuscleConfig
     % Muscle - Tendon mixed geometries
     %
     % Contains several examples:
@@ -36,7 +36,7 @@ classdef MuscleTendonMix < muscle.AModelConfig
     
     methods
         function this = MuscleTendonMix(varargin)
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.addOption('Variant',1);
             this.init;
             
@@ -44,7 +44,7 @@ classdef MuscleTendonMix < muscle.AModelConfig
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             m.T = 4;
             m.dt = .01;
             m.DefaultInput = 1;
@@ -166,27 +166,26 @@ classdef MuscleTendonMix < muscle.AModelConfig
             switch this.Options.Variant
                 case 1
                     % Four cubes in a row
-                    [pts, cubes] = geometry.Cube8Node.DemoGrid(0:1,0:4,0:1);
+                    geo = fem.geometry.RegularHex8Grid(0:1,0:4,0:1);
                 case {2 5}
                     % Single cube with same config as reference element
-                    [pts, cubes] = geometry.Cube8Node.DemoGrid(0:1,0:1,0:1);
+                    geo = fem.geometry.RegularHex8Grid(0:1,0:1,0:1);
                 case {3 4}
                     % 2x4x2 geometry
-                    [pts, cubes] = geometry.Cube8Node.DemoGrid(0:2,0:2:6,0:2);
+                    geo = fem.geometry.RegularHex8Grid(0:2,0:2:6,0:2);
             end
             if any(this.Options.Variant == [6 7])
                 yl = 10;
                 this.ylen = yl;
-                geo = Belly.getBelly(6,yl,'Radius',1,'InnerRadius',.2,'Gamma',2);
+                geo = fem.geometry.Belly(6,yl,'Radius',1,'InnerRadius',.2,'Gamma',2);
             else
-                geo = geometry.Cube8Node(pts, cubes);
                 geo = geo.toCube27Node;
             end
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             
             switch this.Options.Variant
                 case {1 2 5}
@@ -229,7 +228,7 @@ classdef MuscleTendonMix < muscle.AModelConfig
             end
             for k = variant
                 fprintf('Testing MuscleTendonMix Variant %d\n',k);
-                m = muscle.Model(MuscleTendonMix('Variant',k));
+                m = models.muscle.Model(models.muscle.examples.MuscleTendonMix('Variant',k));
                 m.simulateAndPlot;
             end
         end

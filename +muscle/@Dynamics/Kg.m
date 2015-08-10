@@ -7,9 +7,9 @@ function dvw = Kg(this, uvw_full, t, fibreforces)
     % See also: evaluate
     sys = this.fsys;
     mc = sys.Model.Config;
-    fe_pos = mc.PosFE;
+    fe_pos = mc.FEM;
     geo = fe_pos.Geometry;
-    fe_press = mc.PressFE;
+    fe_press = mc.PressureFEM;
     pgeo = fe_press.Geometry;
     elem_idx_u_glob = sys.idx_u_glob_elems;
     elem_idx_p_glob = sys.idx_p_glob_elems;
@@ -101,7 +101,7 @@ function dvw = Kg(this, uvw_full, t, fibreforces)
             dtn = fe_pos.transgrad(:,pos,m);
 
             if any(isnan(u(:)))
-                fprintf('NaNs in muscle.Dynamics#evaluateCoreFun! Have a look.\n');
+                fprintf('NaNs in models.muscle.Dynamics#evaluateCoreFun! Have a look.\n');
                 keyboard;
             end
             % Deformation gradient
@@ -167,7 +167,7 @@ function dvw = Kg(this, uvw_full, t, fibreforces)
                 end
                 
                 %% Check if change rate of lambda at a certain gauss point should be tracked
-                % (corresponds to a spindle location in fullmuscle.Model)
+                % (corresponds to a spindle location in fullmodels.muscle.Model)
                 if ~isempty(ldotpos)
                     k = find(ldotpos(1,:) == m & ldotpos(2,:) == gp);
                     if ~isempty(k)

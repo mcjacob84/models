@@ -1,13 +1,13 @@
-classdef Cube12 < muscle.AModelConfig
+classdef Cube12 < models.muscle.AMuscleConfig
     
     methods
         function this = Cube12(varargin)
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.init;
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             m.T = 40;
             m.dt = .05;
             % Activate over 20ms
@@ -19,13 +19,12 @@ classdef Cube12 < muscle.AModelConfig
     methods(Access=protected)
         
         function geo = getGeometry(~)
-            [pts, cubes] = geometry.Cube8Node.DemoGrid(-1:1,-1:2,-1:1);
-            geo = geometry.Cube8Node(pts, cubes);
+            geo = fem.geometry.RegularHex8Grid(-1:1,-1:2,-1:1);
             geo = geo.toCube20Node;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             for k = [5 6 11 12]
                 displ_dir(:,geo.Elements(k,geo.MasterFaces(4,:))) = true;
             end
@@ -39,7 +38,7 @@ classdef Cube12 < muscle.AModelConfig
     
     methods(Static)
         function test_Cube12
-            m = muscle.Model(Cube12);
+            m = models.muscle.Model(models.muscle.examples.Cube12);
             m.simulateAndPlot;
         end
     end

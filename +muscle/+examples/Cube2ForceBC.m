@@ -1,16 +1,16 @@
-classdef Cube2ForceBC < muscle.AModelConfig
+classdef Cube2ForceBC < models.muscle.AMuscleConfig
     
     methods
         function this = Cube2ForceBC(varargin)
             % Single cube with same config as reference element
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.init;
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
-            m.T = 4;
-            m.dt = .01;
+            configureModel@models.muscle.AMuscleConfig(this, m);
+            m.T = 5;
+            m.dt = m.T / 400;
             m.DefaultMu(1) = .1;
             m.DefaultMu(3) = .1;
             m.DefaultInput = 1;
@@ -30,7 +30,7 @@ classdef Cube2ForceBC < muscle.AModelConfig
             if elemidx == 1 && faceidx == 2
                 P = -.8;
             end
-            if elemidx == 1 && faceidx == 5
+            if elemidx == 2 && faceidx == 5
                 P = -.4;
             end
         end
@@ -42,19 +42,20 @@ classdef Cube2ForceBC < muscle.AModelConfig
     
     methods(Access=protected)
         
-        function geo = getGeometry(this)
-            [pts, cubes] = geometry.Cube8Node.DemoGrid(0:1,-1:2,0:1);
-            geo = geometry.Cube8Node(pts, cubes);
+        function geo = getGeometry(~)
+            geo = fem.geometry.RegularHex8Grid(0:1,-1:2,0:1);
+            geo = geo.scale(.1);
             geo = geo.toCube20Node;
+%             geo = geo.toCube27Node;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             % Fix all on left and only the y,z directions of the back right
             % nodes
             displ_dir(:,geo.Elements(3,geo.MasterFaces(4,:))) = true;
-            %displ_dir(1,geo.Elements(3,[9 18 27])) = false;
+%             displ_dir(1,geo.Elements(3,[9 18 27])) = false;
             displ_dir(1,geo.Elements(3,[8 16 20])) = false;
         end
         
@@ -66,7 +67,7 @@ classdef Cube2ForceBC < muscle.AModelConfig
     
     methods(Static)
         function test_Cube2ForceBC
-            m = muscle.Model(Cube2ForceBC);
+            m = models.muscle.Model(models.muscle.examples.Cube2ForceBC);
             m.simulateAndPlot;
         end
     end

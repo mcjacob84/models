@@ -45,7 +45,7 @@ classdef Model < models.BaseFullModel
             this.SaveTag = sprintf('musclemodel_%s',class(conf));
             this.Data = data.ModelData(this,basedir);
             
-            this.System = muscle.System(this);
+            this.System = models.muscle.System(this);
             % Sets DefaultMu
             this.initDefaultParameter;
             
@@ -89,9 +89,9 @@ classdef Model < models.BaseFullModel
 %             fprintf('Running Jacobian health check..');
 %             res = this.System.f.test_Jacobian;
 %             fprintf('Done. Success=%d\n',res);
-%             chk = this.Config.PosFE.test_JacobiansDefaultGeo;
-% %             chk = chk && this.Config.PosFE.test_QuadraticBasisFun;
-%             chk = chk && this.Config.PressFE.test_JacobiansDefaultGeo;
+%             chk = this.Config.FEM.test_JacobiansDefaultGeo;
+% %             chk = chk && this.Config.FEM.test_QuadraticBasisFun;
+%             chk = chk && this.Config.PressureFEM.test_JacobiansDefaultGeo;
 %             if ~chk
 %                 error('Health tests failed!');
 %             end
@@ -112,7 +112,7 @@ classdef Model < models.BaseFullModel
         
         function [t, x, time, cache] = computeTrajectory(this, mu, inputidx)
             % Allows to also call prepareSimulation for any quantities set
-            % by the AModelConfig class.
+            % by the AMuscleConfig class.
             this.Config.prepareSimulation(mu, inputidx);
             [t, x, time, cache] = computeTrajectory@models.BaseFullModel(this, mu, inputidx);
             f = this.System.f;
@@ -276,7 +276,7 @@ classdef Model < models.BaseFullModel
             if ~isempty(varargin) && isa(varargin{1},'PlotManager')
                 varargin = [{'PM'} varargin];
             end
-            x0 = this.System.x0.evaluate(this.System.mu);
+            x0 = this.System.getX0(this.System.mu);
             [~, nf] = this.getResidualForces(0, x0);
             if ~isempty(nf)
                 varargin(end+1:end+2) = {'NF',nf};
@@ -296,19 +296,14 @@ classdef Model < models.BaseFullModel
         
         function [residuals_dirichlet, residuals_neumann] = getResidualForces(this, t, uvw)
             sys = this.System;
-            num_bc = length(sys.idx_u_bc_glob)+length(sys.idx_v_bc_glob);
+            num_bc = length(sys.idx_u_bc_glob)+length(sys.idx_expl_v_bc_glob);
             residuals_dirichlet = zeros(num_bc,length(t));
-            residuals_neumann = zeros(length(sys.bc_neum_forces_nodeidx),length(t));
-            pos_dofs = this.Config.PosFE.Geometry.NumNodes * 3;
-            dyall = zeros(2*pos_dofs + this.Config.PressFE.Geometry.NumNodes,1);
+            residuals_neumann = zeros(length(sys.idx_neumann_bc_glob),length(t));
             for k=1:length(t)
                 dy = sys.f.evaluate(uvw(:,k),t(k));
-                % Place in global vector
-                dyall(sys.idx_uv_dof_glob,:) = dy(1:sys.NumTotalDofs);
-                % Select nodes that are exposed to neumann conditions (the
-                % index is in global positions and not effective DoFs)
-                residuals_neumann(:,k) = dyall(pos_dofs+sys.bc_neum_forces_nodeidx);
-                
+                if ~isempty(residuals_neumann)
+                    residuals_neumann(:,k) = dy(sys.idx_neumann_bc_dof);
+                end
                 residuals_dirichlet(:,k) = sys.f.LastBCResiduals;
             end
         end
@@ -329,7 +324,7 @@ classdef Model < models.BaseFullModel
             if nargin < 4
                 dim = 1:3;
             end
-            geo = this.Config.PosFE.Geometry;
+            geo = this.Config.FEM.Geometry;
             idxXYZ = false(3,geo.NumNodes);
             for k=1:length(faces)
                 idxXYZ(dim,geo.Elements(elem,geo.MasterFaces(faces(k),:))) = true;
@@ -351,7 +346,7 @@ classdef Model < models.BaseFullModel
             if nargin < 4
                 dim = 1:3;
             end
-            geo = this.Config.PosFE.Geometry;
+            geo = this.Config.FEM.Geometry;
             idx_face = false(size(this.System.bool_u_bc_nodes));
             idx_face(dim,geo.Elements(elem,geo.MasterFaces(face,:))) = true;
             fidx = find(this.System.bool_u_bc_nodes & idx_face);
@@ -372,7 +367,7 @@ classdef Model < models.BaseFullModel
             if nargin < 4
                 dim = 1:3;
             end
-            geo = this.Config.PosFE.Geometry;
+            geo = this.Config.FEM.Geometry;
             idx_face = false(size(this.System.bool_u_bc_nodes));
             idx_face(dim,geo.Elements(elem,geo.MasterFaces(face,:))) = true;
             fidx = find(this.System.bool_expl_v_bc_nodes & idx_face);
@@ -385,12 +380,12 @@ classdef Model < models.BaseFullModel
         end
         
         function setConfig(this, value)
-            if ~isa(value, 'muscle.AModelConfig')
-                error('Config must be a muscle.AModelConfig instance');
+            if ~isa(value, 'models.muscle.AMuscleConfig')
+                error('Config must be a models.muscle.AMuscleConfig instance');
             end
             this.Config = value;
             this.System.configUpdated;
-            this.Plotter = muscle.MusclePlotter(this.System);
+            this.Plotter = models.muscle.MusclePlotter(this.System);
         end
         
         function setGaussIntegrationRule(this, value)
@@ -399,8 +394,8 @@ classdef Model < models.BaseFullModel
             % See fem.BaseFEM for possible values. Currently 3,4,5 are
             % implemented.
             mc = this.Config;
-            mc.PosFE.GaussPointRule = value;
-            mc.PressFE.GaussPointRule = value;
+            mc.FEM.GaussPointRule = value;
+            mc.PressureFEM.GaussPointRule = value;
             this.setConfig(mc);
             s = this.System;
             mu = s.mu;
@@ -413,33 +408,7 @@ classdef Model < models.BaseFullModel
             end
             s.prepareSimulation(mu,in);
         end
-        
-%         function off3_computeReducedSpace(this)
-%             off3_computeReducedSpace@models.BaseFullModel(this);
-%             % The paradigm "project first, then transform the second order
-%             % to first order has the effect of having only one projection
-%             % space for u, which is also used as ansatz space for v.
-%             %
-%             % Therefore, we simply re-add the existing projection space for
-%             % u as projection space for v.
-%             s = this.System;
-%             sp = this.Data.ProjectionSpaces(1);
-%             if sp.Dimensions ~= s.NumDerivativeDofs
-%                 error(['Somethings wrong! The reduced space size for u must equal the size of'...
-%                 'v dofs, as velocity BCs are excluded from reduction!']);
-%             end
-%             % Care must be taken with (possible) velocity boundary
-%             % conditions; they result in dofs in u but no dofs in v. We
-%             % choose not to reduce those velocity boundary condition dofs
-%             % (as they are few) and carry them through to the reduced
-%             % systems as separate dofs by identity projection.
-%             % This means the effective projection space for u is smaller
-%             % than the number of u dofs and matches the number of v dofs.
-%             % This is why we can simply use the V,W matrices from u for v,
-%             % too.
-%             this.Data.addProjectionSpace(sp.V,sp.W,(1:s.NumDerivativeDofs) + s.NumStateDofs);
-%         end
-        
+                
         function varargout = plot(this, varargin)
             [varargout{1:nargout}] = this.Plotter.plot(varargin{:});
         end
@@ -452,20 +421,20 @@ classdef Model < models.BaseFullModel
     
     methods(Static)
         function test_ModelVersions
-            m = muscle.Model(muscle.DebugConfig);
+            m = models.muscle.Model(models.muscle.DebugConfig);
             mu = m.getRandomParam;
             [t,y] = m.simulate(mu);
             m.System.UseDirectMassInversion = true;
             [t,y] = m.simulate(mu);
             
             % Version with "constant" fibre activation forces
-            m = muscle.Model(muscle.DebugConfig(2));
+            m = models.muscle.Model(models.muscle.DebugConfig(2));
             [t,y] = m.simulate(mu);
             m.System.UseDirectMassInversion = true;
             [t,y] = m.simulate(mu);
             
             % Version with "neurophysiological" fibre activation forces
-            m = muscle.Model(muscle.DebugConfig(3));
+            m = models.muscle.Model(models.muscle.DebugConfig(3));
             [t,y] = m.simulate(mu);
             m.System.UseDirectMassInversion = true;
             [t,y] = m.simulate(mu);
@@ -483,7 +452,7 @@ classdef Model < models.BaseFullModel
             if nargin < 1
                 full = false;
             end
-            m = muscle.Model(muscle.DebugConfig(2));
+            m = models.muscle.Model(models.muscle.DebugConfig(2));
             m.simulate(1);
             f = m.System.f;
             m.T = 1;
@@ -498,9 +467,9 @@ classdef Model < models.BaseFullModel
     
     methods(Static, Access=protected)
         function this = loadobj(this)
-            if ~isa(this, 'muscle.Model')
+            if ~isa(this, 'models.muscle.Model')
                 sobj = this;
-                this = muscle.Model;
+                this = models.muscle.Model;
                 this.RandSeed = sobj.RandSeed;
                 this.Config = sobj.Config;
                 this = loadobj@models.BaseFullModel(this, sobj);

@@ -1,17 +1,18 @@
-classdef CubePull < muscle.AModelConfig
+classdef CubePull < models.muscle.AMuscleConfig
     
     methods
         function this = CubePull(varargin)
             % Single cube with same config as reference element
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.init;
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             m.T = 150;
             m.dt = .5;
             m.DefaultMu(1) = .5;
+            m.DefaultMu(3) = .1;
             m.DefaultInput = 1;
         end
         
@@ -20,7 +21,7 @@ classdef CubePull < muscle.AModelConfig
             % default
             m = this.Model;
             m.SpaceReducer.Value = m.System.NumStateDofs;
-            configureModelFinal@muscle.AModelConfig(this);
+            configureModelFinal@models.muscle.AMuscleConfig(this);
         end
         
         function P = getBoundaryPressure(~, elemidx, faceidx)
@@ -44,16 +45,15 @@ classdef CubePull < muscle.AModelConfig
     methods(Access=protected)
         
         function geo = getGeometry(~)
-            %[pts, cubes] = geometry.Cube8Node.DemoGrid([0 2.5 5],-1:20,[0 2.5 5]);
-            [pts, cubes] = geometry.Cube8Node.DemoGrid([0 5],-1:10,[0 5]);
-            geo = geometry.Cube8Node(pts, cubes);
+            %geo = fem.geometry.RegularHex8Grid([0 2.5 5],-1:20,[0 2.5 5]);
+            geo = fem.geometry.RegularHex8Grid([0 5],-1:10,[0 5]);
             geo = geo.toCube27Node;
             %geo = geo.toCube20Node;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             % Fix all on left and only the y,z directions of the back right
             % nodes
             displ_dir(2,geo.Elements(end,geo.MasterFaces(4,:))) = true;
@@ -68,7 +68,7 @@ classdef CubePull < muscle.AModelConfig
     
     methods(Static)
         function test_CubePull
-            m = muscle.Model(CubePull);
+            m = models.muscle.Model(models.muscle.examples.CubePull);
             mu = m.getRandomParam;
             mu(3) = .1;
             m.simulateAndPlot(true,mu,1);

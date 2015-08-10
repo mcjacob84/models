@@ -1,4 +1,4 @@
-classdef Shaker < muscle.AModelConfig
+classdef Shaker < models.muscle.AMuscleConfig
     
     properties
         ylen;
@@ -6,13 +6,13 @@ classdef Shaker < muscle.AModelConfig
     
     methods
         function this = Shaker(varargin)
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.init;
-            this.VelocityBCTimeFun = tools.Sinus(50); % 50Hz
+            this.VelocityBCTimeFun = general.functions.Sinus(50); % 50Hz
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             m.T = 75;
             m.dt = .5;
             
@@ -47,14 +47,14 @@ classdef Shaker < muscle.AModelConfig
     methods(Access=protected)
         
         function geo = getGeometry(this)
-            belly = Belly.getBelly(4,10,'Radius',1,'InnerRadius',.4,'Gamma',2);
+            belly = fem.geometry.Belly(4,10,'Radius',1,'InnerRadius',.4,'Gamma',2);
             geo = belly.scale(20);
             this.ylen = 100;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             % Fix ends in xz direction
             displ_dir([1 3],geo.Elements(1:4,geo.MasterFaces(3,:))) = true;
             displ_dir([1 3],geo.Elements(13:16,geo.MasterFaces(4,:))) = true;
@@ -62,7 +62,7 @@ classdef Shaker < muscle.AModelConfig
         
         function [velo_dir, velo_dir_val] = setVelocityDirichletBC(this, velo_dir, velo_dir_val)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             % Fix ends in xz direction
             velo_dir(2,geo.Elements(1:4,geo.MasterFaces(3,:))) = true;
             velo_dir(2,geo.Elements(13:16,geo.MasterFaces(4,:))) = true;
@@ -82,7 +82,7 @@ classdef Shaker < muscle.AModelConfig
     
     methods(Static)
         function test_Shaker
-            m = muscle.Model(Shaker);
+            m = models.muscle.Model(models.muscle.examples.Shaker);
             m.simulateAndPlot;
         end
     end

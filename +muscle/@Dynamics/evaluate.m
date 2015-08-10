@@ -10,9 +10,9 @@ function dK = evaluate(this, uvwdof, t)
     
 %     m = sys.Model;
 %     mc = m.Config;
-%     fe_pos = mc.PosFE;
+%     fe_pos = mc.FEM;
 %     geo = fe_pos.Geometry;
-%     fe_press = mc.PressFE;
+%     fe_press = mc.PressureFEM;
 %     pgeo = fe_press.Geometry;
 %     unassembled = this.ComputeUnassembled;
 

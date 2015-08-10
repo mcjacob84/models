@@ -1,4 +1,4 @@
-classdef SprengerUnitCube8Elem < muscle.AModelConfig
+classdef SprengerUnitCube8Elem < models.muscle.AMuscleConfig
 % Different tests for comparison between CMISS and KerMor.
 %
 % Variant 1: Fix the inner 5 nodes on each face of
@@ -10,12 +10,12 @@ classdef SprengerUnitCube8Elem < muscle.AModelConfig
     methods
         function this = SprengerUnitCube8Elem(varargin)
             varargin(end+1:end+2) = {'FL',2};
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.init;
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             m.T = 1;
             m.dt = .01;
             mu = m.DefaultMu;
@@ -45,13 +45,13 @@ classdef SprengerUnitCube8Elem < muscle.AModelConfig
     methods(Access=protected)
              
         function geo = getGeometry(this)
-            s = load(fullfile(fileparts(which(mfilename)),'..','CMISS','Sprenger8Elem.mat'));
+            s = load(fullfile(fileparts(which(mfilename)),'Sprenger8Elem.mat'));
             geo = s.geo27;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             displ_dir(:,geo.Elements([1 3 5 7],geo.MasterFaces(1,:))) = true;
             displ_dir(:,geo.Elements([2 4 6 8],geo.MasterFaces(2,:))) = true;
         end
@@ -66,7 +66,7 @@ classdef SprengerUnitCube8Elem < muscle.AModelConfig
         function test_SprengerUnitCube8Elem_ForceComparison
             % .1        .2          .3          .4
             % 14.9477   28.5314     41.0593     52.7679
-            c = SprengerUnitCube8Elem;
+            c = models.muscle.examples.SprengerUnitCube8Elem;
             m = c.createModel;
             dfpos = m.getPositionDirichletBCFaceIdx([1 3 5 7],1);
             dfpos2 = m.getPositionDirichletBCFaceIdx([2 4 6 8],2);

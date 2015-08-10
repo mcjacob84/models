@@ -1,16 +1,16 @@
-classdef Long < muscle.AModelConfig
+classdef Long < models.muscle.AMuscleConfig
 % A long geometry with 20% deviation from default cubic positions and
 % complex fibre structure
 
     methods
         function this = Long(varargin)
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.addOption('Devi',1);
             this.init;
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             m.T = 50;
             m.dt = 1;
             m.DefaultMu(1) = .1;
@@ -22,20 +22,20 @@ classdef Long < muscle.AModelConfig
         
         function geo = getGeometry(this)
             % Single cube with same config as reference element
-            [pts, cubes] = geometry.Cube20Node.DemoGrid(-10:10:10,-40:10:40, [0 10], this.Options.Devi);
-            geo = geometry.Cube20Node(pts, cubes);
+            geo = fem.geometry.Cube20Node.DemoGrid(-10:10:10,-40:10:40, [0 10], this.Options.Devi);
+            geo = geo.toCube20Node;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             for k = [8 16]
                 displ_dir(:,geo.Elements(k,[6:8 11 12 18:20])) = true;
             end
         end
         
         function anull = seta0(this, anull)
-            fe = this.PosFE;
+            fe = this.FEM;
             if fe.GaussPointsPerElem ~= 27
                 warning('a0 designed for 27 gauss points!');
             end
@@ -60,7 +60,7 @@ classdef Long < muscle.AModelConfig
     
     methods(Static)
         function test_Long
-            m = muscle.Model(Long);
+            m = models.muscle.Model(models.muscle.examples.Long);
             m.simulateAndPlot;
         end
     end

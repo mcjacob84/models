@@ -1,17 +1,17 @@
-classdef SubElemInhomogMaterial < muscle.AModelConfig
+classdef SubElemInhomogMaterial < models.muscle.AMuscleConfig
         
     methods
         function this = SubElemInhomogMaterial(varargin)
             % Creates a Debug simple muscle model configuration.
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.addOption('Flip',1);
             this.init;
             
-            this.VelocityBCTimeFun = tools.ConstantUntil(20);
+            this.VelocityBCTimeFun = general.functions.ConstantUntil(20);
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             
             m.T = 40;
             m.dt = .5;
@@ -48,19 +48,17 @@ classdef SubElemInhomogMaterial < muscle.AModelConfig
             xr = linspace(0,3,this.Options.GeoNr+1);
             switch this.Options.Flip
                 case 3
-                    [pts, cubes] = geometry.Cube8Node.DemoGrid([0 1],[0 1], xr);
+                    geo = fem.geometry.RegularHex8Grid([0 1],[0 1], xr);
                 case 2
-                    [pts, cubes] = geometry.Cube8Node.DemoGrid([0 1],xr,[0 1]);
+                    geo = fem.geometry.RegularHex8Grid([0 1],xr,[0 1]);
                 otherwise
-                    [pts, cubes] = geometry.Cube8Node.DemoGrid(xr,[0 1],[0 1]);
+                    geo = fem.geometry.RegularHex8Grid(xr,[0 1],[0 1]);
             end
-            %pts(1,:) = pts(1,:)-.5;
-            geo = geometry.Cube8Node(pts, cubes);
             geo = geo.toCube27Node;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             switch this.Options.Flip
                 case 3
                     displ_dir(:,geo.Elements(1,geo.MasterFaces(5,:))) = true;
@@ -79,7 +77,7 @@ classdef SubElemInhomogMaterial < muscle.AModelConfig
             % Determines the dirichlet velocities.
             %
             % The unit for the applied quantities is [mm/ms] = [m/s]
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             switch this.Options.Flip
                 case 3
                     velo_dir(3,geo.Elements(this.Options.GeoNr,geo.MasterFaces(6,:))) = true;
@@ -105,7 +103,7 @@ classdef SubElemInhomogMaterial < muscle.AModelConfig
             v = zeros(3,1);
             o = ones(3,1);
             for fl = 1:3
-                c = SubElemInhomogMaterial('GeoNr',gn,'Flip',fl);
+                c = models.muscle.examples.SubElemInhomogMaterial('GeoNr',gn,'Flip',fl);
                 m = c.createModel;
                 %m.setGaussIntegrationRule(6);
                 [t,y] = m.simulate;

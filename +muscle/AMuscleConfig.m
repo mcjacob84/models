@@ -1,5 +1,5 @@
 classdef AMuscleConfig < fem.AFEMConfig
-    %AModelConfig
+    %AMuscleConfig
     
     properties(SetAccess=private)
         PressureFEM;
@@ -29,7 +29,7 @@ classdef AMuscleConfig < fem.AFEMConfig
         % ramps.
         %
         % This is e.g. implicitly used by
-        % muscle.Dynamics.prepareSimulation, when the alpha ramp is created
+        % models.muscle.Dynamics.prepareSimulation, when the alpha ramp is created
         % for positive mu(2) values (=ramp times).
         %
         % @type double @default 1
@@ -39,7 +39,7 @@ classdef AMuscleConfig < fem.AFEMConfig
         % activation is started.
         %
         % This is e.g. implicitly used by
-        % muscle.Dynamics.prepareSimulation, when the alpha ramp is created
+        % models.muscle.Dynamics.prepareSimulation, when the alpha ramp is created
         % for positive mu(2) values (=ramp times).
         %
         % @type double @default 0
@@ -53,7 +53,7 @@ classdef AMuscleConfig < fem.AFEMConfig
     
     methods
         function this = AMuscleConfig(varargin)
-            this = fem.AFEMConfig(varargin{:});
+            this = this@fem.AFEMConfig(varargin{:});
             % Force-length function type
             this.addOption('FL',1);
         end
@@ -72,7 +72,7 @@ classdef AMuscleConfig < fem.AFEMConfig
             %targetd = s.NumStateDofs + (1:s.NumDerivativeDofs);
             targetd = 1:s.NumStateDofs;
             % Dont reduce those dofs subject to velocity BCs!
-            targetd(s.idx_expl_v_bc_local) = [];
+            targetd(s.DerivativeDirichletPosInStateDofs) = [];
             m.SpaceReducer.TargetDimensions = targetd;
         end
         
@@ -126,7 +126,7 @@ classdef AMuscleConfig < fem.AFEMConfig
                 case 1
                     % Linear (Gordon 66)
                     % Exported here to separate class for tidyness
-                    g = tools.Gordon66SarcoForceLength(f.mu(14));
+                    g = models.muscle.functions.Gordon66SarcoForceLength(f.mu(14));
                     [fun, dfun] = g.getFunction;
                 case 2
                     % Exponential (Schmitt)
@@ -156,10 +156,10 @@ classdef AMuscleConfig < fem.AFEMConfig
             % ramptime: The time over which to increase to alphamax. If
             % less or equal to zero, an all zero function is returned.
             % alphamax: The maximum value to achieve. @type double @default
-            % AModelConfig.ActivationRampMax
+            % AMuscleConfig.ActivationRampMax
             % starttime: The offset time (in milliseconds) to wait before
             % increasing the signal. @type double 
-            % @default AModelConfig.ActivationRampOffset
+            % @default AMuscleConfig.ActivationRampOffset
 %             alpha = @(t)1;
             if nargin < 4
                 starttime = this.ActivationRampOffset;
@@ -167,7 +167,7 @@ classdef AMuscleConfig < fem.AFEMConfig
                     alphamax = this.ActivationRampMax;
                 end
             end
-            ramp = tools.Ramp(ramptime, alphamax, starttime);
+            ramp = general.functions.Ramp(ramptime, alphamax, starttime);
             alpha = ramp.getFunction;
         end
         
@@ -195,16 +195,16 @@ classdef AMuscleConfig < fem.AFEMConfig
             
             %% Get the geometry
             geo = this.Geometry;
-            if isa(geo,'geometry.Cube8Node')
+            if isa(geo,'fem.geometry.Cube8Node')
                 press_geo = geo;
-            elseif isa(geo,'geometry.Cube20Node') || isa(geo,'geometry.Cube27Node')
+            elseif isa(geo,'fem.geometry.Cube20Node') || isa(geo,'fem.geometry.Cube27Node')
                 press_geo = geo.toCube8Node;
             else
                 error('Scenario not yet implemented for geometry class "%s"', class(geo));
             end
-            this.PressFE = fem.HexahedronTrilinear(press_geo);
-            %this.PressFE = fem.HexahedronSerendipity(press_geo.toCube20Node);
-            %this.PressFE = fem.HexahedronTriquadratic(press_geo.toCube27Node);
+            this.PressureFEM = fem.HexahedronTrilinear(press_geo);
+            %this.PressureFEM = fem.HexahedronSerendipity(press_geo.toCube20Node);
+            %this.PressureFEM = fem.HexahedronTriquadratic(press_geo.toCube27Node);
         end
         
         function anull = seta0(~, anull)
@@ -212,11 +212,11 @@ classdef AMuscleConfig < fem.AFEMConfig
         end
         
         function ftw = getFibreTypeWeights(this)
-            % This is a lazy pre-implementation as fullmuscle.Models
+            % This is a lazy pre-implementation as fullmodels.muscle.Models
             % always have fibre types and thus weights.
             %
             % This method simply returns an all-zero weighting.
-            fe = this.PosFE;
+            fe = this.FEM;
             geo = fe.Geometry;
             ftw = zeros(fe.GaussPointsPerElem,length(this.FibreTypes),geo.NumElements);
         end
@@ -224,7 +224,7 @@ classdef AMuscleConfig < fem.AFEMConfig
     
     methods(Sealed)
         function anull = geta0(this)
-            fe = this.PosFE;
+            fe = this.FEM;
             g = this.Geometry;
             anull = zeros(3,fe.GaussPointsPerElem,g.NumElements);
             anull = this.seta0(anull);

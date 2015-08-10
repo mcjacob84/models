@@ -1,4 +1,4 @@
-classdef FibreDirections < muscle.AModelConfig
+classdef FibreDirections < models.muscle.AMuscleConfig
     % An example illustrating the fibre direction options.
     % 
     
@@ -7,7 +7,7 @@ classdef FibreDirections < muscle.AModelConfig
             if nargin < 1
                 version = 1;
             end
-            this = this@muscle.AModelConfig();
+            this = this@models.muscle.AMuscleConfig();
             this.init;
             
             if version == 2
@@ -18,7 +18,7 @@ classdef FibreDirections < muscle.AModelConfig
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             m.T = 50;
             m.dt = 1;
             m.ODESolver.RelTol = 1e-6;
@@ -31,18 +31,19 @@ classdef FibreDirections < muscle.AModelConfig
         
         function geo = getGeometry(~)
             % Single cube with same config as reference element
-            [pts, cubes] = geometry.Cube8Node.DemoGrid([0 1],[0 1],[0 1]);
+            geo = fem.geometry.RegularHex8Grid([0 1],[0 1],[0 1]);
+            pts = geo.Nodes;
             theta = -.3;
             R = [cos(theta) -sin(theta) 0
                  sin(theta) cos(theta)  0
                  0          0           1];
             pts = circshift(R,[1 1])*R*pts;
-            geo = geometry.Cube8Node(pts, cubes);
+            geo = fem.geometry.Cube8Node(pts, geo.Elements);
             geo = geo.toCube27Node;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             displ_dir(:,geo.Elements(1,geo.MasterFaces(1,:))) = true;
             %displ_dir(1,geo.Elements(1,geo.MasterFaces(1,:))) = true;
             %displ_dir(:,geo.Elements(1,geo.MasterFaces(1,5))) = true;
@@ -55,12 +56,12 @@ classdef FibreDirections < muscle.AModelConfig
     
     methods(Static)
         function test_FibreDirections
-            f = FibreDirections(1);
+            f = models.muscle.examples.FibreDirections(1);
             m=f.createModel;
             m.plotGeometrySetup;
             m.simulateAndPlot;
             
-            f = FibreDirections(2);
+            f = models.muscle.examples.FibreDirections(2);
             m=f.createModel;
             m.plotGeometrySetup;
             m.simulateAndPlot;

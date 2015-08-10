@@ -1,4 +1,4 @@
-classdef MarkertLawOriginal < tools.AFunGen
+classdef MarkertLawOriginal < general.functions.AFunGen
     % Returns the original markert law functions for the OVERALL energy density
     % funcion derivative w.r.t. C (i.e. INCLUDING the 1/lam^2 prefactor
     % from chain rule!)
@@ -53,14 +53,14 @@ classdef MarkertLawOriginal < tools.AFunGen
             if nargin < 2
                 range = [.9 1.2];
             end
-            pm = plot@tools.AFunGen(this, range, varargin{:});
+            pm = plot@general.functions.AFunGen(this, range, varargin{:});
         end
     end
     
     methods(Static)
         function createScratchPlot
             range = [.9 1.4];
-            so = tools.MarkertLawOriginal(7990,16.6);
+            so = general.functions.MarkertLawOriginal(7990,16.6);
             pm = so.plot(range,'b');
             ax = get(gcf,'Children');
             ax = flipud(ax);
@@ -68,9 +68,9 @@ classdef MarkertLawOriginal < tools.AFunGen
             hold(ax(2),'on');
             ylim(ax(1),[0 16500]);
             ylim(ax(2),[0 4.1e5]);
-            s = tools.MarkertLaw(7990,16.6,1e9);
+            s = general.functions.MarkertLaw(7990,16.6,1e9);
             s.plot(range,ax,'r');
-            s = tools.MarkertLaw(1000*7990,4.5,1e9);
+            s = general.functions.MarkertLaw(1000*7990,4.5,1e9);
             s.plot(range,ax,'g');
             legend(ax(1),'Original b=7990,d=16.6','Modified b=7990,d=16.6','Modified b=7990000,d=4.5');%,'Location','NorthWest');
             pm.savePlots('/home/dwirtz/software/muscle/latex/img','Format','eps');

@@ -1,4 +1,4 @@
-classdef SubMeshModelConfig < models.muscle.AModelConfig
+classdef SubMeshModelConfig < models.models.muscle.AMuscleConfig
     %SUBMESHMODELCONFIG A Model config providing the same settings as
     %another model config but for a submesh
     
@@ -16,9 +16,9 @@ classdef SubMeshModelConfig < models.muscle.AModelConfig
     
     methods
         function this = SubMeshModelConfig(full, elems, varargin)
-            geo = full.PosFE.Geometry;
+            geo = full.FEM.Geometry;
             [subgeo, nodeidx, faceidx] = geo.getSubMesh(elems, varargin{:});
-            this = this@muscle.AModelConfig(subgeo);
+            this = this@models.muscle.AMuscleConfig(subgeo);
             
             % Store original config
             this.FullConfig = full;

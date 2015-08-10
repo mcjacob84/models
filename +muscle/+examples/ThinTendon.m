@@ -1,4 +1,4 @@
-classdef ThinTendon < experiments.AExperimentModelConfig
+classdef ThinTendon < models.muscle.AExperimentModelConfig
     
     properties(SetAccess=private)
         ylen = 200;
@@ -8,16 +8,16 @@ classdef ThinTendon < experiments.AExperimentModelConfig
     
     methods
         function this = ThinTendon(varargin)
-            this = this@experiments.AExperimentModelConfig(varargin{:});
+            this = this@models.muscle.AExperimentModelConfig(varargin{:});
             this.init;
-            this.VelocityBCTimeFun = tools.ConstantUntil(this.movetime);
+            this.VelocityBCTimeFun = general.functions.ConstantUntil(this.movetime);
             this.configs = (-.9:.1:.2)*this.ylen/this.movetime;
             this.NumConfigurations = length(this.configs);
             this.NumOutputs = 1;
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             m.T = this.movetime+20;
             m.dt = m.T/200;
             
@@ -77,18 +77,17 @@ classdef ThinTendon < experiments.AExperimentModelConfig
     methods(Access=protected)
         
         function geo = getGeometry(this)
-            geo = Belly.getBelly(6,this.ylen,'Radius',0,'InnerRadius',2,'Gamma',2);
+            geo = fem.geometry.Belly(6,this.ylen,'Radius',0,'InnerRadius',2,'Gamma',2);
             n = geo.Nodes;
             % Slightly deviate a node in the center
             n(1,137) = n(1,137)*1.1;
-            geo = geometry.Cube27Node(n,geo.Elements);
+            geo = fem.geometry.Cube27Node(n,geo.Elements);
             %geo = belly.scale(20);
-            
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             % Fix ends in xz direction
             displ_dir(:,geo.Elements(1:4,geo.MasterFaces(3,:))) = true;
             displ_dir([1 3],geo.Elements(21:24,geo.MasterFaces(4,:))) = true;
@@ -96,7 +95,7 @@ classdef ThinTendon < experiments.AExperimentModelConfig
         
         function [velo_dir, velo_dir_val] = setVelocityDirichletBC(this, velo_dir, velo_dir_val)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             % Fix ends in xz direction
             velo_dir(2,geo.Elements(21:24,geo.MasterFaces(4,:))) = true;
             velo_dir_val(velo_dir) = this.configs(this.CurrentConfigNr);
@@ -105,16 +104,16 @@ classdef ThinTendon < experiments.AExperimentModelConfig
     
     methods(Static)
         function test_ThinTendon
-            c = ThinTendon;
+            c = models.muscle.examples.ThinTendon;
             m = c.createModel;
             c.CurrentConfigNr = 4;
             m.simulateAndPlot;
         end
         
         function runExperiment
-            c = ThinTendon;
+            c = models.muscle.examples.ThinTendon;
             m = c.createModel;
-            e = tools.ExperimentRunner(m);
+            e = models.muscle.ExperimentRunner(m);
             d = e.runExperimentsCached;
             semilogy(d.o);
             title('Forces at fixed nodes at end time');

@@ -1,4 +1,4 @@
-classdef SiebertTendonFun < tools.AFunGen
+classdef SiebertTendonFun < general.functions.AFunGen
     % Returns the modified markert law functions for the OVERALL energy density
     % funcion derivative w.r.t. C (i.e. INCLUDING the 1/lam^2 prefactor
     % from chain rule!)
@@ -60,7 +60,7 @@ classdef SiebertTendonFun < tools.AFunGen
                 end
                 lab = '\Delta stretch [mm]';
             end
-            plot@tools.AFunGen(this, range);
+            plot@general.functions.AFunGen(this, range);
             
 %             ax = get(gcf,'Children');
 %             ax = ax(2); % second one is the left one - hope this is reproducible

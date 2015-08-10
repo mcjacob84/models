@@ -67,7 +67,8 @@ classdef System < models.BaseSecondOrderSystem
        idx_v_bc_u_dof;
               
        %% Neumann fields
-       bc_neum_forces_nodeidx; % [N]
+       idx_neumann_bc_glob; % [N]
+       idx_neumann_bc_dof; % [N]
        bc_neum_forces_val;
        FacesWithForce;
        
@@ -137,7 +138,7 @@ classdef System < models.BaseSecondOrderSystem
        % be assembled, the boundary condition rows removed and the inverse
        % of the remaining matrix will be pre-computed.
        % This inverse will be pre-multiplied to the velocity-dofs inside
-       % the muscle.Dynamics evaluate and getStateJacobian functions.
+       % the models.muscle.Dynamics evaluate and getStateJacobian functions.
        %
        % This in general results in higher simulation speed but it remains
        % open to see how well reduced modeling will work with that scheme.
@@ -212,21 +213,21 @@ classdef System < models.BaseSecondOrderSystem
             % -or-
             % ideal length of sarcomere w.r.t force production [-]
             %
-            % fit with tools.MarkertLaw: b1 = 1.3895e+04
-            % fit with tools.QuadToLinear: lam0 = 1.027
-            % fit with tools.CubicToLinear: lam0 =  1.0175 [26.2.15]
-            % fit with tools.CubicToLinear: lam0 =  1.0207 [29.4.15, after scaling fix]
+            % fit with general.functions.MarkertLaw: b1 = 1.3895e+04
+            % fit with general.functions.QuadToLinear: lam0 = 1.027
+            % fit with general.functions.CubicToLinear: lam0 =  1.0175 [26.2.15]
+            % fit with general.functions.CubicToLinear: lam0 =  1.0207 [29.4.15, after scaling fix]
             % #7
             this.addParam('tendon passive 1 [b1/lam0]', 1.0207); % [MPa/-]
             
             % anisotropic passive stiffness for tendon material
             % markert law
             %
-            % fit with tools.MarkertLaw: d1 = 11.1429 [-]
+            % fit with general.functions.MarkertLaw: d1 = 11.1429 [-]
             % max modulus  1.637893706954065e+05
-            % fit with tools.QuadToLinear: M = 1.637893706954065e+05
-            % fit with tools.CubicToLinear: M =  1.637893706954065e+05 [26.2.15]
-            % fit with tools.CubicToLinear: M =  1.637893706954065e+05 [29.4.15, after scaling fix]
+            % fit with general.functions.QuadToLinear: M = 1.637893706954065e+05
+            % fit with general.functions.CubicToLinear: M =  1.637893706954065e+05 [26.2.15]
+            % fit with general.functions.CubicToLinear: M =  1.637893706954065e+05 [29.4.15, after scaling fix]
             % #8
             this.addParam('tendon passive 2 [d1/M]', 1.637893706954065e+05);
             
@@ -283,7 +284,7 @@ classdef System < models.BaseSecondOrderSystem
             
             %% Set system components
             % Core nonlinearity
-            this.f = muscle.Dynamics(this);
+            this.f = models.muscle.Dynamics(this);
         end
         
         function rsys = buildReducedSystem(this, rmodel)
@@ -300,9 +301,9 @@ classdef System < models.BaseSecondOrderSystem
         function configUpdated(this)
             mc = this.Model.Config;
             if ~isempty(mc)
-                tq = mc.PosFE;
+                tq = mc.FEM;
                 geo_pos = tq.Geometry;
-                tl = mc.PressFE;
+                tl = mc.PressureFEM;
                 geo_p = tl.Geometry;
                 
                 % Find the indices of the pressure nodes in the displacement
@@ -332,7 +333,7 @@ classdef System < models.BaseSecondOrderSystem
                 
                 this.HasMotoPool = this.HasFibres && ~isempty(mc.Pool);
                 this.HasFibreTypes = this.HasFibres && ~isempty(mc.FibreTypeWeights);
-                this.HasForceArgument = this.HasFibreTypes && isa(this,'fullmuscle.System');
+                this.HasForceArgument = this.HasFibreTypes && isa(this,'fullmodels.muscle.System');
 
                 % Construct global indices in uw from element nodes. Each dof in
                 % an element is used three times for x,y,z displacement. The
@@ -370,7 +371,7 @@ classdef System < models.BaseSecondOrderSystem
                 this.x0 = dscomponents.ConstInitialValue(this.assembleX0);
                 
                 %% Algebraic constraints function
-                this.g = muscle.ConstraintsFun(this);
+                this.g = dscomponents.ConstraintsFun(this);
                 
                 this.updateSparsityPattern;
             end
@@ -470,11 +471,11 @@ classdef System < models.BaseSecondOrderSystem
     methods(Access=protected)
         
         function updateDimensions(this, mc)
-            tl = mc.PressFE;
+            tl = mc.PressureFEM;
             geo_p = tl.Geometry;
             this.NumAlgebraicDofs = geo_p.NumNodes;
             
-            tq = mc.PosFE;
+            tq = mc.FEM;
             geo_uv = tq.Geometry;
             this.NumStateDofs = geo_uv.NumNodes * 3 - length(this.idx_u_bc_glob);
             
@@ -495,7 +496,7 @@ classdef System < models.BaseSecondOrderSystem
         function x0 = assembleX0(this)
             % Constant initial values as current node positions
             mc = this.Model.Config;
-            tq = mc.PosFE;
+            tq = mc.FEM;
             geo = tq.Geometry;
             
             % Fill in the reference configuration positions as initial
@@ -509,24 +510,27 @@ classdef System < models.BaseSecondOrderSystem
         end
         
         function Baff = assembleB(this)
+            mc = this.Model.Config;
             % Collect neumann forces
-            [B, this.bc_neum_forces_nodeidx] = this.getSpatialExternalForces;
+            [B, this.idx_neumann_bc_glob, this.FacesWithForce] = mc.getSpatialExternalForces;
             % Only set up forces if present
             Baff = [];
-            if ~isempty(this.bc_neum_forces_nodeidx)
-                this.bc_neum_forces_val = B(this.bc_neum_forces_nodeidx);
-                % Remove dirichlet DoFs
+            if ~isempty(this.idx_neumann_bc_glob)
+                this.bc_neum_forces_val = B(this.idx_neumann_bc_glob);
+                % Remove velocity dirichlet DoFs
                 B(this.idx_v_bc_local) = [];
                 Baff = dscomponents.AffLinInputConv;
                 Baff.TimeDependent = false;
                 Baff.addMatrix('mu(3)',B);
+                
+                this.idx_neumann_bc_dof = find(B);
             end
         end
         
         function MM = assembleMassMatrix(this)
             %% Compile Mass Matrix
             mc = this.Model.Config;
-            fe_pos = mc.PosFE;
+            fe_pos = mc.FEM;
             g = fe_pos.Geometry;
             
             % Augment mass matrix for all 3 displacement directions
@@ -551,7 +555,7 @@ classdef System < models.BaseSecondOrderSystem
         function Daff = assembleDampingMatrix(this)
             %% Compile Damping/Viscosity Matrix
             mc = this.Model.Config;
-            fe_pos = mc.PosFE;
+            fe_pos = mc.FEM;
             g = fe_pos.Geometry;
             
             % Augment mass matrix for all 3 displacement directions
@@ -574,10 +578,10 @@ classdef System < models.BaseSecondOrderSystem
             mc = this.Model.Config;
             [pos_dir, velo_dir, velo_dir_val] = mc.getBC;
             
-            fe_displ = mc.PosFE;
+            fe_displ = mc.FEM;
             geo = fe_displ.Geometry;
-            fe_press = mc.PressFE;
-            pgeo = fe_press.Geometry;
+%             fe_press = mc.PressureFEM;
+%             pgeo = fe_press.Geometry;
             
             % Total number of position entries in global vector
             num_u_glob = geo.NumNodes * 3;
@@ -611,17 +615,21 @@ classdef System < models.BaseSecondOrderSystem
             % Include the zero velocity conditions that apply for each
             % position dirichlet condition
             % (cannot conflict with position dirichlet conditions, this is
-            % checked in AModelConfig.getBC)
-            this.idx_v_bc_local = [this.idx_expl_v_bc_local; this.idx_u_bc_local];
+            % checked in AMuscleConfig.getBC)
+            [this.idx_v_bc_local, idx] = sort([this.idx_expl_v_bc_local; this.idx_u_bc_local]);
             % Here we add zero velocities for each point with fixed position, too.
             this.val_v_bc = [this.val_expl_v_bc; zeros(size(this.val_u_bc))];
+            this.val_v_bc = this.val_v_bc(idx);
             this.num_v_bc = length(this.val_v_bc);
             this.idx_v_bc_glob = this.idx_v_bc_local + num_u_glob;
             
             %% Convenience index sets
             % Compile the global dirichlet values index and value vectors.
-            this.idx_uv_bc_glob = [this.idx_u_bc_glob; this.idx_v_bc_glob];
+            % Again, we sort the index vector for easy insertion
+            % (=following matlab linear indexing) into the global arrays
+            [this.idx_uv_bc_glob, idx] = sort([this.idx_u_bc_glob; this.idx_v_bc_glob]);
             this.val_uv_bc_glob = [this.val_u_bc; this.val_v_bc];
+            this.val_uv_bc_glob = this.val_uv_bc_glob(idx);
             
             % Compute dof positions in global state space vector
 %             
@@ -664,48 +672,9 @@ classdef System < models.BaseSecondOrderSystem
             end
         end
         
-        function [force, nodeidx] = getSpatialExternalForces(this)
-            mc = this.Model.Config;
-            fe_displ = mc.PosFE;
-            geo = fe_displ.Geometry;
-            ngp = fe_displ.GaussPointsPerElemFace;
-            force = zeros(geo.NumNodes * 3,1);
-            faceswithforce = false(1,geo.NumFaces);
-            
-            globalcoord = strcmp(mc.NeumannCoordinateSystem,'global');
-            for fn = 1:geo.NumFaces
-                elemidx = geo.Faces(1,fn);
-                faceidx = geo.Faces(2,fn);
-                masterfacenodeidx = geo.MasterFaces(faceidx,:);
-                % So far: Constant pressure on all gauss points!
-                P = mc.getBoundaryPressure(elemidx, faceidx);
-                if ~isempty(P)
-                    faceswithforce(fn) = true;
-                    integrand = zeros(3,geo.NodesPerFace);
-                    if globalcoord
-                        N = geo.FaceNormals(:,faceidx);
-                    end
-                    for gi = 1:ngp
-                        if ~globalcoord
-                            N = fe_displ.NormalsOnFaceGP(:,gi,fn);
-                        end
-                        PN = (P * N) * fe_displ.Ngpface(:,gi,fn)';
-                        integrand = integrand + fe_displ.FaceGaussWeights(gi)*PN*fe_displ.face_detjac(fn,gi);
-                    end
-                    facenodeidx = geo.Elements(elemidx,masterfacenodeidx);
-                    facenodeidx = (facenodeidx-1)*3+1;
-                    facenodeidx = [facenodeidx; facenodeidx+1; facenodeidx+2];%#ok
-                    force(facenodeidx(:)) = force(facenodeidx(:)) + integrand(:);
-                end
-            end
-            % Augment to u,v,w vector
-            nodeidx = find(abs(force) > 1e-13);
-            this.FacesWithForce = faceswithforce;
-        end
-        
         function inita0(this)
             mc = this.Model.Config;
-            fe = mc.PosFE;
+            fe = mc.FEM;
             geo = fe.Geometry;
             
             anull = mc.geta0;
@@ -783,7 +752,7 @@ classdef System < models.BaseSecondOrderSystem
         
         function initMuscleTendonRatios(this)
             mc = this.Model.Config;
-            fe = mc.PosFE;
+            fe = mc.FEM;
             this.HasTendons = ~isempty(mc.getTendonMuscleRatio(zeros(3,1)));
             tmr = zeros(fe.GaussPointsPerElem,fe.Geometry.NumElements);
             if this.HasTendons

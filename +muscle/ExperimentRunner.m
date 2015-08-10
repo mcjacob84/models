@@ -23,7 +23,7 @@ classdef ExperimentRunner < handle
         function this = ExperimentRunner(model)
             this.Model = model;
             config = model.Config;
-            if ~isa(config, 'experiments.AExperimentModelConfig')
+            if ~isa(config, 'models.muscle.AExperimentModelConfig')
                 error('"config" parameter must be a AExperimentModelConfig');
             end
             this.Config = config;
@@ -39,7 +39,7 @@ classdef ExperimentRunner < handle
                 mu = m.DefaultMu;
             end
             % The cache key is param + config nr
-            key = [mu; nr; m.Geo.NumElements; m.Config.PosFE.GaussPointsPerElem];
+            key = [mu; nr; m.Geo.NumElements; m.Config.FEM.GaussPointsPerElem];
             out = [];
             y = [];
             ct = [];
@@ -84,7 +84,7 @@ classdef ExperimentRunner < handle
                     
                     if this.cachedata
                         % The cache key is param + config nr
-                        key = [mu; nr; m.Geo.NumElements; c.PosFE.GaussPointsPerElem];
+                        key = [mu; nr; m.Geo.NumElements; c.FEM.GaussPointsPerElem];
                         data = struct('y',y,'t',t,'mu',mu,'nr',nr,'ct',ct,'out',out);
                         this.cache.addData(key,data);
                     end

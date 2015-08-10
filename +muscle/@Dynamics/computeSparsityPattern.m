@@ -2,9 +2,9 @@ function [SPK, SPg, SPalpha, SPLamDot] = computeSparsityPattern(this)
     % Computes all sorts of patterns simultaneously
     sys = this.fsys;
     mc = sys.Model.Config;
-    fe_pos = mc.PosFE;
+    fe_pos = mc.FEM;
     geo = fe_pos.Geometry;
-    fe_press = mc.PressFE;
+    fe_press = mc.PressureFEM;
     pgeo = fe_press.Geometry;
 
     N = geo.NumNodes;
@@ -124,7 +124,7 @@ function [SPK, SPg, SPalpha, SPLamDot] = computeSparsityPattern(this)
     if this.nfibres > 0
         SPalpha = sparse(double(iS),double(jS),ones(size(iS)),3*N,this.nfibres*56);
         % Remove those that are connected to dirichlet values
-        SPalpha([sys.idx_u_bc_glob; sys.idx_v_bc_glob],:) = [];
+        SPalpha([sys.idx_u_bc_local sys.idx_v_bc_local],:) = [];
         SPalpha = logical(SPalpha);
     end
     

@@ -1,15 +1,15 @@
-classdef Shear < muscle.AModelConfig
+classdef Shear < models.muscle.AMuscleConfig
     % An example illustrating shear forces
     
     methods
         function this = Shear(varargin)
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.addOption('BC',1);
             this.init;
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             m.T = 50;
             m.dt = 1;
             m.ODESolver.RelTol = 1e-6;
@@ -51,16 +51,15 @@ classdef Shear < muscle.AModelConfig
         function geo = getGeometry(this)
             % Single cube with same config as reference element
             if this.Options.GeoNr == 1
-                [pts, cubes] = geometry.Cube8Node.DemoGrid([0 1],[0 1],[0 1]);
+                geo = fem.geometry.RegularHex8Grid([0 1],[0 1],[0 1]);
             else
-                [pts, cubes] = geometry.Cube8Node.DemoGrid(0:2,0:2,0:2);
+                geo = fem.geometry.RegularHex8Grid(0:2,0:2,0:2);
             end
-            geo = geometry.Cube8Node(pts, cubes);
             geo = geo.toCube27Node;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             o = this.Options;
             if o.GeoNr == 1
                 displ_dir(:,geo.Elements(1,geo.MasterFaces(1,:))) = true;
@@ -79,7 +78,7 @@ classdef Shear < muscle.AModelConfig
             % Determines the dirichlet velocities.
             %
             % The unit for the applied quantities is [mm/ms] = [m/s]
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             o = this.Options;
             if o.BC == 1
                 if o.GeoNr == 1
@@ -100,7 +99,7 @@ classdef Shear < muscle.AModelConfig
         function test_Shear
             for g = 1:2
                 for b = 1:2
-                    f = Shear('GeoNr',g,'BC',b);
+                    f = models.muscle.examples.Shear('GeoNr',g,'BC',b);
                     m = f.createModel;
                     m.plotGeometrySetup;
                     [t,y] = m.simulate;

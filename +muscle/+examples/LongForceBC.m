@@ -1,17 +1,17 @@
-classdef LongForceBC < muscle.AModelConfig
+classdef LongForceBC < models.muscle.AMuscleConfig
     % Demo class with a long beam, diagonal fibre direction and two-point
     % boundary face forces in opposing directions.
     
     methods
         function this = LongForceBC(varargin)
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.init;
 
             this.ActivationRampMax = .4;
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             m.T = 40;
             m.dt = .2;
             m.DefaultMu(1) = .1; % viscosity [g/(mm*ms)] = [kP] (kiloPoiseulle)
@@ -66,14 +66,13 @@ classdef LongForceBC < muscle.AModelConfig
         
         function geo = getGeometry(this)
             % Single cube with same config as reference element
-            [pts, cubes] = geometry.Cube8Node.DemoGrid([0 20],-40:10:40,[0 15],.1);
-            geo = geometry.Cube8Node(pts, cubes);
+            geo = fem.geometry.RegularHex8Grid([0 20],-40:10:40,[0 15],.1);
             geo = geo.toCube20Node;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             displ_dir(:,geo.Elements(8,geo.MasterFaces(4,:))) = true;
         end
         
@@ -85,7 +84,7 @@ classdef LongForceBC < muscle.AModelConfig
     
     methods(Static)
         function test_LongForceBC
-            m = muscle.Model(LongForceBC);
+            m = models.muscle.Model(models.muscle.examples.LongForceBC);
             m.simulateAndPlot;
         end
     end

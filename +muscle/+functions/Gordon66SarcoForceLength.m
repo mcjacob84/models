@@ -1,4 +1,4 @@
-classdef Gordon66SarcoForceLength < tools.PiecewiseLinear
+classdef Gordon66SarcoForceLength < general.functions.PiecewiseLinear
     
     properties(Access=private)
         l0;
@@ -29,7 +29,7 @@ classdef Gordon66SarcoForceLength < tools.PiecewiseLinear
             curve = [1.1 0; 1.25 0; curve; 3.7 0; 3.8 0];
             
             sel = [2 9 13 19 25];
-            this = this@tools.PiecewiseLinear(curve(sel,1)',curve(sel,2)');
+            this = this@general.functions.PiecewiseLinear(curve(sel,1)',curve(sel,2)');
             this.l0 = l0;
             this.cdata = curve;
         end
@@ -39,7 +39,7 @@ classdef Gordon66SarcoForceLength < tools.PiecewiseLinear
         end
         
         function plot(this, varargin)
-            pm = plot@tools.PiecewiseLinear(this, varargin{:});
+            pm = plot@general.functions.PiecewiseLinear(this, varargin{:});
             
             ax = pm.nextPlot('gordon66_fit','Splint fits','length','force');
             hold(ax,'on');

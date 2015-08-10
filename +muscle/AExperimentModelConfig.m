@@ -1,4 +1,4 @@
-classdef AExperimentModelConfig < muscle.AMuscleConfig
+classdef AExperimentModelConfig < models.muscle.AMuscleConfig
     
     properties
         OutputDir = []; 
@@ -26,7 +26,7 @@ classdef AExperimentModelConfig < muscle.AMuscleConfig
         function this = AExperimentModelConfig(varargin)
             % Override in subclasses and set NumConfigurations to the
             % number of possible experiment runs with different IC/BCs.
-            this = this@muscle.AMuscleConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
         end
         
         function set.CurrentConfigNr(this, nr)
@@ -50,15 +50,15 @@ classdef AExperimentModelConfig < muscle.AMuscleConfig
     
     methods(Access=protected)
         function init(this)
-            init@muscle.AModelConfig(this);
+            init@models.muscle.AMuscleConfig(this);
             
             % Also init directories to reasonable defaults
             if isempty(this.OutputDir)
                 mc = metaclass(this);
                 [~,n] = fileparts(which(mc.Name));
-                % Put relative to muscle.Model class - that wont change
+                % Put relative to models.muscle.Model class - that wont change
                 % location!
-                p = fullfile(fileparts(which('muscle.Model')),'..','..','data');
+                p = fullfile(fileparts(which('models.muscle.Model')),'..','..','data');
                 outdir = fullfile(p,n);
                 this.OutputDir = outdir;
             end

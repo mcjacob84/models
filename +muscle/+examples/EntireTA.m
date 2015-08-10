@@ -1,15 +1,15 @@
-classdef EntireTA < muscle.AModelConfig
+classdef EntireTA < models.muscle.AMuscleConfig
     
     methods
         function this = EntireTA(varargin)
             % Single cube with same config as reference element
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.init;
 
             %% Muscle fibre weights
 %             geo = s.geo27;
 %             types = [0 .2 .4 .6 .8 1];
-%             ftw = zeros(this.PosFE.GaussPointsPerElem,length(types),geo.NumElements);
+%             ftw = zeros(this.FEM.GaussPointsPerElem,length(types),geo.NumElements);
 %             % Test: Use only slow-twitch muscles
 %             ftw(:,1,:) = .4;
 %             ftw(:,2,:) = .05;
@@ -24,7 +24,7 @@ classdef EntireTA < muscle.AModelConfig
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
+            configureModel@models.muscle.AMuscleConfig(this, m);
             % Overload this method to set model-specific quantities like
             % simulation time etc
             m.T = 200;
@@ -40,14 +40,14 @@ classdef EntireTA < muscle.AModelConfig
     
     methods(Access=protected)
         
-        function geo = getGeometry(this)
-            s = load(fullfile(fileparts(which(mfilename)),'..','CMISS','EntireTA.mat'));
+        function geo = getGeometry(~)
+            s = load(fullfile(fileparts(which(mfilename)),'EntireTA.mat'));
             geo = s.geo27;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             % Front face
 %             displ_dir(:,geo.Elements(6,geo.MasterFaces(3,:))) = true;
             % Back faces
@@ -63,7 +63,7 @@ classdef EntireTA < muscle.AModelConfig
     
     methods(Static)
         function test_EntireTA
-            m = muscle.Model(EntireTA);
+            m = models.muscle.Model(models.muscle.examples.EntireTA);
             m.simulateAndPlot;
         end
     end

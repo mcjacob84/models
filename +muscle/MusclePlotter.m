@@ -53,7 +53,7 @@ classdef MusclePlotter < handle
                     error('Directory %s not found',p);
                 end
                 if isempty(p)
-                    if isa(mc,'experiments.AExperimentModelConfig')
+                    if isa(mc,'models.muscle.AExperimentModelConfig')
                         p = mc.OutputDir;
                     else
                         p = pwd;
@@ -146,7 +146,7 @@ classdef MusclePlotter < handle
             v = reshape(y_dofs(pd.vstart:pd.pstart-1),3,[]);
             cla(h);
             
-            geo = this.Config.PosFE.Geometry;
+            geo = this.Config.FEM.Geometry;
             if opts.Skel
                 e = pd.e;
                 plot3(h,u(1,pd.no_bc),u(2,pd.no_bc),u(3,pd.no_bc),'r.','MarkerSize',14);
@@ -187,8 +187,8 @@ classdef MusclePlotter < handle
                 residuals = pd.residuals;
                 have_residuals = pd.have_residuals;
                 udir = u(:,have_residuals);
-                residuals(pd.residuals_pos) = pd.DF(pd.sortidx,ts)/pd.maxdfval;
-                %residuals(pd.residuals_pos) = pd.DF(:,ts)/pd.maxdfval;
+%                 residuals(pd.residuals_pos) = pd.DF(pd.sortidx,ts)/pd.maxdfval;
+                residuals(pd.residuals_pos) = pd.DF(:,ts)/pd.maxdfval;
                 quiver3(h,udir(1,:),udir(2,:),udir(3,:),...
                     residuals(1,have_residuals),residuals(2,have_residuals),...
                     residuals(3,have_residuals),1,'k', 'MarkerSize',14);
@@ -197,23 +197,24 @@ classdef MusclePlotter < handle
             %% Neumann condition forces
             if opts.Forces
                 % Plot force vectors at nodes
-                uforce = u(:,pd.forces_apply);
-                quiver3(h,uforce(1,:),uforce(2,:),uforce(3,:),...
-                    pd.forces(1,:),pd.forces(2,:),pd.forces(3,:),0.1,'Color',[.8 .8 1]);
+%                 uforce = u(:,pd.forces_apply);
+%                 quiver3(h,uforce(1,:),uforce(2,:),uforce(3,:),...
+%                     pd.forces(1,:),pd.forces(2,:),pd.forces(3,:),0,'Color',[.8 .8 1]);
                 % Plot force vectors at face centers
                 for k=1:pd.numfaceswithforce
                     masterfacenodeidx = geo.MasterFaces(pd.force_elem_face_idx(2,k),:);
                     facenodeidx = geo.Elements(pd.force_elem_face_idx(1,k),masterfacenodeidx);
 
                     facecenter = mean(u(:,facenodeidx),2);
+                    mf = pd.meanforces(:,k)*this.System.mu(3);
                     quiver3(h,facecenter(1),facecenter(2),facecenter(3),...
-                        pd.meanforces(1,k),pd.meanforces(2,k),pd.meanforces(3,k),0.1,'LineWidth',2,'Color','b','MaxHeadSize',1);
+                        mf(1),mf(2),mf(3),0,'LineWidth',2,'Color','b','MaxHeadSize',1);
 
                     if ~isempty(pd.NF)
-                        pd.residual_neumann_forces(sys.bc_neum_forces_nodeidx) = pd.NF(:,ts);
+                        pd.residual_neumann_forces(sys.idx_neumann_bc_glob) = pd.NF(:,ts);
                         meanforce = mean(pd.residual_neumann_forces(:,facenodeidx),2);
                         quiver3(h,facecenter(1),facecenter(2),facecenter(3),...
-                        meanforce(1),meanforce(2),meanforce(3),0.1,'LineWidth',2,'Color','k','MaxHeadSize',1);
+                        meanforce(1),meanforce(2),meanforce(3),0,'LineWidth',2,'Color','k','MaxHeadSize',1);
                     end
                 end
             end
@@ -297,7 +298,7 @@ classdef MusclePlotter < handle
         function [pd, t, y] = updatePlotData(this, pd, opts, t, y)
             mc = this.Config;
             sys = this.System;
-            dfem = mc.PosFE;
+            dfem = mc.FEM;
             geo = dfem.Geometry;
 
             pd.DF = opts.DF;
@@ -324,12 +325,12 @@ classdef MusclePlotter < handle
             end
 
             %% Forces plotting
-%             if opts.Forces
+            if opts.Forces
                 % Get forces on each node in x,y,z directions
                 % This is where the connection between plane index and
                 % x,y,z coordinate is "restored"
                 forces = zeros(size(sys.bool_u_bc_nodes));
-                forces(sys.bc_neum_forces_nodeidx) = sys.bc_neum_forces_val;
+                forces(sys.idx_neumann_bc_glob) = sys.bc_neum_forces_val;
 
                 % Forces at face centers
                 force_elem_face_idx = geo.Faces(:,sys.FacesWithForce);
@@ -350,7 +351,7 @@ classdef MusclePlotter < handle
                 if ~isempty(opts.NF)
                     pd.residual_neumann_forces = zeros(size(sys.bool_u_bc_nodes));
                 end
-%             end
+            end
 
             %% Skeleton plotting
             if ~opts.Skel
@@ -445,7 +446,7 @@ classdef MusclePlotter < handle
             i.addParamValue('DF',[]);
             i.addParamValue('NF',[]);
             i.addParamValue('F',[]);
-            i.addParamValue('Elems',1:this.Config.PosFE.Geometry.NumElements);
+            i.addParamValue('Elems',1:this.Config.FEM.Geometry.NumElements);
             i.addParamValue('Invariants',[]);
             i.addParamValue('Lambdas',false,@(v)islogical(v));
             i.addParamValue('MR',false);
@@ -473,11 +474,11 @@ classdef MusclePlotter < handle
             pd.no_bc = ~pd.bc_dir_pos_applies & ~pd.bool_expl_v_bc_nodes_applies;
 
             mc = this.Config;
-            dfem = mc.PosFE;
+            dfem = mc.FEM;
             geo = dfem.Geometry;
-            posdofs = geo.NumNodes * 3;
-            pd.vstart = posdofs+1;
-            pd.pstart = 2*posdofs+1;
+            num_u_glob = geo.NumNodes * 3;
+            pd.vstart = num_u_glob+1;
+            pd.pstart = 2*num_u_glob+1;
             pd.e = geo.Edges;
 
             %% Dirichlet forces
@@ -485,7 +486,7 @@ classdef MusclePlotter < handle
             % By sorting and combining the pos/velo Dir BC, the
             % plotting of mixed BCs on one node is plotted correctly.
             pd.residuals_pos = sys.bool_u_bc_nodes | sys.bool_expl_v_bc_nodes;
-            [~, pd.sortidx] = sort([sys.idx_u_bc_glob; sys.idx_v_bc_glob-posdofs]);
+%             [~, pd.sortidx] = sort([sys.idx_u_bc_glob; sys.idx_expl_v_bc_glob]);
             % Preallocate the residuals matrix
             pd.residuals = zeros(size(pd.residuals_pos));
 
@@ -515,7 +516,7 @@ classdef MusclePlotter < handle
 %     
 %     methods(Access=private)
         function box = getPlotBox(this, uvw)
-            xpos = 1:3:this.Config.PosFE.Geometry.NumNodes*3;
+            xpos = 1:3:this.Config.FEM.Geometry.NumNodes*3;
             box = [min(min(uvw(xpos,:))) max(max(uvw(xpos,:)))...
                 min(min(uvw(xpos+1,:))) max(max(uvw(xpos+1,:)))...
                 min(min(uvw(xpos+2,:))) max(max(uvw(xpos+2,:)))];

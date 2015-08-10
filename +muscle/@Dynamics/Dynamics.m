@@ -34,7 +34,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
     end
     
     properties(SetAccess=protected)
-        % Helper variable for fullmuscle.model
+        % Helper variable for fullmodels.muscle.model
         lambda_dot_pos;
         lambda_dot;
         
@@ -82,7 +82,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             this = this@dscomponents.ACompEvalCoreFun(sys);
             
             %% Load AP expansion
-            %             d = fileparts(which('muscle.Dynamics'));
+            %             d = fileparts(which('models.muscle.Dynamics'));
             %             s = load(fullfile(d,'AP'));
             %             s.kexp.Ma = s.kexp.Ma(1,:);
             %             this.APExp = s.kexp;
@@ -123,12 +123,12 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             mc.setForceLengthFun(this);
             
             % Muscle anisotropic passive law
-            mlfg = tools.MarkertLawOriginal(mu(5),mu(6));
+            mlfg = models.muscle.functions.MarkertLawOriginal(mu(5),mu(6));
             [this.AnisoPassiveMuscle, this.AnisoPassiveMuscleDeriv] = mlfg.getFunction;
             
             % Tendon anisotropic passive law
-            mlfg = tools.CubicToLinear(mu(7),mu(8));
-%             mlfg = tools.MarkertLaw(1.3895e+07,11.1429,1.637893706954065e+05);
+            mlfg = general.functions.CubicToLinear(mu(7),mu(8));
+%             mlfg = general.functions.MarkertLaw(1.3895e+07,11.1429,1.637893706954065e+05);
             [this.AnisoPassiveTendon, this.AnisoPassiveTendonDeriv] = mlfg.getFunction;
 
             % Get the law function handles that also take b,d as arguments.
@@ -197,7 +197,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         
         function copy = clone(this)
             % Create new instance
-            copy = muscle.Dynamics(this.System);
+            copy = models.muscle.Dynamics(this.System);
             
             % Call superclass clone (for deep copy)
             copy = clone@dscomponents.ACompEvalCoreFun(this, copy);
@@ -303,19 +303,19 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         function precomputeUnassembledData(this)
             sys = this.System;
             mc = sys.Model.Config;
-            geo = mc.PosFE.Geometry;
+            geo = mc.FEM.Geometry;
             num_u_glob = 3*geo.NumNodes;
             outsize = num_u_glob;
             
             % Position part: not assembly as u' = v without FEM
             
             % Velocity part: x,y,z velocities
-            [i, ~] = find(mc.PosFE.Sigma);
+            [i, ~] = find(mc.FEM.Sigma);
             I = [3*(i'-1)+1; 3*(i'-1)+2; 3*(i'-1)+3];
             
             % Pressure part
-            pgeo = mc.PressFE.Geometry;
-            [i, ~] = find(mc.PressFE.Sigma);
+            pgeo = mc.PressureFEM.Geometry;
+            [i, ~] = find(mc.PressureFEM.Sigma);
             I = [I(:); outsize+i];
             outsize = outsize + pgeo.NumNodes;
             
@@ -340,7 +340,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             % belong to which element
             % dv dofs
             hlp = repmat(1:geo.NumElements,3*geo.DofsPerElement,1);
-            pgeo = mc.PressFE.Geometry;
+            pgeo = mc.PressureFEM.Geometry;
             % dp dofs
             hlp2 = repmat(1:geo.NumElements,pgeo.DofsPerElement,1);
             hlp = [hlp(:); hlp2(:)];
@@ -355,7 +355,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
     
     methods(Static)
         function res = test_UnassembledEvaluation
-            m = muscle.Model(Cube12);
+            m = models.muscle.Model(models.muscle.examples.Cube12);
             mu = m.DefaultMu;
             [t,~,~,x] = m.simulate(mu);
             s = m.System;

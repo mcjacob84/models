@@ -1,4 +1,4 @@
-classdef Debug < muscle.AModelConfig
+classdef Debug < models.muscle.AMuscleConfig
     % A simple configuration for Debug purposes.
     % 
     % Uses a single undeformed cube with triquadratic position shape
@@ -36,16 +36,16 @@ classdef Debug < muscle.AModelConfig
                 varargin = {'Version',varargin{1}};
             end
             % Creates a Debug simple muscle model configuration.
-            this = this@muscle.AModelConfig(varargin{:});
+            this = this@models.muscle.AMuscleConfig(varargin{:});
             this.addOption('Version',3);
             this.init;
             
             switch this.Options.Version
                 case {4,5,6}
-                    this.VelocityBCTimeFun = tools.ConstantUntil(15);
+                    this.VelocityBCTimeFun = general.functions.ConstantUntil(15);
                     this.Options.FL = 2;
                 case {7,8,9}
-                    this.VelocityBCTimeFun = tools.ConstantUntil(15);
+                    this.VelocityBCTimeFun = general.functions.ConstantUntil(15);
                 case 14
                     % Use classical FL function with fl(1)=1
                     this.Options.FL = 3;
@@ -53,10 +53,11 @@ classdef Debug < muscle.AModelConfig
         end
         
         function configureModel(this, m)
-            configureModel@muscle.AModelConfig(this, m);
-            sys = m.System;
+            configureModel@models.muscle.AMuscleConfig(this, m);
+%             sys = m.System;
 %             f = sys.f;
-            m.T = 100;
+            m.T = 50;
+            m.dt = m.T / 30;
             m.ODESolver.RelTol = 1e-5;
             m.ODESolver.AbsTol = 1e-3;
             switch this.Options.Version
@@ -68,7 +69,7 @@ classdef Debug < muscle.AModelConfig
                 m.T = 400;
                 m.dt = 1;
                 types = [0 .2 .4 .6 .8 1];
-                fe = this.PosFE;
+                fe = this.FEM;
                 geo = fe.Geometry;
                 ftw = zeros(fe.GaussPointsPerElem,length(types),geo.NumElements);
                 % Test: Use only slow-twitch muscles
@@ -130,7 +131,7 @@ classdef Debug < muscle.AModelConfig
         end
         
         function configureModelFinal(this)
-            configureModelFinal@muscle.AModelConfig(this)
+            configureModelFinal@models.muscle.AMuscleConfig(this)
             m = this.Model;
             % Have the PODReducer always generate the full reduced model
             m.SpaceReducer.Value = length(m.SpaceReducer.TargetDimensions);
@@ -163,25 +164,29 @@ classdef Debug < muscle.AModelConfig
         
         function geo = getGeometry(this)
             % Single cube with same config as reference element
-            [pts, cubes] = geometry.Cube8Node.DemoGrid([0 1],[0 1],[0 1]);
-            %[pts, cubes] = geometry.Cube8Node.DemoGrid([0:.5:1],[0:.5:1],[0:.5:1]);
+            geo = fem.geometry.RegularHex8Grid([0 1],[0 1],[0 1]);
+            %[pts, cubes] = fem.geometry.RegularHex8Grid([0:.5:1],[0:.5:1],[0:.5:1]);
             if this.Options.Version == 11 || this.Options.Version == 12
-                [pts, cubes] = geometry.Cube8Node.DemoGrid([-1 1],[-1 1],[-1 1]);
+                geo = fem.geometry.RegularHex8Grid([-1 1],[-1 1],[-1 1]);
+                pts = geo.Nodes;
+                cubes = geo.Elements;
                 pts(1,[6 8]) = 2;
                 theta = .3;
                 R = [cos(theta) -sin(theta) 0
                      sin(theta) cos(theta)  0
                      0          0           1];
                 pts = circshift(R,[1 1])*R*pts;
+                geo = fem.geometry.Cube8Node(pts, cubes);
             end
-            geo = geometry.Cube8Node(pts, cubes);
             geo = geo.toCube27Node;
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             % Always fix back side
             switch this.Options.Version
+                case 4
+                    displ_dir(:,geo.Elements(1,geo.MasterFaces(4,:))) = true;
                 case 10
                     displ_dir(1,geo.Elements(1,geo.MasterFaces(1,:))) = true;
                 case 14
@@ -195,10 +200,13 @@ classdef Debug < muscle.AModelConfig
             % Determines the dirichlet velocities.
             %
             % The unit for the applied quantities is [mm/ms] = [m/s]
-            geo = this.PosFE.Geometry;
+            geo = this.FEM.Geometry;
             switch this.Options.Version
             
-            case {4,5,6}
+            case 4
+                velo_dir(2,geo.Elements(1,geo.MasterFaces(3,:))) = true;
+                velo_dir_val(velo_dir) = -.01;
+            case {5,6}
                 velo_dir(1,geo.Elements(1,geo.MasterFaces(2,:))) = true;
                 velo_dir_val(velo_dir) = .01;
             case {7,8,9}
@@ -245,7 +253,7 @@ classdef Debug < muscle.AModelConfig
             if nargin < 1
                 version = 4;
             end
-            m = muscle.Model(Debug(version));
+            m = models.muscle.Model(models.muscle.examples.Debug(version));
             [t,y] = m.simulate;
             pdf = m.getResidualForces(t,y);
             
@@ -271,7 +279,7 @@ classdef Debug < muscle.AModelConfig
             end
             for k = versions
                 fprintf('Testing DebugConfig Version %d\n',k);
-                m = muscle.Model(Debug(k));
+                m = models.muscle.Model(models.muscle.examples.Debug(k));
                 [t,y] = m.simulate;
                 df = m.getResidualForces(t,y);
                 m.plot(t,y,'DF',df,'Velo',true);

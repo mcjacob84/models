@@ -1,4 +1,4 @@
-classdef MarkertLaw < tools.AFunGen
+classdef MarkertLaw < general.functions.AFunGen
     % Returns the modified markert law functions for the OVERALL energy density
     % funcion derivative w.r.t. C (i.e. INCLUDING the 1/lam^2 prefactor
     % from chain rule!)
@@ -20,7 +20,7 @@ classdef MarkertLaw < tools.AFunGen
             if nargin < 3
                 max_modulus = [];
                 % Take data from fit to original function over [1 1.3]
-                % -> tools.MarkertLaw.test_FitToOriginal(tools.MarkertLawOriginal,[1 1.3]);
+                % -> general.functions.MarkertLaw.test_FitToOriginal(general.functions.MarkertLawOriginal,[1 1.3]);
                 if nargin < 2
                     d = 0.1660;
                     if nargin < 1
@@ -108,7 +108,7 @@ classdef MarkertLaw < tools.AFunGen
                     range = [1 1.2];
                 end
             end
-            plot@tools.AFunGen(this, range, varargin{:});
+            plot@general.functions.AFunGen(this, range, varargin{:});
             if (range(2) > this.t0)
                 ax = get(gcf,'Children');
                 ax = ax(2); % second one is the left one - hope this is reproducible
@@ -127,7 +127,7 @@ classdef MarkertLaw < tools.AFunGen
             ax = pm.nextPlot('markertfun_lintest','Plots for various parameters','lambda','value');
             axl = pm.nextPlot('markertfun_lintest_log','Plots for various parameters','lambda','value');
             for i = 1:size(C,2)
-                ml = tools.MarkertLaw(C(1,i),C(2,i),C(3,i));
+                ml = general.functions.MarkertLaw(C(1,i),C(2,i),C(3,i));
 %                 ml.plot(x);                
                 [f,df] = ml.getFunction;
                 fx = f(x);
@@ -138,7 +138,7 @@ classdef MarkertLaw < tools.AFunGen
                 hold(ax,'on');
                 hold(axl,'on');
                 
-                ml = tools.MarkertLaw(C(1,i),C(2,i),[]);
+                ml = general.functions.MarkertLaw(C(1,i),C(2,i),[]);
 %                 ml.plot(x);
                 [f,df] = ml.getFunction;
                 fx = f(x);
@@ -153,7 +153,7 @@ classdef MarkertLaw < tools.AFunGen
             if nargin < 2
                 range = [1 1.2];
                 if nargin < 1
-                    orig = tools.MarkertLawOriginal(7990, 16.6);
+                    orig = general.functions.MarkertLawOriginal(7990, 16.6);
                 end
             end
             ntest = 100;
@@ -168,7 +168,7 @@ classdef MarkertLaw < tools.AFunGen
             err = zeros(1,n);
             pi = ProcessIndicator('Performing fit for %d cases',n,false,n);
             for k=1:n
-                m = tools.MarkertLaw(p(1,k),p(2,k));
+                m = general.functions.MarkertLaw(p(1,k),p(2,k));
                 mf = m.getFunction;
                 ftest = mf(l);
                 err(k) = norm(forig-ftest);
@@ -176,8 +176,8 @@ classdef MarkertLaw < tools.AFunGen
             end
             pi.stop;
             [~, idx] = min(err(1,:));
-            fit = tools.MarkertLaw(p(1,idx),p(2,idx));
-            fitlin = tools.MarkertLaw(p(1,idx),p(2,idx),1e5);
+            fit = general.functions.MarkertLaw(p(1,idx),p(2,idx));
+            fitlin = general.functions.MarkertLaw(p(1,idx),p(2,idx),1e5);
             orig.plot(l);
             fit.plottofigure(gcf,l,'r');
             fitlin.plottofigure(gcf,l,'g');
