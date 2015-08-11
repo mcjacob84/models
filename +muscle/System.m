@@ -548,7 +548,7 @@ classdef System < models.BaseSecondOrderSystem
             % See description of property
             if this.UseDirectMassInversion
                 this.Minv = inv(MM);
-                MM = 1;
+                MM = speye(size(MM));
             end
         end
         

@@ -22,8 +22,7 @@ classdef Long < models.muscle.AMuscleConfig
         
         function geo = getGeometry(this)
             % Single cube with same config as reference element
-            geo = fem.geometry.Cube20Node.DemoGrid(-10:10:10,-40:10:40, [0 10], this.Options.Devi);
-            geo = geo.toCube20Node;
+            geo = fem.geometry.RegularHex20Grid(-10:10:10,-40:10:40, [0 10], this.Options.Devi);
         end
         
         function displ_dir = setPositionDirichletBC(this, displ_dir)

@@ -1,4 +1,4 @@
-classdef RiemBurgSys < models.BaseDynSystem
+classdef RiemBurgSys < models.BaseFirstOrderSystem
 % RiemBurgSys: 
 %
 %
@@ -15,7 +15,7 @@ classdef RiemBurgSys < models.BaseDynSystem
     
     methods
         function this = RiemBurgSys(model)
-            this = this@models.BaseDynSystem(model);
+            this = this@models.BaseFirstOrderSystem(model);
             this.TimeDependent = true;
             
             this.x0 = dscomponents.PointerInitialValue(@(mu)this.getx0(mu));

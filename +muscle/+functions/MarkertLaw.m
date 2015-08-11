@@ -108,7 +108,7 @@ classdef MarkertLaw < general.functions.AFunGen
                     range = [1 1.2];
                 end
             end
-            plot@general.functions.AFunGen(this, range, varargin{:});
+            plot@general.functions.AFunGen(this, 'R', range, varargin{:});
             if (range(2) > this.t0)
                 ax = get(gcf,'Children');
                 ax = ax(2); % second one is the left one - hope this is reproducible
@@ -127,7 +127,7 @@ classdef MarkertLaw < general.functions.AFunGen
             ax = pm.nextPlot('markertfun_lintest','Plots for various parameters','lambda','value');
             axl = pm.nextPlot('markertfun_lintest_log','Plots for various parameters','lambda','value');
             for i = 1:size(C,2)
-                ml = general.functions.MarkertLaw(C(1,i),C(2,i),C(3,i));
+                ml = models.muscle.functions.MarkertLaw(C(1,i),C(2,i),C(3,i));
 %                 ml.plot(x);                
                 [f,df] = ml.getFunction;
                 fx = f(x);
@@ -138,7 +138,7 @@ classdef MarkertLaw < general.functions.AFunGen
                 hold(ax,'on');
                 hold(axl,'on');
                 
-                ml = general.functions.MarkertLaw(C(1,i),C(2,i),[]);
+                ml = models.muscle.functions.MarkertLaw(C(1,i),C(2,i),[]);
 %                 ml.plot(x);
                 [f,df] = ml.getFunction;
                 fx = f(x);
@@ -149,11 +149,11 @@ classdef MarkertLaw < general.functions.AFunGen
             ylim(ax,[0 1e6]);
         end
         
-        function [fit, fitlin] = test_FitToOriginal(orig,range)
+        function [res, fit, fitlin] = test_FitToOriginal(orig,range)
             if nargin < 2
                 range = [1 1.2];
                 if nargin < 1
-                    orig = general.functions.MarkertLawOriginal(7990, 16.6);
+                    orig = models.muscle.functions.MarkertLawOriginal(7990, 16.6);
                 end
             end
             ntest = 100;
@@ -168,7 +168,7 @@ classdef MarkertLaw < general.functions.AFunGen
             err = zeros(1,n);
             pi = ProcessIndicator('Performing fit for %d cases',n,false,n);
             for k=1:n
-                m = general.functions.MarkertLaw(p(1,k),p(2,k));
+                m = models.muscle.functions.MarkertLaw(p(1,k),p(2,k));
                 mf = m.getFunction;
                 ftest = mf(l);
                 err(k) = norm(forig-ftest);
@@ -176,11 +176,12 @@ classdef MarkertLaw < general.functions.AFunGen
             end
             pi.stop;
             [~, idx] = min(err(1,:));
-            fit = general.functions.MarkertLaw(p(1,idx),p(2,idx));
-            fitlin = general.functions.MarkertLaw(p(1,idx),p(2,idx),1e5);
+            fit = models.muscle.functions.MarkertLaw(p(1,idx),p(2,idx));
+            fitlin = models.muscle.functions.MarkertLaw(p(1,idx),p(2,idx),1e5);
             orig.plot(l);
-            fit.plottofigure(gcf,l,'r');
-            fitlin.plottofigure(gcf,l,'g');
+            fit.plottofigure(gcf,l,'P',{'r'});
+            fitlin.plottofigure(gcf,l,'P',{'g'});
+            res = true;
         end
     end
     

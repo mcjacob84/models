@@ -18,9 +18,11 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         Sigma;
         % The indices of any dirichlet value in the unassembled vector duvw
         idx_uv_bc_glob_unass;
-        NumTotalDofs_unass;
+        fDim_unass;
+        num_dv_unass;
         idx_vp_dof_unass_elems;
         
+        %% Force length function fields
         ForceLengthFun;
         ForceLengthFunDeriv;
     end
@@ -186,7 +188,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
                 if nargin < 3
                     t = 1000;
                     if nargin < 2
-                        y = this.System.x0.evaluate(mu);
+                        y = this.System.getX0(mu);
                     end
                 end
             end
@@ -221,8 +223,8 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         end
         
         function set.ComputeUnassembled(this, value)
-            if value && ~isempty(this.NumTotalDofs_unass)%#ok
-                this.fDim = this.NumTotalDofs_unass;%#ok
+            if value && ~isempty(this.fDim_unass)%#ok
+                this.fDim = this.fDim_unass;%#ok
             elseif ~value && ~isempty(this.System)
                 this.fDim = this.System.NumTotalDofs;
             end
@@ -305,13 +307,16 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             mc = sys.Model.Config;
             geo = mc.FEM.Geometry;
             num_u_glob = 3*geo.NumNodes;
+            this.num_dv_unass = 3*geo.NumElements * geo.DofsPerElement;
             outsize = num_u_glob;
-            
-            % Position part: not assembly as u' = v without FEM
             
             % Velocity part: x,y,z velocities
             [i, ~] = find(mc.FEM.Sigma);
             I = [3*(i'-1)+1; 3*(i'-1)+2; 3*(i'-1)+3];
+            
+            if numel(I) ~= this.num_dv_unass
+                error('Size mismatch. Somethings wrong with FEM Sigma');
+            end
             
             % Pressure part
             pgeo = mc.PressureFEM.Geometry;
@@ -323,7 +328,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             S = sparse(I,1:n,ones(n,1),outsize,n);
             
             % Take out nodes with dirichlet BC on output side
-            S([sys.idx_u_bc_glob; sys.idx_v_bc_glob-num_u_glob],:) = [];
+            S(sys.idx_v_bc_local,:) = [];
             % Find corresponding unassembled dofs that would be ignored
             % (due to dirichlet velocity values, pressure dirichlet not
             % implemented)
@@ -331,17 +336,17 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             % Remove them, too. The unassembled evaluation also removes the
             % corresponding entries of the unassembled vector.
             S(:,bc_unass) = [];
-            this.idx_uv_bc_glob_unass = [sys.idx_u_bc_glob' num_u_glob + bc_unass];
+            this.idx_uv_bc_glob_unass = bc_unass; %[sys.idx_u_bc_glob' bc_unass];
             this.Sigma = S;
             
-            this.NumTotalDofs_unass = sys.NumStateDofs + size(S,2);
+            this.fDim_unass = size(S,2);
             
             % Create boolean array that determines which unassembled dofs
             % belong to which element
-            % dv dofs
+            % dK dofs
             hlp = repmat(1:geo.NumElements,3*geo.DofsPerElement,1);
             pgeo = mc.PressureFEM.Geometry;
-            % dp dofs
+            % dg dofs
             hlp2 = repmat(1:geo.NumElements,pgeo.DofsPerElement,1);
             hlp = [hlp(:); hlp2(:)];
             hlp(bc_unass) = [];
@@ -359,28 +364,25 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             mu = m.DefaultMu;
             [t,~,~,x] = m.simulate(mu);
             s = m.System;
-            f = s.f;
-            fx = f.evaluate(x(:,1),t(1));
-            f.ComputeUnassembled = true;
-            fxu = f.evaluate(x(:,1),t(1));
-            fx_ass = zeros(size(fx,1),1);
-            % du part (no assembly)
-            fx_ass(1:s.NumStateDofs) = fxu(1:s.NumStateDofs);
-            % dvw part (with assembly)
-            fx_ass(s.NumStateDofs + (1:s.NumDerivativeDofs+s.NumAlgebraicDofs)) = s.f.Sigma * fxu(s.NumStateDofs+1:end);
-            res = Norm.L2(fx - fx_ass) < eps;
+            K = s.f;
+            Ku = K.evaluate(x(:,1),t(1));
+            
+            K.ComputeUnassembled = true;
+            Ku_unass = K.evaluate(x(:,1),t(1));
+            Ku_ass = s.f.Sigma * Ku_unass;
+            res = Norm.L2(Ku - Ku_ass) < eps;
             
             % Multi-eval
-            f.ComputeUnassembled = false;
-            fx = f.evaluateMulti(x,t,mu);
-            f.ComputeUnassembled = true;
-            fxu = f.evaluateMulti(x,t,mu);
+            K.ComputeUnassembled = false;
+            Ku = K.evaluateMulti(x,t,mu);
+            K.ComputeUnassembled = true;
+            Ku_unass = K.evaluateMulti(x,t,mu);
             % du part (no assembly)
-            fx_ass = zeros(size(fx,1),length(t));
-            fx_ass(1:s.NumStateDofs,:) = fxu(1:s.NumStateDofs,:);
+            Ku_ass = zeros(size(Ku,1),length(t));
+            Ku_ass(1:s.NumStateDofs,:) = Ku_unass(1:s.NumStateDofs,:);
             % dvw part (with assembly)
-            fx_ass(s.NumStateDofs + (1:s.NumDerivativeDofs+s.NumAlgebraicDofs),:) = s.f.Sigma * fxu(s.NumStateDofs+1:end,:);
-            res = res & sum(Norm.L2(fx - fx_ass)) < eps;
+            Ku_ass(s.NumStateDofs + (1:s.NumDerivativeDofs+s.NumAlgebraicDofs),:) = s.f.Sigma * Ku_unass(s.NumStateDofs+1:end,:);
+            res = res & sum(Norm.L2(Ku - Ku_ass)) < eps;
         end
     end
 end

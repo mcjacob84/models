@@ -105,7 +105,7 @@ classdef SubElemInhomogMaterial < models.muscle.AMuscleConfig
             for fl = 1:3
                 c = models.muscle.examples.SubElemInhomogMaterial('GeoNr',gn,'Flip',fl);
                 m = c.createModel;
-                %m.setGaussIntegrationRule(6);
+                m.setGaussIntegrationRule(6);
                 [t,y] = m.simulate;
                 df = m.getResidualForces(t,y);
                 idx = m.getPositionDirichletBCFaceIdx(1,1+(fl-1)*2);

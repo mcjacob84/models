@@ -53,7 +53,7 @@ classdef MarkertLawOriginal < general.functions.AFunGen
             if nargin < 2
                 range = [.9 1.2];
             end
-            pm = plot@general.functions.AFunGen(this, range, varargin{:});
+            pm = plot@general.functions.AFunGen(this, 'R', range, varargin{:});
         end
     end
     

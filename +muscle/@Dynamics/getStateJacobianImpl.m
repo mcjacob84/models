@@ -423,7 +423,7 @@ function [JK, Jalpha, JLamDot] = getStateJacobianImpl(this, uvwdof, t)
     
     if this.usemassinv
         % Multiply with inverse of Mass matrix!
-        JK(sys.idx_v_dof_glob,:) = sys.Minv*JK(sys.idx_v_dof_glob,:);
+        JK = sys.Minv*JK;
     end
     
     Jalpha = [];

@@ -420,48 +420,52 @@ classdef Model < models.BaseFullModel
     end
     
     methods(Static)
-        function test_ModelVersions
-            m = models.muscle.Model(models.muscle.DebugConfig);
-            mu = m.getRandomParam;
-            [t,y] = m.simulate(mu);
-            m.System.UseDirectMassInversion = true;
-            [t,y] = m.simulate(mu);
-            
-            % Version with "constant" fibre activation forces
-            m = models.muscle.Model(models.muscle.DebugConfig(2));
-            [t,y] = m.simulate(mu);
-            m.System.UseDirectMassInversion = true;
-            [t,y] = m.simulate(mu);
-            
-            % Version with "neurophysiological" fibre activation forces
-            m = models.muscle.Model(models.muscle.DebugConfig(3));
-            [t,y] = m.simulate(mu);
-            m.System.UseDirectMassInversion = true;
-            [t,y] = m.simulate(mu);
-            m.System.UseDirectMassInversion = false;
-            f = m.System.f;
-            f.Viscosity = 1;
-            [t,y] = m.simulate(mu);
-            m.System.UseDirectMassInversion = true;
-            [t,y] = m.simulate(mu);
+        function res = test_ModelVersions
+            res = true;
+            try
+                m = models.muscle.Model(models.muscle.examples.Debug);
+                mu = m.getRandomParam;
+                [t,y] = m.simulate(mu);
+                m.System.UseDirectMassInversion = true;
+                [t,y] = m.simulate(mu);
+
+                % Version with "constant" fibre activation forces
+                m = models.muscle.Model(models.muscle.examples.Debug(2));
+                [t,y] = m.simulate(mu);
+                m.System.UseDirectMassInversion = true;
+                [t,y] = m.simulate(mu);
+
+                % Version with "neurophysiological" fibre activation forces
+                m = models.muscle.Model(models.muscle.examples.Debug(3));
+                [t,y] = m.simulate(mu);
+                m.System.UseDirectMassInversion = true;
+                [t,y] = m.simulate(mu);
+                m.System.UseDirectMassInversion = false;
+
+                % "Disable" viscosity
+                m.DefaultMu(1) = 0;
+                [t,y] = m.simulate(mu);
+                m.System.UseDirectMassInversion = true;
+                [t,y] = m.simulate(mu);
+            catch ME
+                ME.getReport('extended');
+                res = false;
+            end
         end
         
-        function test_JacobianApproxGaussRules(full)
+        function res = test_JacobianApproxGaussRules
             % Tests the precision of the analytical jacobian computation
             % using different gauss integration rules
-            if nargin < 1
-                full = false;
-            end
-            m = models.muscle.Model(models.muscle.DebugConfig(2));
-            m.simulate(1);
+            m = models.muscle.Model(models.muscle.examples.Debug(2));
+            m.simulate;
             f = m.System.f;
-            m.T = 1;
             m.dt = .2;
-            f.test_Jacobian(full);
+            m.T = 1;
+            res = f.test_Jacobian;
             m.setGaussIntegrationRule(4);
-            f.test_Jacobian;
+            res = res && f.test_Jacobian;
             m.setGaussIntegrationRule(5);
-            f.test_Jacobian(full);
+            res = res && f.test_Jacobian;
         end
     end
     

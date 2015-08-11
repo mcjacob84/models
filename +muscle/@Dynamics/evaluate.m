@@ -14,7 +14,6 @@ function dK = evaluate(this, uvwdof, t)
 %     geo = fe_pos.Geometry;
 %     fe_press = mc.PressureFEM;
 %     pgeo = fe_press.Geometry;
-%     unassembled = this.ComputeUnassembled;
 
     sys = this.fsys;
     isproj = ~isempty(this.V);
@@ -24,22 +23,20 @@ function dK = evaluate(this, uvwdof, t)
 %         uvwdof = rsys.R*uvwdof;
         uvwdof = this.V*uvwdof;
     end
+    
+    % This should be more correct
+%     unassembled = ~isproj && this.ComputeUnassembled;
+    unassembled = this.ComputeUnassembled;
 
     %% Include dirichlet values to state vector
     uvwcomplete = sys.includeDirichletValues(t, uvwdof);
-    
-%     uvwcomplete = zeros(2*num_u_glob + pgeo.NumNodes,1);
-%     % Insert DOFs
-%     uvwcomplete(sys.idx_uv_dof_glob) = uvwdof(1:sys.NumTotalDofs);
-%     % Insert BC
-%     uvwcomplete(sys.idx_uv_bc_glob) = sys.val_uv_bc_glob;
     
 %     if ~isproj
 %         % Init result vector duvw
 %         if unassembled
 %             % dofs_pos for u', elems*3*dofperelem for v',
 %             % elems*dofsperelem_press for p'
-%             duvw = zeros(this.NumTotalDofs_unass,1);    
+%             duvw = zeros(this.fDim_unass,1);    
 %         else
 %             dK = zeros(size(uvwcomplete));
 %         end
@@ -50,20 +47,27 @@ function dK = evaluate(this, uvwdof, t)
     % simultaneously (efficiency for only one FEM-loop is required)
     dKg = this.Kg(uvwcomplete,t);
     
-    % Extract boundary condition residuals for later use
-    this.LastBCResiduals = dKg(sys.idx_v_bc_local);
-    dKg(sys.idx_v_bc_local) = [];
+    if unassembled
+        dK = dKg(1:this.num_dv_unass);
+        dK(this.idx_uv_bc_glob_unass) = [];
+        this.curGC = dKg(this.num_dv_unass+1:end);
+    else
     
-    dd = sys.NumDerivativeDofs;
-    % Cache the algebraic constraint evaluation - will be read by the
-    % ConstraintsFun. This is just an efficiency hack that avoids having to
-    % run a second FEM loop, as the constraint condition can be computed
-    % along.
-    this.curGC = dKg(dd+1:end);
-    dK = dKg(1:dd);
-    
-    if isproj
-        dK = this.W'*dK;
+        % Extract boundary condition residuals for later use
+        this.LastBCResiduals = dKg(sys.idx_v_bc_local);
+        dKg(sys.idx_v_bc_local) = [];
+
+        dd = sys.NumDerivativeDofs;
+        % Cache the algebraic constraint evaluation - will be read by the
+        % ConstraintsFun. This is just an efficiency hack that avoids having to
+        % run a second FEM loop, as the constraint condition can be computed
+        % along.
+        this.curGC = dKg(dd+1:end);
+        dK = dKg(1:dd);
+
+        if isproj
+            dK = this.W'*dK;
+        end
     end
     
 %     if isproj
@@ -86,7 +90,7 @@ function dK = evaluate(this, uvwdof, t)
 %         
 %         %% Remove dirichlet boundary condition values
 %         if unassembled
-%             dKg(this.idx_uv_bc_glob_unass) = [];
+%             
 %         else
 %             %% Save & remove values at dirichlet pos/velo nodes
 %             this.LastBCResiduals = dKg([sys.idx_u_bc_glob+num_u_glob; sys.idx_v_bc_glob]);

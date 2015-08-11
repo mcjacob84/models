@@ -66,13 +66,9 @@ function dvw = Kg(this, uvw_full, t, fibreforces)
 
     % Init result vector dvw
     if unassembled
-        error('TODO fixme since separation of evaluateCoreFun into evaluate and Kg');
-        % dofs_pos for u', elems*3*dofperelem for v',
-        % elems*dofsperelem_press for p'
-        dvw = zeros(this.NumTotalDofs_unass,1);%#ok
-        
-        unass_offset_dvelo = num_u_glob;%#ok
-        unass_offset_dpressure = unass_offset_dvelo + num_elements*3*dofsperelem_u;%#ok
+        % elems*3*dofperelem for v', elems*dofsperelem_press for p'
+        dvw = zeros(this.fDim_unass,1);
+        unass_offset_dpressure = num_elements*3*dofsperelem_u;
     else
         % Dont have u' in result vector (see evaluate method)
         dvw = zeros(size(uvw_full,1)-num_u_glob,1);
@@ -194,7 +190,7 @@ function dvw = Kg(this, uvw_full, t, fibreforces)
         %% Assembly part II - sum up contributions of elements
         % Unassembled or assembled?
         if unassembled
-            pos = unass_offset_dvelo + (1:3*dofsperelem_u) + (m-1) * 3 * dofsperelem_u;
+            pos = (1:3*dofsperelem_u) + (m-1) * 3 * dofsperelem_u;
             dvw(pos) = -integrand_u(:);
             pos = unass_offset_dpressure + (1:dofsperelem_p) + (m-1) * dofsperelem_p;
             dvw(pos) = integrand_p(:);

@@ -1,4 +1,10 @@
 classdef ThinTendon < models.muscle.AExperimentModelConfig
+    % Thin tendon experiment for parameter fitting of tendon params.
+    %
+    % Option BC == 1 uses configurable velocity BCs to move the loose end.
+    % Used for experiment.
+    % Option BC == 2 enables to pull with a given force (via mu) at the
+    % loose end. Can be applied to test stretch given an external force.
     
     properties(SetAccess=private)
         ylen = 200;
@@ -9,6 +15,7 @@ classdef ThinTendon < models.muscle.AExperimentModelConfig
     methods
         function this = ThinTendon(varargin)
             this = this@models.muscle.AExperimentModelConfig(varargin{:});
+            this.addOption('BC',1);
             this.init;
             this.VelocityBCTimeFun = general.functions.ConstantUntil(this.movetime);
             this.configs = (-.9:.1:.2)*this.ylen/this.movetime;
@@ -48,10 +55,13 @@ classdef ThinTendon < models.muscle.AExperimentModelConfig
             % model.
             %
             % @type cell @default {}
-            u = {this.getAlphaRamp(this.movetime,1)};
+            u = {};
+            if this.Options.BC == 2
+                u = {this.getAlphaRamp(this.movetime,1)};
+            end
         end
         
-        function P = getBoundaryPressure(~, elemidx, faceidx)
+        function P = getBoundaryPressure(this, elemidx, faceidx)
             % Determines the neumann forces on the boundary.
             %
             % The unit for the applied quantities is megaPascal [MPa]
@@ -59,7 +69,7 @@ classdef ThinTendon < models.muscle.AExperimentModelConfig
             % In the default implementation there are no force boundary
             % conditions.
             P = [];
-            if any(elemidx == 21:24) && faceidx == 4
+            if this.Options.BC == 2 && any(elemidx == 21:24) && faceidx == 4
                 P = 1;
             end
         end
@@ -95,10 +105,12 @@ classdef ThinTendon < models.muscle.AExperimentModelConfig
         
         function [velo_dir, velo_dir_val] = setVelocityDirichletBC(this, velo_dir, velo_dir_val)
             %% Dirichlet conditions: Position (fix one side)
-            geo = this.FEM.Geometry;
-            % Fix ends in xz direction
-            velo_dir(2,geo.Elements(21:24,geo.MasterFaces(4,:))) = true;
-            velo_dir_val(velo_dir) = this.configs(this.CurrentConfigNr);
+            if this.Options.BC == 1
+                geo = this.FEM.Geometry;
+                % Fix ends in xz direction
+                velo_dir(2,geo.Elements(21:24,geo.MasterFaces(4,:))) = true;
+                velo_dir_val(velo_dir) = this.configs(this.CurrentConfigNr);
+            end
         end
     end
     
