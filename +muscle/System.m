@@ -10,10 +10,10 @@ classdef System < models.BaseSecondOrderSystem
        % The global index of node x,y,z positions within uvw.
        %
        % The velocities are indentically indexed but 3*NumNodes later.
-       idx_u_glob_elems;
+       idx_u_elems_local;
        
        % The global index of node pressures within uvw.
-       idx_p_glob_elems;
+       idx_p_elems_local;
     end
     
     properties(SetAccess=private)
@@ -285,6 +285,9 @@ classdef System < models.BaseSecondOrderSystem
             %% Set system components
             % Core nonlinearity
             this.f = models.muscle.Dynamics(this);
+            
+            % Constraint nonlinearity
+            this.g = models.muscle.Constraint(this);
         end
         
         function rsys = buildReducedSystem(this, rmodel)
@@ -348,15 +351,14 @@ classdef System < models.BaseSecondOrderSystem
                     % Use first, second and third as positions.
                     globalelementdofs(:,:,m) = [hlp; hlp+1; hlp+2];
                 end
-                this.idx_u_glob_elems = globalelementdofs;
+                this.idx_u_elems_local = globalelementdofs;
 
                 % The same for the pressure
                 globalpressuredofs = zeros(geo_p.DofsPerElement,geo_p.NumElements,'int32');
-                off = 2 * (geo_pos.NumNodes * 3);
                 for m = 1:geo_p.NumElements
-                    globalpressuredofs(:,m) = off + geo_p.Elements(m,:);
+                    globalpressuredofs(:,m) = geo_p.Elements(m,:);
                 end
-                this.idx_p_glob_elems = globalpressuredofs;
+                this.idx_p_elems_local = globalpressuredofs;
 
                 %% Compile Mass Matrix
                 this.M = dscomponents.ConstMassMatrix(this.assembleMassMatrix);
@@ -371,7 +373,7 @@ classdef System < models.BaseSecondOrderSystem
                 this.x0 = dscomponents.ConstInitialValue(this.assembleX0);
                 
                 %% Algebraic constraints function
-                this.g = dscomponents.ConstraintsFun(this);
+                this.g.configUpdated;
                 
                 this.updateSparsityPattern;
             end
@@ -787,6 +789,37 @@ classdef System < models.BaseSecondOrderSystem
                 % Log-interpolated MR c01
                 this.MuscleTendonParamc01 = f(tmr,mu(10),mu(12));
             end
+        end
+    end
+    
+    methods(Static)
+        function res = test_UnassembledEvaluation
+            m = models.muscle.Model(models.muscle.examples.Cube12);
+            % Dont do too much steps
+            m.dt = m.T / 20;
+            mu = m.DefaultMu;
+            [t,~,~,x] = m.simulate(mu);
+            s = m.System;
+            K = s.f;
+            Ku = K.evaluate(x(:,1),t(1));
+            g = s.g;
+            gu = g.evaluate(x(:,1),t(1));
+            
+            K.ComputeUnassembled = true;
+            g.ComputeUnassembled = true;
+            Ku_unass = K.evaluate(x(:,1),t(1));
+            gu_unass = g.evaluate(x(:,1),t(1));
+            Ku_ass = K.Sigma * Ku_unass;
+            gu_ass = g.Sigma * gu_unass;
+            res = Norm.L2(Ku - Ku_ass) < eps;
+            res = res && Norm.L2(gu - gu_ass) < eps;
+            
+            % Multi-eval
+            K.ComputeUnassembled = false;
+            Ku = K.evaluateMulti(x,t,mu);
+            K.ComputeUnassembled = true;
+            Ku_unass = K.evaluateMulti(x,t,mu);
+            res = res & sum(Norm.L2(Ku - s.f.Sigma*Ku_unass)) < eps;
         end
     end
     

@@ -20,7 +20,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         idx_uv_bc_glob_unass;
         fDim_unass;
         num_dv_unass;
-        idx_vp_dof_unass_elems;
+        idx_v_elems_unass;
         
         %% Force length function fields
         ForceLengthFun;
@@ -58,11 +58,6 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         % simulations. Used in getSimCacheExtra to uniquely identify a
         % simulation in the cache
         RampTime;
-        
-        % Cached values of the current constraint evaluation and it's
-        % jacobian
-        curGC;
-        curJGC;
     end
     
     properties(Transient, Access=private)
@@ -226,7 +221,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             if value && ~isempty(this.fDim_unass)%#ok
                 this.fDim = this.fDim_unass;%#ok
             elseif ~value && ~isempty(this.System)
-                this.fDim = this.System.NumTotalDofs;
+                this.fDim = this.System.NumDerivativeDofs;
             end
             this.ComputeUnassembled = value;
         end
@@ -306,9 +301,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             sys = this.System;
             mc = sys.Model.Config;
             geo = mc.FEM.Geometry;
-            num_u_glob = 3*geo.NumNodes;
             this.num_dv_unass = 3*geo.NumElements * geo.DofsPerElement;
-            outsize = num_u_glob;
             
             % Velocity part: x,y,z velocities
             [i, ~] = find(mc.FEM.Sigma);
@@ -318,14 +311,8 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
                 error('Size mismatch. Somethings wrong with FEM Sigma');
             end
             
-            % Pressure part
-            pgeo = mc.PressureFEM.Geometry;
-            [i, ~] = find(mc.PressureFEM.Sigma);
-            I = [I(:); outsize+i];
-            outsize = outsize + pgeo.NumNodes;
-            
             n = numel(I);
-            S = sparse(I,1:n,ones(n,1),outsize,n);
+            S = sparse(I,1:n,ones(n,1),3*geo.NumNodes,n);
             
             % Take out nodes with dirichlet BC on output side
             S(sys.idx_v_bc_local,:) = [];
@@ -338,51 +325,19 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             S(:,bc_unass) = [];
             this.idx_uv_bc_glob_unass = bc_unass; %[sys.idx_u_bc_glob' bc_unass];
             this.Sigma = S;
-            
             this.fDim_unass = size(S,2);
             
             % Create boolean array that determines which unassembled dofs
             % belong to which element
             % dK dofs
-            hlp = repmat(1:geo.NumElements,3*geo.DofsPerElement,1);
-            pgeo = mc.PressureFEM.Geometry;
-            % dg dofs
-            hlp2 = repmat(1:geo.NumElements,pgeo.DofsPerElement,1);
-            hlp = [hlp(:); hlp2(:)];
+            hlp = repmat(1:geo.NumElements, 3*geo.DofsPerElement,1);
+            hlp = hlp(:);
             hlp(bc_unass) = [];
             ass = false(geo.NumElements,length(hlp));
             for k = 1:geo.NumElements
                 ass(k,:) = hlp == k;
             end
-            this.idx_vp_dof_unass_elems = ass;
-        end
-    end
-    
-    methods(Static)
-        function res = test_UnassembledEvaluation
-            m = models.muscle.Model(models.muscle.examples.Cube12);
-            mu = m.DefaultMu;
-            [t,~,~,x] = m.simulate(mu);
-            s = m.System;
-            K = s.f;
-            Ku = K.evaluate(x(:,1),t(1));
-            
-            K.ComputeUnassembled = true;
-            Ku_unass = K.evaluate(x(:,1),t(1));
-            Ku_ass = s.f.Sigma * Ku_unass;
-            res = Norm.L2(Ku - Ku_ass) < eps;
-            
-            % Multi-eval
-            K.ComputeUnassembled = false;
-            Ku = K.evaluateMulti(x,t,mu);
-            K.ComputeUnassembled = true;
-            Ku_unass = K.evaluateMulti(x,t,mu);
-            % du part (no assembly)
-            Ku_ass = zeros(size(Ku,1),length(t));
-            Ku_ass(1:s.NumStateDofs,:) = Ku_unass(1:s.NumStateDofs,:);
-            % dvw part (with assembly)
-            Ku_ass(s.NumStateDofs + (1:s.NumDerivativeDofs+s.NumAlgebraicDofs),:) = s.f.Sigma * Ku_unass(s.NumStateDofs+1:end,:);
-            res = res & sum(Norm.L2(Ku - Ku_ass)) < eps;
+            this.idx_v_elems_unass = ass;
         end
     end
 end

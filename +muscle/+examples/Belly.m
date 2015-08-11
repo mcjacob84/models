@@ -79,6 +79,7 @@ classdef Belly < models.muscle.AMuscleConfig
         
         function test_BellyModel
             m = models.muscle.Model(models.muscle.examples.Belly);
+            m.dt = min(m.T/10,2);
             m.simulateAndPlot;
         end
     end

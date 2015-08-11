@@ -247,7 +247,7 @@ classdef MusclePlotter < handle
                 for elemidx = 1:nelem
                     m = opts.Elems(elemidx);
                     u = y_dofs(1:pd.vstart-1);
-                    u = u(sys.idx_u_glob_elems(:,:,m));
+                    u = u(sys.idx_u_elems_local(:,:,m));
                     gps = u*pd.Ngp;
                     
                     if doStr
@@ -387,7 +387,7 @@ classdef MusclePlotter < handle
                     for gp = 1:num_gp
                         pos = 3*(gp-1)+1:3*gp;
                         dtn = dfem.transgrad(:,pos,m);        
-                        elemidx_u = sys.idx_u_glob_elems(:,:,m); 
+                        elemidx_u = sys.idx_u_elems_local(:,:,m); 
                         for ts = 1:nt
                             % Deformation gradient
                             yts = pd.yfull(:,ts) ;

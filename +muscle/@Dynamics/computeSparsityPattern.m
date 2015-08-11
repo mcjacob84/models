@@ -8,7 +8,6 @@ function [SPK, SPg, SPalpha, SPLamDot] = computeSparsityPattern(this)
     pgeo = fe_press.Geometry;
 
     N = geo.NumNodes;
-    M = pgeo.NumNodes;
     
     % Jalpha
     if this.nfibres > 0
@@ -26,25 +25,21 @@ function [SPK, SPg, SPalpha, SPLamDot] = computeSparsityPattern(this)
     num_elements = geo.NumElements;
     num_gausspoints = fe_pos.GaussPointsPerElem;
     dofs_pos = N*3;
-    globidx_disp = sys.idx_u_glob_elems;
     dofsperelem_displ = geo.DofsPerElement;
     dofsperelem_press = pgeo.DofsPerElement;
     
     % Compute indices vectors size for speed
     isize = num_elements*num_gausspoints*(...
             dofsperelem_displ*...
-                (3*(3*dofsperelem_displ + dofsperelem_press)) +...
-            dofsperelem_press*(3*dofsperelem_displ)) ;
+                (3*(3*dofsperelem_displ + dofsperelem_press)));
     i = zeros(isize,1,'int32');
     j = zeros(isize,1,'int32');    
 
     curoff = 0;
-    globidx_press = sys.idx_p_glob_elems;
-    pones = ones(dofsperelem_press,1,'int32');
     for m = 1:num_elements
-        elemidx_u = globidx_disp(:,:,m);
+        elemidx_u = sys.idx_u_elems_local(:,:,m);
         elemidx_v = elemidx_u + dofs_pos;
-        elemidx_p = globidx_press(:,m)-dofs_pos;
+        elemidx_p_glob = sys.idx_p_elems_local(:,m)+2*dofs_pos;
         inew = elemidx_u(:);
         one = ones(size(inew),'int32');
         for gp = 1:num_gausspoints
@@ -70,24 +65,14 @@ function [SPK, SPg, SPalpha, SPLamDot] = computeSparsityPattern(this)
 %                     i = [i; inew]; 
 %                     j = [j; one*elemidx_velo(3,k)]; 
 %                 end
-
-                %% grad u g(u)
-                step = 3*dofsperelem_press;
-                % dx,dy,dz
-                i(curoff + (1:step)) = [elemidx_p(:)
-                                        elemidx_p(:)
-                                        elemidx_p(:)];
-                j(curoff + (1:step)) = [pones*elemidx_u(1,k)
-                                        pones*elemidx_u(2,k)
-                                        pones*elemidx_u(3,k)];
-                curoff = curoff + step;
             end
+            
             %% Grad_w K(u,v,w)
             inew = elemidx_u(:);
             step = 3*dofsperelem_displ;
             for k = 1:dofsperelem_press
                 i(curoff + (1:step)) = inew;
-                j(curoff + (1:step)) = one*elemidx_p(k)+dofs_pos; 
+                j(curoff + (1:step)) = one*elemidx_p_glob(k); 
                 curoff = curoff + step;
             end
             
@@ -107,12 +92,7 @@ function [SPK, SPg, SPalpha, SPLamDot] = computeSparsityPattern(this)
             end
         end
     end
-    SPK = sparse(double(i),double(j),ones(size(i)),3*N+M,6*N+M);
-    
-    % Extract g constraint pattern
-    SPg = SPK(3*N+1:end,:);
-    SPg(:,sys.idx_uv_bc_glob) = [];
-    SPg = logical(SPg);
+    SPK = sparse(double(i),double(j),ones(size(i)),3*N,6*N+pgeo.NumNodes);
     
     % Remove values at dirichlet nodes
     SPK = SPK(1:3*N,:);
