@@ -408,15 +408,6 @@ classdef System < models.BaseSecondOrderSystem
             prepareSimulation@models.BaseSecondOrderSystem(this, mu, inputidx);
         end
         
-        function pm = plotDiff(this, t, uvw1, uvw2, fac, varargin)
-            if nargin < 5
-                fac = 5;
-            end
-            x0 = this.x0.evaluate([]);
-            diff = repmat(x0,1,length(t)) + (uvw1-uvw2)*fac;
-            pm = this.plot(t,diff,varargin{:});
-        end
-        
         function uvwall = includeDirichletValues(this, t, uvw)
             %% Re-add the dirichlet nodes
             % Efficient for single vector

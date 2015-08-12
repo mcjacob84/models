@@ -70,6 +70,7 @@ classdef Model < models.BaseFullModel
             %s.MaxSubspaceSize = 500;
             s = spacereduction.PODReducer;
             s.IncludeInitialSpace = true;
+            s.IncludeBSpan = true;
             s.Mode = 'abs';
             this.SpaceReducer = s;
             
@@ -129,6 +130,15 @@ classdef Model < models.BaseFullModel
             t.addRow('\rho_0', 'c_{10} [MPa]','c_{01} [MPa]','b_1 [MPa]','d_1 [-]','P_{max} [MPa]','\lambda_f^{opt}');
             t.addRow(this.MuscleDensity, mu(9),mu(10),mu(5),mu(6),mu(13),mu(14));
             t.Format = 'tex';
+        end
+        
+        function pm = plotDiff(this, t, uvw1, uvw2, fac, varargin)
+            if nargin < 5
+                fac = 5;
+            end
+            x0 = this.System.getX0(this.System.mu);
+            diff = repmat(x0,1,length(t)) + (uvw1-uvw2)*fac;
+            pm = this.plot(t,diff,varargin{:});
         end
         
         function plotForceLengthCurve(this, mu, pm)
@@ -282,6 +292,9 @@ classdef Model < models.BaseFullModel
                 varargin(end+1:end+2) = {'NF',nf};
             end
             varargin(end+1:end+2) = {'Velo',true};
+            if ~isempty(this.Approx) && isa(this.System.f,'dscomponents.ACompEvalCoreFun') && ~isempty(this.System.f.PointSets)
+                varargin(end+1:end+2) = {'DEIM',true};
+            end
             % Plot without default args (time-plotting might want to
             % suppress fibres for speed, but we want them here)
             old = this.Plotter.DefaultArgs;

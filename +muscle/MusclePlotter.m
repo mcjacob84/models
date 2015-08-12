@@ -181,6 +181,17 @@ classdef MusclePlotter < handle
             % Velocity
             uvdir = u(:,pd.bool_expl_v_bc_nodes_applies);
             plot3(h,uvdir(1,:),uvdir(2,:),uvdir(3,:),'g.','MarkerSize',20);
+            
+            %% DEIM interpolation nodes
+            if opts.DEIM
+                dm = 'p';
+                u3dir = u(:,pd.deimnodes_sum == 3);
+                plot3(h,u3dir(1,:),u3dir(2,:),u3dir(3,:),dm,'MarkerSize',10,'Color',[0 0 1]);
+                u2dir = u(:,pd.deimnodes_sum == 2);
+                plot3(h,u2dir(1,:),u2dir(2,:),u2dir(3,:),dm,'MarkerSize',10,'Color',[0 0 .8]);
+                u1dir = u(:,pd.deimnodes_sum == 1);
+                plot3(h,u1dir(1,:),u1dir(2,:),u1dir(3,:),dm,'MarkerSize',10,'Color',[0 0 .6]);
+            end
 
             %% Dirichlet Forces
             if ~isempty(pd.DF)
@@ -430,6 +441,17 @@ classdef MusclePlotter < handle
                     pd.stretchcmaplbl = sprintfc('%3.3g',linspace(mlam,Mlam,12));
                 end
             end
+            %% DEIM point plotting
+            if opts.DEIM
+                if isempty(sys.f.PointSets)
+                    error('Invalid plot option "DEIM": Approximation not computed yet.');
+                end
+                interp_idx_glob = sys.idx_uv_dof_glob(sys.f.PointSets{1});
+                pos = false(size(geo.Nodes));
+                pos(interp_idx_glob) = true;
+                pd.deimnodes = pos;
+                pd.deimnodes_sum = sum(pos,1);
+            end
         end
         
         function opts = parsePlotArgs(this, args)
@@ -453,6 +475,7 @@ classdef MusclePlotter < handle
             i.addParamValue('MTRatio',false,@(v)islogical(v));
             i.addParamValue('Pause',.01);
             i.addParamValue('Stretch',false,@(v)islogical(v));
+            i.addParamValue('DEIM',false,@(v)islogical(v));
             
             args = [this.DefaultArgs args];
             i.parse(args{:});

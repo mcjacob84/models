@@ -142,32 +142,39 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         end
         
         function fx = evaluateComponentSet(this, nr, x, t)
-            % Computes the full or reduced component functions of the given point set.
-            %
-            % Parameters:
-            % nr: The number of the PointSet to use. @type integer
-            % x: The state space location `\vx` @type colvec<double>
-            % t: The corresponding times `t` for the state `\vx` @type double
-            %
-            % See also: PointSet
+            % Manual override of the ACompEvalCoreFun.evaluateComponentSet
+            % method as we're doing the "inefficient" approach of computing the
+            % full solution for now
             fx = this.evaluate(x,t);
-            fx = this.V(this.PointSets{nr},:)*fx;
+            if ~isempty(this.W)
+                fx = this.W(this.PointSets{nr},:)*fx;
+            else
+                fx = fx(this.PointSets{nr},:);
+            end
         end
         
         function fx = evaluateComponentSetMulti(this, nr, x, t, mu)
-            % Computes the full component functions of the given point set.
-            %
-            % Parameters:
-            % nr: The number of the PointSet to use. @type integer
-            % x: The state space locations `\vx` @type matrix<double>
-            % t: The corresponding times `t` for the state `\vx` @type
-            % rowvec<double>
-            % mu: The corresponding parameters `\mu`. Can be a single
-            % parameter or as many as the size of x @type matrix<double>
-            %
-            % See also: PointSet
+            % Manual override of the ACompEvalCoreFun.evaluateComponentSetMulti
+            % method as we're doing the "inefficient" approach of computing the
+            % full solution for now
             fx = this.evaluateMulti(x,t,mu);
-            fx = fx(this.PointSets{nr},:);
+            if ~isempty(this.W)
+                fx = this.W(this.PointSets{nr},:)*fx;
+            else
+                fx = fx(this.PointSets{nr},:);
+            end
+        end
+        
+        function dfx = evaluateComponentSetGradientsAt(this, nr, x, t)
+            % Manual override of the ACompEvalCoreFun.evaluateComponentSetGradientsAt
+            % method as we're doing the "inefficient" approach of computing the
+            % full solution for now
+            J = this.getStateJacobian(x,t);
+            if ~isempty(this.W)
+                dfx = this.W(this.PointSets{nr},:)*J;
+            else
+                dfx = J(this.PointSets{nr},:);
+            end
         end
         
         function res = test_Jacobian(this, y, t, mu)
@@ -227,7 +234,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         end
         
         % Declare public
-        [SPK, SPg, SPalpha, SPLamDot] = computeSparsityPattern(this);
+        [SPK, SPalpha, SPLamDot] = computeSparsityPattern(this);
     end
     
     methods(Access=protected)
