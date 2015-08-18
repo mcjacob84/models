@@ -1,8 +1,5 @@
 function Kuvw = evaluate(this, uvwdof, t, fibreforces)
     % This function represents the nonlinear stiffness operator K
-    
-    this.nfevals = this.nfevals+1;
-
     sys = this.fsys;
     isproj = ~isempty(this.V);
     % If we evaluate inside a projected (reduced) model, reconstruct

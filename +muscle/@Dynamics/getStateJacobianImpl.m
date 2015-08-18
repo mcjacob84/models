@@ -1,5 +1,4 @@
 function [JK, Jalpha, JLamDot] = getStateJacobianImpl(this, uvwdof, t)
-    this.nJevals = this.nJevals+1;
 %     J = this.getStateJacobianFD(uvwdof,t);
 %     return;
     

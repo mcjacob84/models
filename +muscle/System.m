@@ -427,6 +427,20 @@ classdef System < models.BaseSecondOrderSystem
                 end
             end
         end
+        
+        function val = getDerivativeDirichletValues(this, t)
+            % Computes the derivative dirichlet values dependent on the
+            % current time.
+            %
+            % See also: ODEFun DerivativeDirichletPosInStateDofs
+
+            % Check if velocity bc's should be applied in time-dependent manner
+            if ~isempty(this.velo_bc_fun)
+                val = this.velo_bc_fun(t)*this.val_expl_v_bc;
+            else
+                val = this.val_expl_v_bc;
+            end
+        end
     end
     
     methods
@@ -649,20 +663,6 @@ classdef System < models.BaseSecondOrderSystem
 %             this.AlgebraicConditionDoF = this.idx_p_dof_glob;
             
             
-        end
-        
-        function val = getDerivativeDirichletValues(this, t)
-            % Computes the derivative dirichlet values dependent on the
-            % current time.
-            %
-            % See also: ODEFun DerivativeDirichletPosInStateDofs
-
-            % Check if velocity bc's should be applied in time-dependent manner
-            if ~isempty(this.velo_bc_fun)
-                val = this.velo_bc_fun(t)*this.val_expl_v_bc;
-            else
-                val = this.val_expl_v_bc;
-            end
         end
         
         function inita0(this)

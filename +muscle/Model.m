@@ -116,8 +116,6 @@ classdef Model < models.BaseFullModel
             % by the AMuscleConfig class.
             this.Config.prepareSimulation(mu, inputidx);
             [t, x, time, cache] = computeTrajectory@models.BaseFullModel(this, mu, inputidx);
-            f = this.System.f;
-            fprintf('Finished after %gs (fevals:%d, Jacobians: %d)\n',time,f.nfevals,f.nJevals);
         end
         
         function t = getConfigTable(this, mu)
@@ -286,15 +284,25 @@ classdef Model < models.BaseFullModel
             if ~isempty(varargin) && isa(varargin{1},'PlotManager')
                 varargin = [{'PM'} varargin];
             end
-            x0 = this.System.getX0(this.System.mu);
+            i = inputParser;
+            i.addParamValue('x0',[]);
+            i.KeepUnmatched = true;
+            i.parse(varargin{:});
+            r = i.Results;
+            if ~isempty(r.x0)
+                x0 = r.x0;
+            else
+                x0 = this.System.getX0(this.System.mu);
+            end
             [~, nf] = this.getResidualForces(0, x0);
             if ~isempty(nf)
                 varargin(end+1:end+2) = {'NF',nf};
             end
             varargin(end+1:end+2) = {'Velo',true};
-            if ~isempty(this.Approx) && isa(this.System.f,'dscomponents.ACompEvalCoreFun') && ~isempty(this.System.f.PointSets)
-                varargin(end+1:end+2) = {'DEIM',true};
-            end
+            %if ~isempty(this.Approx) && isa(this.System.f,'dscomponents.ACompEvalCoreFun') && ~isempty(this.System.f.PointSets)
+            %    varargin(end+1:end+2) = {'DEIM',true};
+            %end
+            
             % Plot without default args (time-plotting might want to
             % suppress fibres for speed, but we want them here)
             old = this.Plotter.DefaultArgs;

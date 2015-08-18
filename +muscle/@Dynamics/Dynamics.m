@@ -47,9 +47,6 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         % Prepared arguments for APExpansion
         %         muprep;
         LastBCResiduals;
-        
-        nfevals;
-        nJevals;
     end
     
     properties(Transient)
@@ -103,10 +100,6 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         
         function prepareSimulation(this, mu)
             prepareSimulation@dscomponents.ACompEvalCoreFun(this, mu);
-            
-            % Reset counters
-            this.nfevals = 0;
-            this.nJevals = 0;
             
             sys = this.fsys;
             mc = sys.Model.Config;
