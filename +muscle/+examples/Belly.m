@@ -59,24 +59,6 @@ classdef Belly < models.muscle.AMuscleConfig
     end
     
     methods(Static)
-        function res = test_BellyGeometryGeneration
-            g = fem.geometry.Belly(4,35,'InnerRadius',.2,'Gamma',7);
-            g = fem.geometry.Belly(4,35,'InnerRadius',[.2 .6],'Gamma',5);
-            g = fem.geometry.Belly(4,35,'InnerRadius',.2,'Gamma',[10 20]);
-            g = fem.geometry.Belly(4,35,'InnerRadius',[.2 .6],'Gamma',[10 20]);
-            g = fem.geometry.Belly(4,35,'Radius',[4 2],'InnerRadius',.5,'Gamma',[10 20]);
-            g = fem.geometry.Belly(4,35,'Radius',@(x)[sqrt(abs(x)); 1./(x-34).^2],'InnerRadius',.2);
-            g.plot;
-            g = fem.geometry.Belly(4,35,'Radius',@(x)sqrt(abs(x)));
-            g.plot;
-%             g = fem.geometry.Belly(4,35,'Radius',[4 2],'InnerRadius',.5,...
-%                 'Gamma',[10 20],'MinZ',-1.5);
-%             g.plot;
-            g = fem.geometry.Belly(4,35,'Radius',@(x)sqrt(abs(x)),'Layers',[.4 .7 1]);
-            g.plot;
-            res = 1;
-        end
-        
         function test_BellyModel
             m = models.muscle.Model(models.muscle.examples.Belly);
             m.dt = min(m.T/10,2);

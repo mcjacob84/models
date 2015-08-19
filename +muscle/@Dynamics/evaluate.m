@@ -40,6 +40,7 @@ function Kuvw = evaluate(this, uvwdof, t, fibreforces)
     c10 = sys.MuscleTendonParamc10;
     c01 = sys.MuscleTendonParamc01;
     mooneyrivlin_ic_const = sys.MooneyRivlinICConst;
+    Id3 = eye(3);
     
     if havefibres
         % Muscle/tendon material inits. Assume muscle only.
@@ -103,7 +104,7 @@ function Kuvw = evaluate(this, uvwdof, t, fibreforces)
             dtn = fe_pos.transgrad(:,pos,m);
 
             if any(isnan(u(:)))
-                fprintf('NaNs in models.muscle.Dynamics#evaluateCoreFun! Have a look.\n');
+                fprintf('NaNs in models.muscle.Dynamics#evaluateCoreFun at t=%g! Have a look.\n',t);
                 keyboard;
             end
             % Deformation gradient
@@ -115,7 +116,7 @@ function Kuvw = evaluate(this, uvwdof, t, fibreforces)
             I1 = C(1,1) + C(2,2) + C(3,3);
             
             %% Compile tensor
-            P = mooneyrivlin_ic_const(gp,m)*eye(3) + p*inv(F)' + 2*(c10(gp,m) + I1*c01(gp,m))*F ...
+            P = mooneyrivlin_ic_const(gp,m)*Id3 + p*inv(F)' + 2*(c10(gp,m) + I1*c01(gp,m))*F ...
                 - 2*c01(gp,m)*F*C;
             
             %% Anisotropic part (Invariant I4 related)
