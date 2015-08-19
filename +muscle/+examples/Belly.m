@@ -38,7 +38,7 @@ classdef Belly < models.muscle.AMuscleConfig
         
         function geo = getGeometry(this)
             np = 4;
-            geo = fem.geometry.Belly(np,10,'Radius',1,'InnerRadius',.5,'Gamma',2);
+            geo = fem.geometry.Belly(linspace(0,10,np+1),'Radius',1,'InnerRadius',.5,'Gamma',2);
             this.NumParts = np;
         end
         

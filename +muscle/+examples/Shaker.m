@@ -47,7 +47,7 @@ classdef Shaker < models.muscle.AMuscleConfig
     methods(Access=protected)
         
         function geo = getGeometry(this)
-            belly = fem.geometry.Belly(4,10,'Radius',1,'InnerRadius',.4,'Gamma',2);
+            belly = fem.geometry.Belly(linspace(0,10,5),'Radius',1,'InnerRadius',.4,'Gamma',2);
             geo = belly.scale(20);
             this.ylen = 100;
         end

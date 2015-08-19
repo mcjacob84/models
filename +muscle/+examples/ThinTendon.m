@@ -87,7 +87,8 @@ classdef ThinTendon < models.muscle.AExperimentModelConfig
     methods(Access=protected)
         
         function geo = getGeometry(this)
-            geo = fem.geometry.Belly(6,this.ylen,'Radius',0,'InnerRadius',2,'Gamma',2);
+            geo = fem.geometry.Belly(linspace(0,this.ylen,7),...
+                'Radius',0,'InnerRadius',2,'Gamma',2);
             n = geo.Nodes;
             % Slightly deviate a node in the center
             n(1,137) = n(1,137)*1.1;

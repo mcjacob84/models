@@ -177,7 +177,7 @@ classdef MuscleTendonMix < models.muscle.AMuscleConfig
             if any(this.Options.Variant == [6 7])
                 yl = 10;
                 this.ylen = yl;
-                geo = fem.geometry.Belly(6,yl,'Radius',1,'InnerRadius',.2,'Gamma',2);
+                geo = fem.geometry.Belly(linspace(0,6,yl+1),'Radius',1,'InnerRadius',.2,'Gamma',2);
             else
                 geo = geo.toCube27Node;
             end
