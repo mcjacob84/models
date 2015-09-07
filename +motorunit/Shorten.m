@@ -200,6 +200,10 @@ classdef Shorten < models.BaseFullModel
             [t,y] = m.simulate;
             m.plot(t,y);
             
+            m.System.f.LinkSarcoMoto = false;
+            [t,y] = m.simulate;
+            m.plot(t,y);
+            
             m = models.motorunit.Shorten(1,false,true);
             [t,y] = m.simulate;
             m.plot(t,y);

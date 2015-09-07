@@ -169,7 +169,8 @@ classdef System < models.BaseFirstOrderSystem
             %
             % See also: models.motorunit.experiment.InitialConditions
             mc = metaclass(this);
-            s = load(fullfile(fileparts(which(mc.Name)),'x0coeff.mat'));
+            s = load(fullfile(fileparts(which(mc.Name)),...
+                sprintf('x0coeff%d.mat',this.Model.Version)));
             x0 = dscomponents.AffineInitialValue;
             m = size(s.coeff,1);
             for k=1:m
