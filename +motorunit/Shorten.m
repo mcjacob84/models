@@ -21,6 +21,14 @@ classdef Shorten < models.BaseFullModel
     % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
     % - \c License @ref licensing
     
+    properties
+        % The shorten model version to use.
+        %
+        % 1: Original model
+        % 2: Modified model from V. Neumann
+        Version = 1;
+    end
+    
     properties(Dependent)
         UseNoise;
     end
@@ -57,22 +65,26 @@ classdef Shorten < models.BaseFullModel
     end
     
     methods
-        function this = Shorten(dynamic_ic, singlepeakmode, outputscaling)
+        function this = Shorten(version, dynamic_ic, singlepeakmode, outputscaling)
             % Creates a new motor unit model
             %
             % Parameters:
             % singlepeakmode: A flag that determines if this model should
             % only ever produce one force peak @type logical @default false
             
-            if nargin < 3
+            if nargin < 4
                 outputscaling = true;
-                if nargin < 2
+                if nargin < 3
                     singlepeakmode = false;
-                    if nargin < 1
+                    if nargin < 2
                         dynamic_ic = true;
+                        if nargin < 1
+                            version = 1;
+                        end
                     end
-                end
+                end    
             end
+            this.Version = version;
             this.SinglePeakMode = singlepeakmode;
             this.DynamicInitialConditions = dynamic_ic;
             this.SingleTwitchOutputForceScaling = outputscaling;
@@ -92,7 +104,7 @@ classdef Shorten < models.BaseFullModel
             this.Data.useFileTrajectoryData;
             
             this.Name = sprintf('Motor unit model: Single peak mode: %d, Dynamic Initial Conditions: %d',singlepeakmode,dynamic_ic);
-            this.System = models.motorunit.SHSystem(this);
+            this.System = models.motorunit.System(this);
             this.TrainingInputs = 1;
             this.EnableTrajectoryCaching = true;
             
@@ -181,6 +193,18 @@ classdef Shorten < models.BaseFullModel
     methods(Static)
         function res = test_Shorten
             m = models.motorunit.Shorten;
+            [t,y] = m.simulate;
+            m.plot(t,y);
+            
+            m = models.motorunit.Shorten(2);
+            [t,y] = m.simulate;
+            m.plot(t,y);
+            
+            m = models.motorunit.Shorten(1,false,true);
+            [t,y] = m.simulate;
+            m.plot(t,y);
+            
+            m = models.motorunit.Shorten(2,false,true);
             [t,y] = m.simulate;
             m.plot(t,y);
             res = 1;

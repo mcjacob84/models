@@ -32,7 +32,8 @@ classdef Pool < handle
             end
             this.Version = version;
             this.fugle = models.motorunit.Fuglevand;
-            this.shorten = models.motorunit.Shorten;
+            % We use the Neumann shorten version in the motorunit pools
+            this.shorten = models.motorunit.Shorten(2);
         end
         
         function prepareSimulation(this, T, meancurrent)

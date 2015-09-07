@@ -13,17 +13,19 @@
 %
 %% Usage
 % The resulting "coeff" matrix is stored in the models.motorunit package
-% folder as x0coeff.mat and read upon model construction.
+% folder as x0coeff<version>.mat and read upon model construction.
 
+%version = 1;
+version = 2;
 
 % Create with no dynamic initial conditions as this script is intended to
 % compute them :-)
 file = fullfile(fileparts(mfilename('fullpath')),'ic_singletwitch.mat');
-filex0 = fullfile(fileparts(mfilename('fullpath')),'..','x0coeff');
+filex0 = fullfile(fileparts(mfilename('fullpath')),'..',sprintf('x0coeff%d',version));
 if exist(file,'file') == 2
     load(file);
 else
-    m = models.motorunit.Shorten(false,true);
+    m = models.motorunit.Shorten(version,false,true);
     m.UseNoise = false;
     s = sampling.ManualSampler;
     p = linspace(0,1,200);
@@ -50,7 +52,7 @@ else
     m.Data.TrajectoryData.consolidate(m);
     pi.stop;
     m.save;
-    save(file, 'm', 'endvals', 'p', 'ctimes');
+    save(file, 'm', 'endvals', 'p', 'ctimes', 'n');
 end
 
 %% Fit every dimension by polynomial

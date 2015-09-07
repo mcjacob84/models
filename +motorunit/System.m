@@ -1,4 +1,4 @@
-classdef SHSystem < models.BaseFirstOrderSystem
+classdef System < models.BaseFirstOrderSystem
 % SHSystem: The global dynamical system used within the Shorten motorunit
 % model
 %
@@ -20,9 +20,6 @@ classdef SHSystem < models.BaseFirstOrderSystem
     properties(Constant)
         % Dimension of motoneuron part
         dm = 6; 
-        
-        % Dimension of single sarcomer cell part
-        dsa = 56; 
         
         % Membrane capacitance. Different values for different fibre types, 
         % due to different action potential propagation speeds
@@ -51,6 +48,9 @@ classdef SHSystem < models.BaseFirstOrderSystem
     properties(SetAccess=private)
         % The NoiseGenerator to obtain the inputs u(t)        
         noiseGen;
+        
+        % Dimension of single sarcomer cell part
+        dsa = 56; 
     end
     
     properties(SetAccess=private)
@@ -74,19 +74,26 @@ classdef SHSystem < models.BaseFirstOrderSystem
     end
     
     methods
-        function this = SHSystem(model)
+        function this = System(model)
             % Call superclass constructor
             this = this@models.BaseFirstOrderSystem(model);
             
             this.addParam('fibre_type', 0, 'Range', [0 1]);
             this.addParam('mean_current_factor', 3, 'Range', [0 9]);
             
+            % The neumann version has two extra equations
+            if model.Version == 1
+                this.dsa = 56;
+            else
+                this.dsa = 58;
+            end
+            
             this.NumStateDofs = this.dm+this.dsa;
             this.updateDimensions;
             
             %% Set system components
             % Core nonlinearity
-            this.f = models.motorunit.SHDynamics(this);
+            this.f = models.motorunit.Dynamics(this);
             
             % Load mean current limiting polynomial
             s = load(models.motoneuron.Model.FILE_UPPERLIMITPOLY);
@@ -108,9 +115,10 @@ classdef SHSystem < models.BaseFirstOrderSystem
             if model.DynamicInitialConditions
                 this.x0 = this.assembleX0;
             else
-                this.x0 = dscomponents.ConstInitialValue(this.getConstInitialStates);
+                this.x0 = dscomponents.ConstInitialValue(...
+                    [this.f.moto.InitialValues;
+                    this.f.sarco.InitialValues]);
             end
-            
             this.updateSparsityPattern;
         end
         
@@ -123,7 +131,6 @@ classdef SHSystem < models.BaseFirstOrderSystem
             
             % Limit mean current depending on fibre type
             mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
-            
             prepareSimulation@models.BaseFirstOrderSystem(this, mu, inputidx);
         end
         
@@ -198,21 +205,7 @@ classdef SHSystem < models.BaseFirstOrderSystem
                 str = ['polyval([' sprintf('%g ',this.ForceOutputScalingPolyCoeff) '],mu(1))'];
             end
             C.addMatrix(str, sparse(2,59,1,2,this.dm+this.dsa));
-        end
-                
-        function x0 = getConstInitialStates(~)
-            % initial states from original work Shorten
-            x0_sarc = zeros(56,1);
-            x0_sarc(1:14) = [-79.974; -80.2; 5.9; 150.9; 5.9; 12.7; 133;...
-                133; 0.009466; 0.9952; 0.0358; 0.4981; 0.581; 0.009466];
-            x0_sarc(15:37) = [0.9952; 0.0358; 0.4981; 0.581; 0; 0; 0; 0; 0; 1;...
-                0; 0; 0; 0; 0.1; 1500; 0.1; 1500; 25; 615; 615; 811; 811];
-            x0_sarc(38:45) = [16900; 16900; 0.4; 0.4; 7200; 7200; 799.6; 799.6];
-            x0_sarc(46:54) = [1000; 1000; 3; 0.8; 1.2; 3; 0.3; 0.23; 0.23];
-            x0_sarc(55:56) = [0.23; 0.23]; %0.0; 0.05
-            x0 = [zeros(6,1); x0_sarc];
-        end
-        
+        end                
     end
     
 end
