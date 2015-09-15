@@ -21,76 +21,24 @@ classdef Shorten < models.BaseFullModel
     % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
     % - \c License @ref licensing
     
-    properties
-        % The shorten model version to use.
-        %
-        % 1: Original model
-        % 2: Modified model from V. Neumann
-        Version = 1;
-    end
-    
     properties(Dependent)
         UseNoise;
     end
     
-    properties(SetAccess=private)
-        % Flag that determines if this system is to be run so that only
-        % ever one peak/signal will be issued.
-        %
-        % @type logical @default false
-        SinglePeakMode = false;
-        
-        % Set this flag to true (in constructor) if you want
-        % parameter-dependent initial conditions that have been obtained
-        % using long-time simulations of the model for different fibre
-        % types and then using the end state as "stable" initial condition.
-        %
-        % The actual values have been computed using a polynomial fit of
-        % degree seven on each dimension for the parameter range [0,1]
-        %
-        % @type logical @default true
-        %
-        % See also: models.motorunit.experiment.InitialConditions
-        DynamicInitialConditions = true;
-        
-        % Flag to determine if the output force (e.g. calcium
-        % concentration) should be re-scaled so that the forces using a
-        % single twitch are the same maximal forces (=1) for each fibre
-        % type.
-        %
-        % @type logical @default true
-        %
-        % See also: models.motorunit.experiments.SarcoScaling 
-        SingleTwitchOutputForceScaling = true;
-    end
-    
     methods
-        function this = Shorten(version, dynamic_ic, singlepeakmode, outputscaling)
+        function this = Shorten(varargin)
             % Creates a new motor unit model
-            %
-            % Parameters:
-            % singlepeakmode: A flag that determines if this model should
-            % only ever produce one force peak @type logical @default false
             
-            if nargin < 4
-                outputscaling = true;
-                if nargin < 3
-                    singlepeakmode = false;
-                    if nargin < 2
-                        dynamic_ic = true;
-                        if nargin < 1
-                            version = 1;
-                        end
-                    end
-                end    
-            end
-            this.Version = version;
-            this.SinglePeakMode = singlepeakmode;
-            this.DynamicInitialConditions = dynamic_ic;
-            this.SingleTwitchOutputForceScaling = outputscaling;
+            i = inputParser;
+            i.addParamValue('SarcoVersion',1);
+            i.addParamValue('DynamicIC',true);
+            i.addParamValue('SPM',false);
+            i.addParamValue('OutputScaling',true);
+            i.parse(varargin{:});
+            options = i.Results;
             
             this.dt = .1;
-            if singlepeakmode
+            if options.SPM
                 this.T = 2000; % [ms]
             else
                 this.T = 150; % [ms]
@@ -99,17 +47,19 @@ classdef Shorten < models.BaseFullModel
             % resolved (at least visually) if larger timesteps are used.
             this.dt = .1; % [ms]
             
-            this.SaveTag = sprintf('motorunit_shorten_sp%d_dynic%d',singlepeakmode,dynamic_ic);
+            this.SaveTag = sprintf('motorunit_shorten_sp%d_dynic%d',...
+                options.SPM,options.DynamicIC);
             this.Data = data.ModelData(this);
             this.Data.useFileTrajectoryData;
             
-            this.Name = sprintf('Motor unit model: Single peak mode: %d, Dynamic Initial Conditions: %d',singlepeakmode,dynamic_ic);
-            this.System = models.motorunit.System(this);
+            this.Name = sprintf('Motor unit model: Single peak mode: %d, Dynamic Initial Conditions: %d',...
+                options.SPM,options.DynamicIC);
+            this.System = models.motorunit.System(this, options);
             this.TrainingInputs = 1;
             this.EnableTrajectoryCaching = true;
             
             s = solvers.MLWrapper(@ode15s);
-            if singlepeakmode
+            if options.SPM
                 sys = this.System;
                 s.odeopts.OutputFcn = @sys.singlePeakModeOutputFcn;
             end

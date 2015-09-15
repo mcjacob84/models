@@ -1,4 +1,4 @@
-classdef Dynamics < dscomponents.ACoreFun
+classdef Dynamics < models.motorunit.MotorunitBaseDynamics
     % Dynamics: Class for nonlinear dynamics of motorunit model
     %
     % @author Daniel Wirtz @date 2012-11-22
@@ -12,30 +12,6 @@ classdef Dynamics < dscomponents.ACoreFun
     % - \c License @ref licensing
     
     properties
-        % The `V_s` value of the motoneuron input at which the MSLink_MaxFactor should be attained
-        %
-        % @type double @default 40
-        MSLink_MaxFactorSignal = 40;
-        
-        % The maximal factor with which the `V_s` value of the motoneuron should be amplified
-        % when added to the sarcomere equations
-        %
-        % @type double @default 7
-        MSLink_MaxFactor = 7;
-        
-        % The minimal factor at which the `V_s` value of the motoneuron should be amplified
-        % when added to the sarcomere equations.
-        %
-        % Between both limits, an exponential Gaussian weight is applied with a certain radius,
-        % so that the amplification factor has its minimum value at zero and maximum value at
-        % MSLink_MaxFactorSignal.
-        %
-        % See also FibreDynamics.getLinkFactor
-        %
-        % @type double @default .3
-        MSLink_MinFactor = .3;
-        
-        
         % Stimulation frequency in kHz, duration in ms, ampiltude in µA/cm²
         % and start time for an external stimulus bypassing the
         % motoneuron. Stimulation pattern 
@@ -70,14 +46,6 @@ classdef Dynamics < dscomponents.ACoreFun
         LinkSarcoMoto = true;
     end
     
-    properties(SetAccess=private)
-        % Sarcomere model
-        sarco;
-        
-        % Motoneuron model
-        moto;
-    end
-    
     properties(Access=private)
         spm;
     end
@@ -89,25 +57,15 @@ classdef Dynamics < dscomponents.ACoreFun
     
     methods
         function this = Dynamics(sys)
-            this = this@dscomponents.ACoreFun(sys);
+            this = this@models.motorunit.MotorunitBaseDynamics(sys);
+            this.spm = sys.SinglePeakMode;
             this.fDim = sys.dsa + sys.dm;
             this.xDim = this.fDim;
-            this.spm = sys.Model.SinglePeakMode;
-            if sys.Model.Version == 1
-                this.sarco = models.motorunit.SarcomereOriginal;
-            else
-                this.sarco = models.motorunit.SarcomereNeumann;
-            end
-            this.moto = models.motoneuron.Motoneuron;
             this.initJSparsityPattern;
         end
         
         function prepareSimulation(this, mu)
             prepareSimulation@dscomponents.ACoreFun(this, mu);
-            
-            % Precompute motoneuron/sarcomere constants
-            this.sarco.setType(mu(1));
-            this.moto.setType(mu(1));
             this.hadpeak = false;
         end
         
@@ -167,16 +125,17 @@ classdef Dynamics < dscomponents.ACoreFun
             % t: current time @type rowvec<double>
             % mu: fibre type parameter @type rowvec<double> 0 = slow twitch fibre, 1 = fast twitch fibre
             
-            dm = this.System.dm;
+            sys = this.System;
+            dm = sys.dm;
             
             %% Inner dynamics (with partial nonlinear linking)
             dy = zeros(size(y));
             
             %% Neuro dynamics (last 2 arguments are 2 phases: phase_prim, phase_sec)
-            dy(1:dm) = this.moto.dydt(y(1:dm),t);
+            dy(1:dm) = sys.moto.dydt(y(1:dm),t);
             
             %% Sarcomere dynamics
-            sa = this.sarco;
+            sa = sys.sarco;
             dy(dm+1:end) = sa.dydt(y(dm+1:end),t);
             
             %% Link of motoneuron to sarcomer cell
@@ -218,10 +177,10 @@ classdef Dynamics < dscomponents.ACoreFun
             J = spalloc(bs,bs,45+303);  % 45: 40 entries in motoneuron and spindle part + reserve, 303: entries per single sarcomere
             
             %% Neuron jacobian
-            J(1:dm,1:dm) = this.moto.Jdydt(y(1:dm),t,1);
+            J(1:dm,1:dm) = s.moto.Jdydt(y(1:dm),t,1);
             
             %% Sarcomere jacobian
-            sa = this.sarco;
+            sa = s.sarco;
             J(dm+1:bs,dm+1:bs) = sa.Jdydt(y(dm+1:end), t);
             
             if this.LinkSarcoMoto
@@ -249,32 +208,22 @@ classdef Dynamics < dscomponents.ACoreFun
         function initJSparsityPattern(this)
             % Initializes the Sparsity pattern of the Jacobian
             %
-            s = this.System;
-            dm = s.dm; dsa = s.dsa;
+            sys = this.System;
+            dm = sys.dm;
+            dsa = sys.dsa;
             size = dm + dsa;
             J = sparse(size,size);
             
             % Neuro
-            J(1:dm,1:dm) = this.moto.JSparsityPattern;
+            J(1:dm,1:dm) = sys.moto.JSparsityPattern;
             
             % Sarco
-            J(dm+1:size,dm+1:size) = this.sarco.JSparsityPattern;
+            J(dm+1:size,dm+1:size) = sys.sarco.JSparsityPattern;
             
             % MS link
             linkpos = dm+1;
             J(linkpos,2) = true;
             this.JSparsityPattern = logical(J);            
-        end
-        
-        function f = getLinkFactor(this, y)
-            % scalar link factor motoneuron to middle sarcomere
-            %
-            % See also: FibreDynamics.evaluate
-            % Parameters:
-            % y: @type rowvec<double>  second state from motoneuron
-            % submodel
-            f = this.MSLink_MinFactor + exp(-(y-this.MSLink_MaxFactorSignal).^2/150)...
-                *(this.MSLink_MaxFactor-this.MSLink_MinFactor);
         end
     end
 end

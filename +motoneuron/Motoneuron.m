@@ -13,6 +13,10 @@ classdef Motoneuron < KerMorObject
 % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
 % - \c License @ref licensing
     
+    properties(Constant)
+        Dims = 6;
+    end
+
     properties(SetAccess=private)
         Constants;
         TypeNoise;

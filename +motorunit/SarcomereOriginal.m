@@ -13,6 +13,17 @@ classdef SarcomereOriginal < KerMorObject
     % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
     % - \c License @ref licensing
     
+    properties(Constant) 
+        % Membrane capacitance. Different values for different fibre types, 
+        % due to different action potential propagation speeds
+        % C_m is computed parameter-dependent.
+        % These constants are for both slow and fast muscle models and are also used in the
+        % first entry of the sarcomere constants computed in
+        % models.muscle.FibreDynamics.initSarcoConst @type double
+        C_m_slow = 0.58;
+        C_m_fast = 1;
+        Dims = 56;
+    end
      
     properties
         % Interpolation Exponent for the parameter Interpolation of the
@@ -669,11 +680,11 @@ classdef SarcomereOriginal < KerMorObject
             c(105) =  0.99*c(101);
             
             positions = [1 2 8 9 10 11 12 13 14 25 28 38 39 40 41 48 49 61 63 68 71 72 74 75 89 90 91 92 93 94 99];
-            slow = [0.58 2.79 559 559 0.00174 40229.885 40229.885 0.34 -0.43 ...
+            slow = [this.C_m_slow 2.79 559 559 0.00174 40229.885 40229.885 0.34 -0.43 ...
                 -68 7.1 3.275 10.8 134 1.85 0.0001656 70 2.4375 4e-05 0.0885 0 0 0 0 ...
                 .05, .5, 0.008, 0.006, 0.004 ... % Human muscle, for mouse use 0.5 5 0.08 0.06 0.04
                 3.94e-06 60];
-            fast = [1 4.8 350 350 0.0032 21875 21875 1.02 -1.29 -78 5.8 ...
+            fast = [this.C_m_fast 4.8 350 350 0.0032 21875 21875 1.02 -1.29 -78 5.8 ...
                 19.65 64.8 804 11.1 0.000621 90 4.875 2e-05 0.04425 0.0417 0.0005 3.3e-05 0.003 ...
                 .15, 1.5, 0.024, 0.018, 0.012 ... % Human muscle, for mouse use 1.5 15 0.24 0.18 0.12
                 2.867e-05 300];
