@@ -43,8 +43,7 @@ classdef Shorten < models.BaseFullModel
             else
                 this.T = 150; % [ms]
             end
-            % DO NOT INCREASE! Peaks from Motoneuron are not correctly
-            % resolved (at least visually) if larger timesteps are used.
+            
             this.dt = .1; % [ms]
             
             this.SaveTag = sprintf('motorunit_shorten_sp%d_dynic%d',...

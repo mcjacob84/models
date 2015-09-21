@@ -25,20 +25,14 @@ classdef System < models.motorunit.MotorunitBaseSystem
             this.f = models.motorunit.Dynamics(this);
             
             % Linear input B for motoneuron
-            this.B = this.assembleB;
+            this.assembleB;
             
             % Affine-Linear output C
-            this.C = this.assembleC;
+            this.assembleC;
             
             % Constant initial values
-            % See also: models.motorunit.experiment.InitialConditions
-            if this.DynamicInitialConditions
-                this.x0 = this.assembleX0;
-            else
-                this.x0 = dscomponents.ConstInitialValue(...
-                    [this.f.moto.InitialValues;
-                    this.f.sarco.InitialValues]);
-            end
+            this.assembleX0;
+            
             this.updateSparsityPattern;
         end
         
@@ -57,25 +51,33 @@ classdef System < models.motorunit.MotorunitBaseSystem
     
     methods(Access=protected)
         
-        function x0 = assembleX0(this)
+        function assembleX0(this)
             % Loads the polynomial coefficients for each dimension and
             % creates an affine-initial value that produces the suitable
             % initial conditions determined by long-time simulations of
             % different fibre-types with no active input.
             %
             % See also: models.motorunit.experiment.InitialConditions
-            mc = metaclass(this);
-            s = load(fullfile(fileparts(which(mc.Name)),...
-                sprintf('x0coeff%d.mat',this.SarcoVersion)));
-            x0 = dscomponents.AffineInitialValue;
-            m = size(s.coeff,1);
-            for k=1:m
-                x0.addMatrix(sprintf('polyval([%s],mu(1))',...
-                    sprintf('%g ',s.coeff(k,:))),full(sparse(k,1,1,m,1)));
+            
+            if this.DynamicInitialConditions
+                mc = metaclass(this);
+                s = load(fullfile(fileparts(which(mc.Name)),...
+                    sprintf('x0coeff%d.mat',this.SarcoVersion)));
+                x0 = dscomponents.AffineInitialValue;
+                m = size(s.coeff,1);
+                for k=1:m
+                    x0.addMatrix(sprintf('polyval([%s],mu(1))',...
+                        sprintf('%g ',s.coeff(k,:))),full(sparse(k,1,1,m,1)));
+                end
+                this.x0 = x0;
+            else
+                this.x0 = dscomponents.ConstInitialValue(...
+                    [this.moto.InitialValues;
+                    this.sarco.InitialValues]);
             end
         end
         
-        function B = assembleB(this)
+        function assembleB(this)
             % input conversion matrix, depends on fibre type. Has only one
             % entry in second row.
             %
@@ -88,9 +90,10 @@ classdef System < models.motorunit.MotorunitBaseSystem
             % Independent noise input mapping with µ_2 as mean current factor
             B.addMatrix('mu(2,:)./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
                 sparse(2,2,1,this.dm+this.dsa,2));
+            this.B = B;
         end
         
-        function C = assembleC(this)
+        function assembleC(this)
             % input conversion matrix, depends on fibre type. Has only one
             % entry in second row.
             C = dscomponents.AffLinOutputConv;
@@ -102,6 +105,7 @@ classdef System < models.motorunit.MotorunitBaseSystem
                 str = ['polyval([' sprintf('%g ',this.ForceOutputScalingPolyCoeff) '],mu(1))'];
             end
             C.addMatrix(str, sparse(2,59,1,2,this.dm+this.dsa));
+            this.C = C;
         end                
     end
     

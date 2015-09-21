@@ -106,8 +106,8 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             this.SingleTwitchOutputForceScaling = options.OutputScaling;
             this.SarcoVersion = options.SarcoVersion;
             
-            this.addParam('fibre_type', 0, 'Range', [0 1]);
-            this.addParam('mean_current_factor', 3, 'Range', [0 9]);
+            this.addParam('fibre_type', 0, 'Range', [0 1], 'Desired', 15);
+            this.addParam('mean_current_factor', 3, 'Range', [0 9], 'Desired', 15);
             
             this.MaxTimestep = model.dt;
             
