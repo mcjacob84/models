@@ -110,4 +110,41 @@ classdef Model < models.BaseFullModel
             end
         end
     end
+    
+    methods(Static)
+        function res = test_MusclefibreModels
+            res = true;
+            for N = [2 5]
+                for sv = [1 2]
+                    for ic = logical([0 1])
+                        try
+                            fprintf('Testing N=%d,SV=%d,DynIC=%d\n',N,sv,ic);
+                            m = models.musclefibre.Model('N',N,...
+                                'SarcoVersion',sv,'DynamicIC',ic);
+                            m.T = 40;
+                            m.dt = .01;
+                            m.simulate;
+
+                            ms = models.musclefibre.Model('N',N,...
+                                'SarcoVersion',sv,'DynamicIC',ic,...
+                                'SPM',true);
+                            ms.T = 40;
+                            ms.dt = .01;
+                            ms.simulate;
+                        catch ME
+                            display(ME)
+                            res = false;
+                            break;
+                        end
+                    end
+                    if ~res
+                        break;
+                    end
+                end
+                if ~res
+                    break;
+                end
+            end
+        end
+    end
 end
