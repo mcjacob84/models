@@ -157,6 +157,7 @@ classdef System < models.BaseSecondOrderSystem
         fUseDirectMassInversion = false;
         fUseCrossFibreStiffness = false;
         fD;
+        fLastMu;
     end
     
     properties(SetAccess=protected)
@@ -326,17 +327,14 @@ classdef System < models.BaseSecondOrderSystem
                 
                 % Set input function
                 this.Inputs = mc.getInputs;
-
-                %% Tendon stuff
-                % Detect of tendons are present
-                this.initMuscleTendonRatios;
                 
                 % Init fibre directions and precomputable values
                 this.inita0;
                 
                 this.HasMotoPool = this.HasFibres && ~isempty(mc.Pool);
                 this.HasFibreTypes = this.HasFibres && ~isempty(mc.FibreTypeWeights);
-                this.HasForceArgument = this.HasFibreTypes && isa(this,'fullmodels.muscle.System');
+                this.HasForceArgument = this.HasFibreTypes && isa(this,'models.fullmuscle.System');
+                this.HasTendons = ~isempty(mc.getTendonMuscleRatio(zeros(3,1)));
 
                 % Construct global indices in uw from element nodes. Each dof in
                 % an element is used three times for x,y,z displacement. The
@@ -388,10 +386,6 @@ classdef System < models.BaseSecondOrderSystem
             if mu(1) > 0
                 this.D = this.fD;
             end
-            % Update muscle/tendon parameters on all gauss points
-            % We have mu-dependent mooney-rivlin and markert laws, but they
-            % are constant over one simulation. So precompute here.
-            this.updateTendonMuscleParamsGP(mu);
             
             % Update the MooneyRivlinICConst to have stress-free IC
             % This depends on the current muscle/tendon parameters for
@@ -405,7 +399,15 @@ classdef System < models.BaseSecondOrderSystem
                 this.velo_bc_fun = mc.VelocityBCTimeFun.getFunction;
             end
             
+            % This also invokes prepare simulation for f, e.g. the material
+            % law functions are set
             prepareSimulation@models.BaseSecondOrderSystem(this, mu, inputidx);
+            
+            %% EVERYTHING BELOW HERE NEEDS TO STAY AFTER THE BASE CALL
+            
+            % Update muscle/tendon parameters on all gauss points.
+            % We have mu-dependent mooney-rivlin and markert laws.
+            this.updateTendonMuscleParamsGP;
         end
         
         function uvwall = includeDirichletValues(this, t, uvw)
@@ -742,43 +744,47 @@ classdef System < models.BaseSecondOrderSystem
                 end
             end
         end
-        
-        function initMuscleTendonRatios(this)
-            mc = this.Model.Config;
-            fe = mc.FEM;
-            this.HasTendons = ~isempty(mc.getTendonMuscleRatio(zeros(3,1)));
-            tmr = zeros(fe.GaussPointsPerElem,fe.Geometry.NumElements);
-            if this.HasTendons
-                g = fe.Geometry;
-                for m = 1:g.NumElements
-                    % Get coordinates of gauss points in element
-                    tmr(:,m) = mc.getTendonMuscleRatio(g.Nodes(:,g.Elements(m,:)) * fe.N(fe.GaussPoints));
-                end
-                this.MuscleTendonRatioNodes = mc.getTendonMuscleRatio(g.Nodes);
-            end
-            this.MuscleTendonRatioGP = tmr;
-        end
     end
     
     methods(Access=private)
-        function updateTendonMuscleParamsGP(this, mu)
+        function updateTendonMuscleParamsGP(this)
             % Updates the markert coefficients for muscle or tendons
             % according to the current gauss points ratio of muscle and
             % tendon material.
             
-            % All muscle - set without extra computations
-            tmr = this.MuscleTendonRatioGP;
-            if ~this.HasTendons
-                tmr(:) = mu(9);
-                this.MuscleTendonParamc10 = tmr;
-                tmr(:) = mu(10);
-                this.MuscleTendonParamc01 = tmr;
-            else
-                f = this.MuscleTendonParamMapFun;
-                % Log-interpolated MR c10
-                this.MuscleTendonParamc10 = f(tmr,mu(9),mu(11));
-                % Log-interpolated MR c01
-                this.MuscleTendonParamc01 = f(tmr,mu(10),mu(12));
+            % This method is invoked AFTER prepareSimulation is called,
+            % i.e. this.mu is set and all components are initialized
+            mu = this.mu;
+            % Only do stuff if mu changed; getting the ratios can be a bit
+            % more costly.
+            if ~isequal(this.fLastMu,mu)
+                mc = this.Model.Config;
+                fe = mc.FEM;
+                tmr = zeros(fe.GaussPointsPerElem,fe.Geometry.NumElements);
+                if this.HasTendons
+                    g = fe.Geometry;
+                    for m = 1:g.NumElements
+                        % Get coordinates of gauss points in element
+                        tmr(:,m) = mc.getTendonMuscleRatio(g.Nodes(:,g.Elements(m,:)) * fe.N(fe.GaussPoints));
+                    end
+                    this.MuscleTendonRatioNodes = mc.getTendonMuscleRatio(g.Nodes);
+                end
+                this.MuscleTendonRatioGP = tmr;
+                
+                % All muscle - set without extra computations
+                if ~this.HasTendons
+                    tmr(:) = mu(9);
+                    this.MuscleTendonParamc10 = tmr;
+                    tmr(:) = mu(10);
+                    this.MuscleTendonParamc01 = tmr;
+                else
+                    f = this.MuscleTendonParamMapFun;
+                    % Log-interpolated MR c10
+                    this.MuscleTendonParamc10 = f(tmr,mu(9),mu(11));
+                    % Log-interpolated MR c01
+                    this.MuscleTendonParamc01 = f(tmr,mu(10),mu(12));
+                end
+                this.fLastMu = mu;
             end
         end
     end

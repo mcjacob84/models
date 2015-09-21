@@ -370,6 +370,21 @@ classdef MusclePlotter < handle
                 pd.musclecol = [0.854688, 0.201563, 0.217188];
             end
             
+            %% Muscle/Tendon patch vertex colors
+            pd.gpcol = [];
+            if sys.HasTendons
+                tendoncol = [1, .8, .6]; %Micha [.9 .7 .5]
+                % Vertex coloring
+                pd.vertexcol = ones(geo.NumNodes,1)*pd.musclecol ...
+                    + sys.MuscleTendonRatioNodes'*(tendoncol-pd.musclecol);
+                % Gauss point coloring
+                tmr = sys.MuscleTendonRatioGP;
+                pd.gpcol(:,:,1) = pd.musclecol(1) + tmr*(tendoncol(1)-pd.musclecol(1));
+                pd.gpcol(:,:,2) = pd.musclecol(2) + tmr*(tendoncol(2)-pd.musclecol(2));
+                pd.gpcol(:,:,3) = pd.musclecol(3) + tmr*(tendoncol(3)-pd.musclecol(3));
+                pd.gpcol = permute(pd.gpcol,[1 3 2]);%*.8;
+            end
+            
             %% Show invariants or lambda stretch values
             if ~isempty(opts.Invariants) || opts.Lambdas || opts.MR || opts.Stretch
                 nt = length(t);
@@ -520,20 +535,6 @@ classdef MusclePlotter < handle
             
             % Set muscle color either way
             pd.musclecol = [0.854688, 0.201563, 0.217188];
-            pd.gpcol = [];
-            %% Muscle/Tendon patch vertex colors
-            if sys.HasTendons
-                tendoncol = [1, .8, .6]; %Micha [.9 .7 .5]
-                % Vertex coloring
-                pd.vertexcol = ones(geo.NumNodes,1)*pd.musclecol ...
-                    + sys.MuscleTendonRatioNodes'*(tendoncol-pd.musclecol);
-                % Gauss point coloring
-                tmr = sys.MuscleTendonRatioGP;
-                pd.gpcol(:,:,1) = pd.musclecol(1) + tmr*(tendoncol(1)-pd.musclecol(1));
-                pd.gpcol(:,:,2) = pd.musclecol(2) + tmr*(tendoncol(2)-pd.musclecol(2));
-                pd.gpcol(:,:,3) = pd.musclecol(3) + tmr*(tendoncol(3)-pd.musclecol(3));
-                pd.gpcol = permute(pd.gpcol,[1 3 2]);%*.8;
-            end
         end
 %     end
 %     
