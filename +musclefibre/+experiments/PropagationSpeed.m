@@ -1,12 +1,21 @@
 %% Clear
 clear classes;
 %% Init
-distN = 40; % The number of sarcomeres over which to measure the propagation speed.
-T = 500;
-minV = -10; %[mV]
+LEAD = false;
+if LEAD
+    parallel = true; %#ok
+    chunksize = 10; % The maximum single trajectory size in GB
+else
+    parallel = false;
+    chunksize = 2; % The maximum single trajectory size in GB
+end
+distN = 12; % The number of sarcomeres over which to measure the propagation speed.
+T = 5000;
+minV = -20; %[mV]
+buffer = 10; % number of buffer sarcomeres at boundaries, padded to the ones over which velo is measured
 
 % Pad by three sarcomeres to each end
-N = distN + 6;
+N = distN + 2*buffer;
 
 m = models.musclefibre.Model('N',N);
 if m.System.MotoSarcoLinkIndex ~= 1
@@ -14,6 +23,12 @@ if m.System.MotoSarcoLinkIndex ~= 1
 end
 m.T = T;
 m.dt = m.System.dx/10;
+
+% Compute time intervals for trajectories of limited size
+nchunks = ceil(m.System.NumTotalDofs*8*length(m.Times)/(1024^3*chunksize));
+total_len = length(m.Times);
+interval_idx = floor(linspace(1,total_len,nchunks));
+intervals = m.Times(interval_idx);
 
 %% Generate params
 % Take a regular mesh and filter by the Motoneuron-Input domain
@@ -23,7 +38,8 @@ m.Sampler.Domain = models.motoneuron.ParamDomain;
 mus = m.Sampler.generateSamples(m);
 
 base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');
-thefile = sprintf('data_N%d_T%d_dt%g.mat',distN,T,m.dt);
+tag = sprintf('N%d_T%d_dt%g',distN,T,m.dt);
+thefile = ['data_' tag '.mat'];
 datafile = fullfile(base,thefile);
 
 if exist(datafile,'file') == 2
@@ -33,19 +49,49 @@ if exist(datafile,'file') == 2
 else
     %% Crunch
     sys = m.System;
-    pos = [sys.dm+sys.ds+3*sys.dsa+1 % fourth sarco = start
-          sys.dm+sys.ds+(N-1-3)*sys.dsa+1]; % N-3rd sarco = end
+    pos = [sys.dm+sys.ds+buffer*sys.dsa+1 % fourth sarco = start
+          sys.dm+sys.ds+(N-1-buffer)*sys.dsa+1]; % N-3rd sarco = end
     nmu = size(mus,2);
     Vms = cell(1,nmu);
-    matlabpool open;
-    parfor p = 1:nmu
-        [~,y] = m.simulate(mus(:,p)); %#ok<PFBNS>
-        % Get V_m values for start and end sarcomeres
-        Vms{p} = y(pos,:);
-        %plot(t,Vm(1,:),'r',t,Vm(2,:),'b')
+    if parallel
+        matlabpool open; %#ok
+        parfor p = 1:nmu
+            m_remote = m;
+            orig = m_remote.System.x0;
+            Vm = zeros(2,total_len);
+            pi = ProcessIndicator('Computing time intervals',length(intervals),false);
+            for iidx = 1:length(intervals)-1
+                m_remote.t0 = intervals(iidx);
+                m_remote.T = intervals(iidx+1);
+                [~,y] = m_remote.simulate(mus(:,p));
+                Vm(:,interval_idx(iidx):interval_idx(iidx+1)) = y(pos,:);
+                m_remote.System.x0 = dscomponents.ConstInitialValue(y(:,end));
+                pi.step;
+            end
+            pi.stop;
+            m_remote.System.x0 = orig;            
+            Vms{p} = Vm;
+        end
+        matlabpool close;
+    else
+        pi = ProcessIndicator('Crunching',nmu*length(intervals),false);
+        for p = 1:nmu
+            orig = m.System.x0;
+            Vm = zeros(2,total_len);
+            for iidx = 1:length(intervals)-1
+                m.t0 = intervals(iidx);
+                m.T = intervals(iidx+1);
+                [~,y] = m.simulate(mus(:,p));
+                Vm(:,interval_idx(iidx):interval_idx(iidx+1)) = y(pos,:);
+                m.System.x0 = dscomponents.ConstInitialValue(y(:,end));
+                pi.step;
+            end
+            m.System.x0 = orig;
+            Vms{p} = Vm;
+        end
+        pi.stop;
     end
     save(datafile,'m','mus','distN','N','minV','Vms');
-    matlabpool close;
 end
 
 %% Eval
@@ -56,6 +102,7 @@ pi = ProcessIndicator('Processing',nmu,false);
 numi = 100;
 tgrid = linspace(0,m.T,numi);
 Vinterp = zeros(nmu,numi);
+maxVs = [];
 for idx = 1:nmu
     Vm = Vms{idx};
     % Find the peak time indices at junction and end
@@ -73,30 +120,56 @@ for idx = 1:nmu
     V{idx} = 10*dist./tdiff; % [cm/ms = 0.01m/0.001s = .1m/s]
     P{idx} = peaktimes(1,:);
     Vi = interp1(P{idx},V{idx},tgrid,'cubic');
-    %plot(P{idx},V{idx},'r',tgrid,Vi,'b');
+    %plot(P{idx},V{idx},'rx',tgrid,Vi,'b');
     Vinterp(idx,:) = Vi;
     pi.step;
 end
 pi.stop;
 
+%% SVR
+% svr = general.regression.ScalarNuSVR;
+% svr.nu = .1;
+% svr = general.regression.ScalarEpsSVR;
+svr = general.regression.ScalarEpsSVR_SMO;
+svr.Lambda = 0.0005;
+svr.Eps = .01;
+k = kernels.GaussKernel(100);
+%k = kernels.Wendland; k.d = 1; k.k = 3; k.Gamma = 100;
+%kexp = svr.directCompute(k,P{idx},V{idx});
+afx = kexp.evaluate(P{idx});
+tgrid = linspace(0,m.T,1000);
+afx2 = kexp.evaluate(tgrid);
+c = polyfit(P{idx},V{idx},3);
+apol = polyval(c,tgrid);
+plot(P{idx},V{idx},'rx',tgrid,afx2,'b',P{idx},afx,'g',tgrid,apol,'m');
+
 %% Draw
 pm = PlotManager;
-ax = pm.nextPlot('avgspeed','Average speed (of interpolated velocities) over time for all parameters','time [ms]','speed [m/s]');
-plot(ax,tgrid,mean(Vinterp,1));
-ax = pm.nextPlot('propspeed','Action potential propagation speed [m/s]','fibre type','mean input current');
-tri = delaunay(mus(1,:),mus(2,:));
-minV = min(Vinterp(:));
-maxV = max(Vinterp(:));
-for idx = 1:numi
-    if ~ishandle(ax)
-        break;
+if size(mus,2) > 1
+    ax = pm.nextPlot('avgspeed','Average speed (of interpolated velocities) over time for all parameters','time [ms]','speed [m/s]');
+    plot(ax,tgrid,mean(Vinterp,1));
+    ax = pm.nextPlot('propspeed','Action potential propagation speed [m/s]','fibre type','mean input current');
+    tri = delaunay(mus(1,:),mus(2,:));
+    minV = min(Vinterp(:));
+    maxV = max(Vinterp(:));
+    for idx = 1:numi
+        if ~ishandle(ax)
+            break;
+        end
+        trisurf(tri,mus(1,:),mus(2,:),Vinterp(:,idx),...
+            'FaceColor','interp','EdgeColor','interp','Parent',ax);
+        zlim(ax,[minV maxV]);
+        title(sprintf('Action potential propagation speed [m/s] at %gs',tgrid(idx)));
+        drawnow;
+        pause(.1);
     end
-    trisurf(tri,mus(1,:),mus(2,:),Vinterp(:,idx),...
-        'FaceColor','interp','EdgeColor','interp','Parent',ax);
-    zlim(ax,[minV maxV]);
-    title(sprintf('Action potential propagation speed [m/s] at %gs',tgrid(idx)));
-    drawnow;
-    pause(.1);
+else
+    ax = pm.nextPlot(['speed_' tag],['Propagation speed: ' tag],'t [ms]','velocity [m/s]');
+    plot(ax,tgrid,Vi);
+    pm.savePlots(base,'Format',{'pdf','jpg','fig'});
 end
+pm.done;
+
+
 
 
