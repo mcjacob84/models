@@ -4,19 +4,15 @@ classdef System < models.BaseFirstOrderSystem
     %
     % @author Timm Strecker @date 2014-03-24
     %
+    % @change{0,8,dw,2015-09-21} Imported into +models package.
+    %
     % @new{0,7,ts,2014-03-24} Added this class.
     %
     % This class is part of the framework
     % KerMor - Model Order Reduction using Kernels:
-    % - \c Homepage http://www.agh.ians.uni-stuttgart.de/research/software/kermor.html
-    % - \c Documentation http://www.agh.ians.uni-stuttgart.de/documentation/kermor/
+    % - \c Homepage http://www.morepas.org/software/index.html
+    % - \c Documentation http://www.morepas.org/software/kermor/index.html
     % - \c License @ref licensing
-    
-    properties(Transient)
-        % debug output
-        d = [];
-    end
-    
     
     properties(Dependent)
         % the conductivity tensor in intracellular space
@@ -36,28 +32,18 @@ classdef System < models.BaseFirstOrderSystem
     end
     
     properties(Access=private)
-        % the conductivity tensor in intracellular space
-        %
-        % @type matrix<double>
-        sigmai_ = diag([8.93 0.893 0.893]); %eye(3);
-        
-        % the conductivity tensor in extracellular space
-        %
-        % @type matrix<double>
-        sigmae_ = diag([6.7 6.7 6.7]);  %eye(3);
-        
-        % the conductivity tensor in the body (skin/fat)
-        %
-        % @type matrix<double>
-        sigmao_ = diag([.4 .4 .4]);  %eye(3);
+        % Internal variables with defaults
+        sigmai_ = diag([8.93 0.893 0.893]);
+        sigmae_ = diag([6.7 6.7 6.7]);
+        sigmao_ = diag([.4 .4 .4]);
     end
     
     properties(SetAccess = private)
         % Size of the muscle. vector with 4 entries representing length,
-        % width, muscle height and height of the fat/skin layer. in cm
+        % width, muscle height and height of the fat/skin layer in [cm].
         %
         % @default [1;1;1;0]
-        musclegeometry;
+        Geo;
         
         % Discretization stepwidth in cm.
         %
@@ -81,56 +67,21 @@ classdef System < models.BaseFirstOrderSystem
     end
     
     methods
-        function this = System(model, musclegeometry, dim)
+        function this = System(model, opts)
             % Call superclass constructor
             this = this@models.BaseFirstOrderSystem(model);
+            this.Geo = opts.Geo;
+            this.dim = opts.Dim;
             
-            this.updateDimensions(musclegeometry, dim);
-            
-            % Parameters mu
+            % Parameter mu
             this.addParam('mean current', 4, 'Range', [0 9], 'Desired', 100); 
             
+            this.updateDimensions;
+            
             this.f = models.emg.RHS(this);
+            this.f.init(opts);
+            
             this.assembleA;
-        end
-        
-        function pm = plot(this, t, y, pm)
-            if nargin < 4
-                pm = PlotManager;
-                pm.LeaveOpen = true;
-            end
-            xaxis = 0:this.h(1):this.musclegeometry(1);
-            yaxis = 0:this.h(2):this.musclegeometry(2);
-            ax = pm.nextPlot('emg','','width [cm]','length [cm]');
-            zlabel(ax,'\phi_i [mV]');
-            pm.done;
-            view(53,28);
-            surfacepos = reshape(1:size(y,1),this.dim(1),this.dim(2),[]);
-            surfacepos = surfacepos(:,:,end);
-            hlp = y(surfacepos(:),:)*10;
-            %axis([0 this.musclegeometry(2) 0 this.musclegeometry(1) min(hlp(:)) max(hlp(:))]);
-            maxval = ceil(max(max(y(surfacepos,:))));
-            minval = floor(min(min(y(surfacepos,:))));
-            axis([0 this.musclegeometry(2) 0 this.musclegeometry(1) minval maxval]);
-            caxis([minval maxval]);
-            % daspect([1 1 1]);
-            daspect([1 1 (maxval-minval)]);
-            hold(ax,'on');
-            for idx = 1:length(t)
-                cla(ax);
-                phi = reshape(y(:,idx),this.dim(1),this.dim(2),[]);
-                % surf(ax, yaxis, xaxis, 10*phi(:,:,end),'FaceColor','interp','EdgeColor','interp');  % pcolor?
-                surf(ax, yaxis, xaxis, phi(:,:,end),'FaceColor','interp','EdgeColor','interp');  % pcolor?
-                title(ax,sprintf('Surface EMG at time %gms',t(idx)));
-                colorbar;
-                pause(.2);
-                if ~ishandle(ax)
-                    break;
-                end
-            end
-            if nargin < 4
-                pm.done;
-            end
         end
         
         function assembleA(this)
@@ -141,7 +92,7 @@ classdef System < models.BaseFirstOrderSystem
             ib = []; jb = []; sb = [];  % not used if A is constructed this way
             
             % this variant works best:
-            if this.musclegeometry(4) ~= 0  % there is a skin layer
+            if this.Geo(4) ~= 0  % there is a skin layer
                 % strategy: create grids for muscle and skin that are too
                 % high. create corresponding generalized Laplacians. remove
                 % boundary elements between muscle and skin and concatenate Laplacians.
@@ -173,21 +124,25 @@ classdef System < models.BaseFirstOrderSystem
     end
     
     methods(Access=protected)
-        function updateDimensions(this, musclegeometry, dim)
-            this.dim = dim;
-            this.zdim_m = round(musclegeometry(3)/(musclegeometry(3)+musclegeometry(4))*dim(3));
-            this.musclegeometry = musclegeometry;
-            this.udim = dim(1)*dim(2)*this.zdim_m;
-            this.h = [musclegeometry(1:2);musclegeometry(3)+musclegeometry(4)]./(dim-1);
+        function updateDimensions(this)
+            d = this.dim;
+            geo = this.Geo;
+            this.zdim_m = round(geo(3)/(geo(3)+geo(4))*d(3));
+            this.udim = d(1)*d(2)*this.zdim_m;
+            this.h = [geo(1:2);geo(3)+geo(4)]./(d-1);
             
-            this.NumStateDofs = prod(dim);
+            this.NumStateDofs = prod(d);
             updateDimensions@models.BaseFirstOrderSystem(this);
         end
     end
     
-    methods %% setters
+    %% setters
+    methods
         
         function set.sigmae(this, value)
+            if ~all(size(value) == [3 3]) || any(any(value-value')) 
+               error('sigmae must be a diagonal 3 x 3 matrix.')
+            end
             this.sigmae_ = value;
             this.assembleA;
         end
@@ -197,6 +152,9 @@ classdef System < models.BaseFirstOrderSystem
         end
         
         function set.sigmai(this, value)
+            if ~all(size(value) == [3 3]) || any(any(value-value')) 
+               error('sigmae must be a diagonal 3 x 3 matrix.')
+            end
             this.sigmai_ = value;
             this.assembleA;
             this.f.assembleB;
@@ -207,6 +165,9 @@ classdef System < models.BaseFirstOrderSystem
         end
         
         function set.sigmao(this, value)
+            if ~all(size(value) == [3 3]) || any(any(value-value')) 
+               error('sigmao must be a diagonal 3 x 3 matrix.')
+            end
             this.sigmao_ = value;
             this.assembleA;
         end

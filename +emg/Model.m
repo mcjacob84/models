@@ -6,6 +6,8 @@ classdef Model < models.BaseFullModel
     %
     % @author Timm Strecker @date 2014-03-24
     %
+    % @change{0,8,dw,2015-09-21} Imported into +models package.
+    %
     % @new{0,7,ts,2014-03-24} Added this class.
     %
     properties
@@ -16,18 +18,7 @@ classdef Model < models.BaseFullModel
         RandSeed = 1;
     end
     
-    properties(Dependent)   % properties related to the motor unit configuration. 
-        
-        % distribution of motor units over cross section
-        %
-        % @default ones(dim(2),zdim_m)
-        MUdistribution;
-        
-        % the number of motor units
-        %
-        % @default 1
-        numMU;
-        
+    properties(Dependent)
         % Flag indicating whether to use custom firing times of the motor units.
         % Otherwise, the firing times are generated automatically by using the parameter mu.
         FiringTimesMode;
@@ -36,72 +27,39 @@ classdef Model < models.BaseFullModel
         % default randomly anywhere on the fibres.
         % matrix<integer> of dimension dim(2) \times zdim_m
         neuronpos;
-        
-        % Cell array of structs containing information about the motor
-        % units. There are the fields
-        %'type': specifying the type (slow-twitch, fast-twitch, etc.),
-        % 'firing_times': containing the times when the motoneuron is firing,
-        % 'centre' and 'radius': optional fields that define a circle
-        % of radius radius around centre. All fibres of the MU are
-        % distributed inside this circle.
-        MUs;
-        
-        % the conductivity tensor in intracellular space
-        %
-        % @type matrix<double>
-        sigmai = diag([8.93 0.893 0.893]); %eye(3);
-        
-        % the conductivity tensor in extracellular space
-        %
-        % @type matrix<double>
-        sigmae = diag([6.7 6.7 6.7]);  %eye(3);
-        
-        % the conductivity tensor in the body (skin/fat)
-        %
-        % @type matrix<double>
-        sigmao;
-    end
-    
-    properties(SetAccess=private)
-        OriginalV;
     end
     
     methods
-        function this = Model(musclegeometry, dim)
+        function this = Model(varargin)
             % Creates a new Electromyography model
             %
-            % musclegeometry: vector with 4 entries representing length,
+            % Geo: vector with 4 entries representing length,
             % width, muscle height and height of the fat/skin layer (in cm). If
             % there are only 3 entries, skinheight is set to zero
             % Dimension of the discretization in all 3 dimensions.
-            if nargin < 3
-                if nargin < 2
-                    dim = [40;20;13];
-                    if nargin < 1
-                        musclegeometry = 0.1*[40;20;10;2];
-                    end
-                end
-            end
-            if size(musclegeometry, 1) == 1
-                musclegeometry = musclegeometry';
-            end
-            if size(dim, 1) == 1
-                dim = dim';
-            end
-            if size(musclegeometry,1) == 3
-                musclegeometry = [musclegeometry; 0];
-            elseif size(musclegeometry,1) ~= 4
-                error('Muscle geometry must have 3 or 4 entries.')
-            end
-            if size(dim, 1) ~= 3
-                error('Dim must have 3 entries (being grid dimension in x-, y-, and z-direction).')
-            end
             
-            this.Name = sprintf('EMG model geometry = [%g,%g,%g,%g] discretization = [%g,%g,%g]',musclegeometry, dim);
-            this.System = models.emg.System(this, musclegeometry, dim);
-            %this.TrainingInputs = 1;
-            this.SaveTag = sprintf('EMG_geom[%g,%g,%g,%g]_discr[%g,%g,%g]',musclegeometry, dim);
+            rs = RandStream('mt19937ar','Seed',12345);
+            
+            i = inputParser;
+            i.addParamValue('Dim',[40;20;13],@(v)numel(v)==3);
+            i.addParamValue('Geo',0.1*[40;20;10;3],@(v)numel(v)==3 || numel(v)==4);
+            i.addParamValue('MUTypes',[0 rs.rand(1,3) 1]); % 5 types by default
+            i.parse(varargin{:});
+            opts = i.Results;
+            
+            % Make sure we have column vectors
+            geo = reshape(opts.Geo,[],1);
+            opts.Dim = reshape(opts.Dim,[],1);
+            if numel(geo) == 3
+                geo = [geo; 0];
+            end
+            opts.Geo = geo;
+            
+            this.Name = sprintf('EMG model geometry = [%g,%g,%g,%g] discretization = [%g,%g,%g]',geo, opts.Dim);
+            this.System = models.emg.System(this, opts);
+            this.SaveTag = sprintf('EMG_geom[%g,%g,%g,%g]_discr[%g,%g,%g]', geo, opts.Dim);
             this.Data = data.ModelData(this);
+            
             this.isStatic = true;
             this.DefaultMu = 5;
             
@@ -119,7 +77,7 @@ classdef Model < models.BaseFullModel
             this.dt = 1;
         end
         
-        function distributeMUs(this, varargin)
+        function distributeMotorUnits(this, varargin)
             % Distributes number many motor units over muscle-crosssection.
             % All fibres of each MU lie within a circle. By default, the
             % circles are distributed approximately uniformly over the
@@ -133,7 +91,7 @@ classdef Model < models.BaseFullModel
             % centers: centers of the circles @type 2 \times number matrix<double>
             % radii: radii of the circles @type vector<double> of length
             % number or scalar
-            this.System.f.distributeMUs(varargin{:});
+            this.System.f.distributeMotorUnits(varargin{:});
         end
         
         function initNeuronposGaussian(this, varargin)
@@ -144,41 +102,7 @@ classdef Model < models.BaseFullModel
             this.System.f.initNeuronposGaussian(varargin{:});
         end
         
-        function varargout = plot(this, varargin)
-            % plot the surface EMG signal
-            %
-            % See also: EMGSystem
-            [varargout{1:nargout}] = this.System.plot(varargin{:});
-        end
-        
-        function h = plot1D(this, t, y, point)
-            % plots the EMG signal at point over time
-            geo = this.System.musclegeometry;
-            if numel(point) ~= 3
-                error('Input argument point must have 3 entries.\n');
-            end
-            if any([point(1)>geo(1), point(2)>geo(2), point(3)>geo(3)+geo(4)]) || any(point < 0)
-                error('Input argument point must lie inside muscle.\n');
-            end
-            
-            idx(1) = round(point(1)/this.System.h(1)) + 1; % ./ fails if point is row and h is column
-            idx(2) = round(point(2)/this.System.h(2)) + 1;
-            idx(3) = round(point(3)/this.System.h(3)) + 1;
-            dim = this.System.dim;
-            idx = idx(1) + dim(1)*(idx(2)-1) + dim(1)*dim(2)*(idx(3)-1);
-            
-            h = figure;
-            plot(t, y(idx,:), t, abs(y(idx,:)),'LineWidth',2);
-            title(sprintf('EMG signal at point (%g,%g,%g)',point(1),point(2),point(3)));
-            xlabel('time [ms]');
-            yl = '\phi_e';
-            if point(3) > geo(3)
-                yl = '\phi_o';
-            end
-            ylabel([yl, ' [mV]']);
-            legend([yl, '(t)'], ['|',yl,'(t)|']);
-        end
-        
+        %% Model reduction methods
         function [reduced,time] = buildReducedModel(this, target_dim, DEIM_order)
             tic;
             if nargin < 3
@@ -189,8 +113,8 @@ classdef Model < models.BaseFullModel
                 end
             end
             
-            this.Approx.Order = DEIM_order;
             reduced = buildReducedModel@models.BaseFullModel(this, target_dim);
+            reduced.System.f.Order = DEIM_order;
             time = toc;
         end
         
@@ -222,19 +146,12 @@ classdef Model < models.BaseFullModel
             A = KerMor.App;
             host = A.getHost;
             
-            
             % On LEAD: Write ApproxTrainData.fxi in a matrix - this makes
             % POD of fxi much faster
             if length(host) >= 4 && strcmp(host(1:4), 'lead')
                 start = tic;
                 atd = this.Data.ApproxTrainData;
-                fxi = [];
-                if ~isempty(atd.fxi)
-                    for idx = 1:atd.fxi.getNumBlocks
-                        fxi = [fxi atd.fxi.getBlock(idx)];
-                    end
-                end
-                this.Approx.computeDEIM(this.System.f, fxi);
+                this.Approx.computeDEIM(this.System.f, atd.fxi.toMemoryMatrix);
                 this.OfflinePhaseTimes(5) = toc(start);
             else
                 off5_computeApproximation@models.BaseFullModel(this);
@@ -242,30 +159,59 @@ classdef Model < models.BaseFullModel
         end
     end
     
-    methods(Static, Access=protected)
-        function this = loadobj(this)
-            if ~isa(this, 'EMGModel')
-                sobj = this;
-                this = EMGModel;
-                this.RandSeed = sobj.RandSeed;
-                this = loadobj@models.BaseFullModel(this, sobj);
-            else
-                this = loadobj@models.BaseFullModel(this);
+    %% plotting methods 
+    % illustrating the motor unit configuration
+    methods  
+        function pm = plot(this, t, y, pm)
+            if nargin < 4
+                pm = PlotManager;
+                pm.LeaveOpen = true;
+            end
+            sys = this.System;
+            xaxis = 0:sys.h(1):sys.Geo(1);
+            yaxis = 0:sys.h(2):sys.Geo(2);
+            ax = pm.nextPlot('emg','','width [cm]','length [cm]');
+            zlabel(ax,'\phi_i [mV]');
+            pm.done;
+            view(53,28);
+            surfacepos = reshape(1:size(y,1),sys.dim(1),sys.dim(2),[]);
+            surfacepos = surfacepos(:,:,end);
+            hlp = y(surfacepos(:),:)*10;
+            %axis([0 this.Geo(2) 0 this.Geo(1) min(hlp(:)) max(hlp(:))]);
+            maxval = ceil(max(max(y(surfacepos,:))));
+            minval = floor(min(min(y(surfacepos,:))));
+            axis([0 sys.Geo(2) 0 sys.Geo(1) minval maxval]);
+            caxis([minval maxval]);
+            % daspect([1 1 1]);
+            daspect([1 1 (maxval-minval)]);
+            hold(ax,'on');
+            for idx = 1:length(t)
+                cla(ax);
+                phi = reshape(y(:,idx),sys.dim(1),sys.dim(2),[]);
+                % surf(ax, yaxis, xaxis, 10*phi(:,:,end),'FaceColor','interp','EdgeColor','interp');  % pcolor?
+                surf(ax, yaxis, xaxis, phi(:,:,end),'FaceColor','interp','EdgeColor','interp');  % pcolor?
+                title(ax,sprintf('Surface EMG at time %gms',t(idx)));
+                colorbar;
+                pause(.2);
+                if ~ishandle(ax)
+                    break;
+                end
+            end
+            if nargin < 4
+                pm.done;
             end
         end
-    end
-    
-    methods  % plotting methods illustrating the motor unit configuration
+        
         function plotMuscleConfiguration(this)
             this.plotMUcrosssection;
-            mg = this.System.musclegeometry;
+            mg = this.System.Geo;
             fprintf('The muscle is %gcm long, %gcm wide and %gcm high.\n',mg(1),mg(2),mg(3));
             if (mg(4) ~= 0)
                 fprintf('There is a %gcm high skin/ fat layer on top of the msucle.\n',mg(4));
             end
             h = this.System.h;
             fprintf('The discretization width is h = [%g, %g, %g]cm in x-, y- and z-direction.\n',h(1),h(2),h(3));
-            fprintf('The muscle fibres are grouped into %g motor units.\n',this.System.f.numMU);
+            fprintf('The muscle fibres are grouped into %g motor units.\n',length(this.System.f.MUTypes));
             if ~strcmp(this.System.f.FiringTimesMode,'precomputed')
                 disp('The motoneurons'' firing times were precomputed by a motoneuron model.');
             elseif ~strcmp(this.System.f.FiringTimesMode,'simulate')
@@ -273,7 +219,6 @@ classdef Model < models.BaseFullModel
             elseif ~strcmp(this.System.f.FiringTimesMode,'custom')
                 disp('Custom motoneuron firing times are used.');
             end
-            
         end
         
         function plotMU3d(this, numbers)
@@ -285,20 +230,20 @@ classdef Model < models.BaseFullModel
             figure
             hold on
             if nargin < 2
-                numbers = 1:min(this.System.f.numMU, 7);
+                numbers = 1:min(length(this.System.f.MUTypes), 7);
             end
             ls = LineSpecIterator(length(numbers));
             for num = numbers
                 pos=[];
                 for i=1:sys.dim(2)
                     for j=1:sys.zdim_m
-                        if this.MUdistribution(i,j) == num
+                        if this.MUGeoTypeIdx(i,j) == num
                             pos = [pos,[i;j]];%#ok
                         end
                     end
                 end
                 for i = 1:size(pos,2)
-                    X = [0,sys.musclegeometry(1)];
+                    X = [0,sys.Geo(1)];
                     Y = [(pos(1,i)-1)*sys.h(2),(pos(1,i)-1)*sys.h(2)];
                     Z = [(pos(2,i)-1)*sys.h(3), (pos(2,i)-1)*sys.h(3)];
                     plot3(X, Y, Z, 'Color',ls.nextColor,'LineWidth',2)
@@ -312,8 +257,8 @@ classdef Model < models.BaseFullModel
             xlabel('x-direction [cm]');
             ylabel('y-direction [cm]');
             zlabel('z-direction [cm]');
-            axis([0 sys.musclegeometry(1) 0 sys.musclegeometry(2) ...
-                0 sys.musclegeometry(3)+sys.musclegeometry(4)])
+            axis([0 sys.Geo(1) 0 sys.Geo(2) ...
+                0 sys.Geo(3)+sys.Geo(4)])
             view(-44,12);
             daspect([1,1,1]);
             hold off
@@ -323,20 +268,19 @@ classdef Model < models.BaseFullModel
             % plots the motor unit distribution over muscle cross section.
             % Musclefibres of the same motor unit have the same color and
             % marker.
-            % Parameters:
-            % circles: struct with fields centers (matrix 2 \times numMU) and radii (vector length numMU).
             
             rhs = this.System.f;
+            nmu = length(rhs.MUTypes);
             if nargin < 2  % plot all motor units
-                numbers = 1:rhs.numMU;
+                numbers = 1:nmu;
             end
             
             sys = this.System;
-            geo = sys.musclegeometry;
-            pos=cell(1,rhs.numMU);
+            geo = sys.Geo;
+            pos=cell(1,nmu);
             for i=1:sys.dim(2)
                 for j=1:sys.zdim_m
-                    pos{rhs.MUdistribution(i,j)}=[pos{rhs.MUdistribution(i,j)},[i;j]];
+                    pos{rhs.MUGeoTypeIdx(i,j)}=[pos{rhs.MUGeoTypeIdx(i,j)},[i;j]];
                 end
             end
             figure
@@ -355,9 +299,10 @@ classdef Model < models.BaseFullModel
                     continue;
                 end
                 col = ls.nextColor;
-                plot((pos{num}(1,:)-1)*sys.h(2),(pos{num}(2,:)-1)*sys.h(3), '.', 'Marker', ls.nextMarkerStyle, 'MarkerEdgeColor', col, 'LineWidth', 1);
-                if ~isempty(rhs.MUs{num}.centre) && rhs.numMU > 1
-                    plotCircle(rhs.MUs{num}.centre,rhs.MUs{num}.radius);
+                plot((pos{num}(1,:)-1)*sys.h(2),(pos{num}(2,:)-1)*sys.h(3),...
+                    '.', 'Marker', ls.nextMarkerStyle, 'MarkerEdgeColor', col, 'LineWidth', 1);
+                if ~isempty(rhs.MUCenters) && nmu > 1
+                    plotCircle(rhs.MUCenters(:,num),rhs.MURadii(num));
                 end
             end
             title('Motor Unit Distribution over Muscle Cross Section');
@@ -380,37 +325,37 @@ classdef Model < models.BaseFullModel
                 plot(x,y,'-','Color',col);
             end
         end
+        
+        function h = plot1D(this, t, y, point)
+            % plots the EMG signal at point over time
+            geo = this.System.Geo;
+            if numel(point) ~= 3
+                error('Input argument point must have 3 entries.\n');
+            end
+            if any([point(1)>geo(1), point(2)>geo(2), point(3)>geo(3)+geo(4)]) || any(point < 0)
+                error('Input argument point must lie inside muscle.\n');
+            end
+            
+            idx(1) = round(point(1)/this.System.h(1)) + 1; % ./ fails if point is row and h is column
+            idx(2) = round(point(2)/this.System.h(2)) + 1;
+            idx(3) = round(point(3)/this.System.h(3)) + 1;
+            dim = this.System.dim;
+            idx = idx(1) + dim(1)*(idx(2)-1) + dim(1)*dim(2)*(idx(3)-1);
+            
+            h = figure;
+            plot(t, y(idx,:), t, abs(y(idx,:)),'LineWidth',2);
+            title(sprintf('EMG signal at point (%g,%g,%g)',point(1),point(2),point(3)));
+            xlabel('time [ms]');
+            yl = '\phi_e';
+            if point(3) > geo(3)
+                yl = '\phi_o';
+            end
+            ylabel([yl, ' [mV]']);
+            legend([yl, '(t)'], ['|',yl,'(t)|']);
+        end
     end
     
     methods  % getters and setters: interface to System and RHS
-        function set.MUdistribution(this, value)
-            if ~all(size(value) == [this.System.dim(2) this.System.zdim_m])
-                error('Wrong dimension.')
-            end
-            
-            numnew = max(max(value));
-            % initialize MUs only if number of motor units changes.
-            % otherwise, this corresponds to just rearranging the old MUs.
-            if numnew ~= this.numMU  
-                MUs = cell(1, numnew);
-                types = rand(numnew); % RHS.rs is private:  types = this.System.f.rs.rand(numnew);
-                for idx = 1:numnew
-                    % ToDo check default values for MU
-                    MUs{idx} = struct('type', types(idx), 'firing_times', [0], 'centre', [], 'radius', []);
-                end
-                this.System.f.MUs = MUs;
-            end
-            this.System.f.MUdistribution = value;
-        end
-        
-        function val = get.MUdistribution(this)
-            val = this.System.f.MUdistribution;
-        end
-        
-        function value = get.numMU(this)
-            value = max(max(this.MUdistribution));
-        end
-        
         function value = get.FiringTimesMode(this)
             value = this.System.f.FiringTimesMode;
         end
@@ -429,54 +374,18 @@ classdef Model < models.BaseFullModel
             end
             this.System.f.neuronpos = value;
         end
-
-        function value = get.MUs(this)
-            value = this.System.f.MUs;
-        end
-        
-        function set.MUs(this, value)
-            %if 
-            %    error('')
-            %end
-            this.System.f.MUs = value;
-        end
-        
-        function value = get.sigmao(this)
-            value = this.System.sigmao;
-        end
-        
-        function set.sigmao(this, value)
-            if ~all(size(value) == [3 3]) || any(any(value-value')) 
-               error('sigmao must be a diagonal 3 x 3 matrix.')
+    end
+    
+    methods(Static, Access=protected)
+        function this = loadobj(this)
+            if ~isa(this, 'models.emg.Model')
+                sobj = this;
+                this = models.emg.Model;
+                this.RandSeed = sobj.RandSeed;
+                this = loadobj@models.BaseFullModel(this, sobj);
+            else
+                this = loadobj@models.BaseFullModel(this);
             end
-            this.System.sigmao = value;
         end
-        
-        function value = get.sigmae(this)
-            value = this.System.sigmae;
-        end
-        
-        function set.sigmae(this, value)
-            if ~all(size(value) == [3 3]) || any(any(value-value')) 
-               error('sigmae must be a diagonal 3 x 3 matrix.')
-            end
-            this.System.sigmae = value;
-        end
-        
-        function value = get.sigmai(this)
-            value = this.System.sigmai;
-        end
-        
-        function set.sigmai(this, value)
-            if ~all(size(value) == [3 3]) || any(any(value-value')) 
-               error('sigmai must be a diagonal 3 x 3 matrix.')
-            end
-            this.System.sigmai = value;
-        end
-        
-%         function set.T(this, value)
-%             this.T = T;
-%             this.System.f.updateT;
-%         end
     end
 end
