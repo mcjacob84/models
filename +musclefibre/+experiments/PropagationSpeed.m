@@ -4,20 +4,23 @@ clear classes;
 LEAD = false;
 if LEAD
     parallel = true; %#ok
-    chunksize = 10; % The maximum single trajectory size in GB
+    chunksize = 4; % The maximum single trajectory size in GB
 else
     parallel = false;
     chunksize = 2; % The maximum single trajectory size in GB
 end
-distN = 12; % The number of sarcomeres over which to measure the propagation speed.
-T = 5000;
-minV = -20; %[mV]
+%distN = 12; % The number of sarcomeres over which to measure the propagation speed.
+%T = 5000;
+distN = 300; % The number of sarcomeres over which to measure the propagation speed.
+T = 500;
+usenoise = false;
+minV = -10; %[mV]
 buffer = 10; % number of buffer sarcomeres at boundaries, padded to the ones over which velo is measured
 
 % Pad by three sarcomeres to each end
 N = distN + 2*buffer;
 
-m = models.musclefibre.Model('N',N);
+m = models.musclefibre.Model('N',N,'SarcoVersion',1,'Noise',usenoise);
 if m.System.MotoSarcoLinkIndex ~= 1
     error('Must have MotoSarcoLinkIndex=1 for this experiment.')
 end
@@ -36,9 +39,10 @@ intervals = m.Times(interval_idx);
 m.Sampler = sampling.GridSampler;
 m.Sampler.Domain = models.motoneuron.ParamDomain;
 mus = m.Sampler.generateSamples(m);
+mus = [0 1; 9 9];
 
 base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');
-tag = sprintf('N%d_T%d_dt%g',distN,T,m.dt);
+tag = sprintf('N%d_T%d_dt%g_noise%d',distN,T,m.dt,usenoise);
 thefile = ['data_' tag '.mat'];
 datafile = fullfile(base,thefile);
 
@@ -87,6 +91,8 @@ else
                 pi.step;
             end
             m.System.x0 = orig;
+            m.t0 = 0;
+            m.T = T;
             Vms{p} = Vm;
         end
         pi.stop;
@@ -99,17 +105,41 @@ t = m.Times;
 V = cell(1,nmu);
 P = cell(1,nmu);
 pi = ProcessIndicator('Processing',nmu,false);
-numi = 100;
+numi = 1000;
 tgrid = linspace(0,m.T,numi);
 Vinterp = zeros(nmu,numi);
+Vpoly = zeros(nmu,numi);
 maxVs = [];
 for idx = 1:nmu
     Vm = Vms{idx};
-    % Find the peak time indices at junction and end
-    p = find(Vm(1,:) > minV);
-    peaks_junction = p([1 find(diff(p)>1)+1]);
-    p = find(Vm(2,:) > minV);
-    peaks_end = p([1 find(diff(p)>1)+1]);
+    
+    % Find all locations with negative derivative
+    negpos = find(diff(Vm(1,:))<0);
+    % Find the positions where the negative derivative starts
+    firstpos = [1 find(diff(negpos) > 1)+1];
+    % Check that the found locations are peaks and not in the lower noise
+    ispeak = Vm(1,negpos(firstpos)) > minV;
+    % Remove unwanted
+    firstpos(~ispeak) = [];
+    peaks_junction = negpos(firstpos);
+    % Same for end peaks
+    negpos = find(diff(Vm(2,:))<0);
+    firstpos = [1 find(diff(negpos) > 1)+1];
+    ispeak = Vm(2,negpos(firstpos)) > minV;
+    firstpos(~ispeak) = [];
+    peaks_end = negpos(firstpos);
+    
+%     plot(t,Vm(2,:),'r',t(negpos),Vm(2,negpos),'bx')
+%     plot(t,Vm(2,:),'r',t(negpos(firstpos)),Vm(2,negpos(firstpos)),'bx')
+%     plot(t,Vm(1,:),'r',t(peaks_junction),Vm(1,peaks_junction),'bx',...
+%         t,Vm(2,:),'b',t(peaks_end),Vm(2,peaks_end),'rx')
+    
+%     % Find the peak time indices at junction and end
+%     p = find(Vm(1,:) > minV);
+%     peaks_junction = p([1 find(diff(p)>1)+1]);
+%     p = find(Vm(2,:) > minV);
+%     peaks_end = p([1 find(diff(p)>1)+1]);
+
     % Get the time instances the peak was recorded
     peaktimes = [];
     peaktimes(1,:) = t(peaks_junction);
@@ -120,8 +150,9 @@ for idx = 1:nmu
     V{idx} = 10*dist./tdiff; % [cm/ms = 0.01m/0.001s = .1m/s]
     P{idx} = peaktimes(1,:);
     Vi = interp1(P{idx},V{idx},tgrid,'cubic');
-    %plot(P{idx},V{idx},'rx',tgrid,Vi,'b');
     Vinterp(idx,:) = Vi;
+    c = polyfit(P{idx},V{idx},3);
+    Vpoly(idx,:) = polyval(c,tgrid);
     pi.step;
 end
 pi.stop;
@@ -130,38 +161,41 @@ pi.stop;
 % svr = general.regression.ScalarNuSVR;
 % svr.nu = .1;
 % svr = general.regression.ScalarEpsSVR;
-svr = general.regression.ScalarEpsSVR_SMO;
-svr.Lambda = 0.0005;
-svr.Eps = .01;
-k = kernels.GaussKernel(100);
-%k = kernels.Wendland; k.d = 1; k.k = 3; k.Gamma = 100;
-%kexp = svr.directCompute(k,P{idx},V{idx});
-afx = kexp.evaluate(P{idx});
-tgrid = linspace(0,m.T,1000);
-afx2 = kexp.evaluate(tgrid);
-c = polyfit(P{idx},V{idx},3);
-apol = polyval(c,tgrid);
-plot(P{idx},V{idx},'rx',tgrid,afx2,'b',P{idx},afx,'g',tgrid,apol,'m');
+% svr = general.regression.ScalarEpsSVR_SMO;
+% svr.Lambda = 0.0005;
+% svr.Eps = .01;
+% k = kernels.GaussKernel(100);
+% %k = kernels.Wendland; k.d = 1; k.k = 3; k.Gamma = 100;
+% %kexp = svr.directCompute(k,P{idx},V{idx});
+% afx = kexp.evaluate(P{idx});
+% tgrid = linspace(0,m.T,1000);
+% afx2 = kexp.evaluate(tgrid);
+% c = polyfit(P{idx},V{idx},2);
+% apol = polyval(c,tgrid);
+% plot(P{idx},V{idx},'rx',tgrid,afx2,'b',P{idx},afx,'g',tgrid,apol,'m');
 
 %% Draw
 pm = PlotManager;
-if size(mus,2) > 1
+data = Vinterp;
+if size(mus,2) > 2
     ax = pm.nextPlot('avgspeed','Average speed (of interpolated velocities) over time for all parameters','time [ms]','speed [m/s]');
-    plot(ax,tgrid,mean(Vinterp,1));
+    plot(ax,tgrid,mean(data,1));
     ax = pm.nextPlot('propspeed','Action potential propagation speed [m/s]','fibre type','mean input current');
     tri = delaunay(mus(1,:),mus(2,:));
-    minV = min(Vinterp(:));
-    maxV = max(Vinterp(:));
+    minV = min(data(:));
+    maxV = max(data(:));
+    
     for idx = 1:numi
         if ~ishandle(ax)
             break;
         end
-        trisurf(tri,mus(1,:),mus(2,:),Vinterp(:,idx),...
+        trisurf(tri,mus(1,:),mus(2,:),data(:,idx),...
             'FaceColor','interp','EdgeColor','interp','Parent',ax);
         zlim(ax,[minV maxV]);
+        view(ax,[-150 0]);
         title(sprintf('Action potential propagation speed [m/s] at %gs',tgrid(idx)));
         drawnow;
-        pause(.1);
+        pause(.01);        
     end
 else
     ax = pm.nextPlot(['speed_' tag],['Propagation speed: ' tag],'t [ms]','velocity [m/s]');
@@ -170,6 +204,11 @@ else
 end
 pm.done;
 
-
+%%
+% [~,sidx] = sort(mus(1,:),'ascend');
+% [X_,Y_] = meshgrid(mus(1,sidx),tgrid);
+% mesh(X_,Y_,Vinterp(sidx,:));
+% mesh(Vinterp(sidx,:));
+% mesh(Vpoly(sidx,:));
 
 

@@ -117,6 +117,7 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             
             % Setup noise input
             ng = models.motoneuron.NoiseGenerator;
+            ng.DisableNoise = ~options.Noise;
             this.noiseGen = ng;
             this.Inputs{1} = @ng.getInput;
             
@@ -128,6 +129,7 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             this.dsa = this.sarco.Dims;
             
             this.moto = models.motoneuron.Motoneuron;
+            
             this.dm = this.moto.Dims;
         end
         
@@ -135,6 +137,9 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             % Sets the configuration for the upcoming simulation of the
             % model.
             setConfig@models.BaseFirstOrderSystem(this, mu, inputidx);
+             % Precompute motoneuron/sarcomere constants
+            this.sarco.setType(mu(1));
+            this.moto.setType(mu(1));
             this.noiseGen.setFibreType(mu(1));
             this.MaxTimestep = this.Model.dt*100;
             % Helper method to reset the "peak counter" of the dynamics.
@@ -152,11 +157,6 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             
             % Limit mean current depending on fibre type
             mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
-            
-            % Precompute motoneuron/sarcomere constants
-            this.sarco.setType(mu(1));
-            this.moto.setType(mu(1));
-            
             prepareSimulation@models.BaseFirstOrderSystem(this, mu, inputidx);
         end
         

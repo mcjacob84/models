@@ -278,9 +278,11 @@ classdef Model < models.BaseFullModel
         end
         
         function varargout = plotGeometrySetup(this, varargin)
-            if isempty(this.System.mu)
-                this.System.prepareSimulation(this.DefaultMu, this.DefaultInput);
+            mu = this.System.mu;
+            if isempty(mu)
+                mu = this.DefaulMu;
             end
+            this.System.prepareSimulation(mu, this.DefaultInput);
             if ~isempty(varargin) && isa(varargin{1},'PlotManager')
                 varargin = [{'PM'} varargin];
             end

@@ -48,10 +48,12 @@ classdef Model < models.BaseFullModel
             i.addParamValue('OutputScaling',true);
             i.addParamValue('Spindle',false);
             i.addParamValue('N',100,@(n)n>1);
+            i.addParamValue('Noise',true,@(v)islogical(v));
             i.parse(varargin{:});
             options = i.Results;
             
-            this.Name = sprintf('Muscle fibre model (%d cells)',options.N);
+            name = sprintf('Muscle fibre model (%d cells)',options.N);
+            this = this@models.BaseFullModel(name);
             this.System = models.musclefibre.System(this, options);
             this.TrainingInputs = 1;
             this.SaveTag = sprintf('musclefibre_%dcells',options.N);
