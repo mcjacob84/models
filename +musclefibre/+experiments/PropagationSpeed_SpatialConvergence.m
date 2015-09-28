@@ -4,7 +4,7 @@
 
 %% Clear
 clear classes;
-m = models.musclefibre.Model('N',1);
+m = models.musclefibre.Model('N',2);
 if m.System.MotoSarcoLinkIndex ~= 1
     error('Must have MotoSarcoLinkIndex=1 for this experiment.')
 end
@@ -32,15 +32,15 @@ base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');
 tag = sprintf('spconv_T%d_dt%g_noise%d',T,dt,usenoise);
 datafile = fullfile(base,['data_' tag '.mat']);
 
-sys = m.System;
-pos = [sys.dm+sys.ds+buffer*sys.dsa+1 % fourth sarco = start
-      sys.dm+sys.ds+(N-1-buffer)*sys.dsa+1]; % N-3rd sarco = end
 Vms = cell(1,nn);
 matlabpool open;
 parfor p = 1:nn
     m = models.musclefibre.Model('N',N(p),'SarcoVersion',1,'Noise',usenoise);
     m.T = T;
     m.dt = dt;
+    sys = m.System;
+    pos = [sys.dm+sys.ds+buffer*sys.dsa+1 % fourth sarco = start
+      sys.dm+sys.ds+(N(p)-1-buffer)*sys.dsa+1]; % N-3rd sarco = end
     [~,y] = m.simulate;
     fprintf('Finished run %d with N=%d',p,N(p));
     Vms{p} = y(pos,:);
