@@ -23,7 +23,7 @@ minV = -20; %[mV]
 buffer = 10; % number of buffer sarcomeres at boundaries, padded to the ones over which velo is measured
 
 % Pad by three sarcomeres to each end
-distN = fibrelength./DX;
+distN = round(fibrelength./DX);
 N = distN + 2*buffer;
 nn = length(N);
 
@@ -33,8 +33,9 @@ tag = sprintf('spconv_T%d_dt%g_noise%d',T,dt,usenoise);
 datafile = fullfile(base,['data_' tag '.mat']);
 
 Vms = cell(1,nn);
-matlabpool open;
+% matlabpool open;
 parfor p = 1:nn
+% for p = 1:nn
     m = models.musclefibre.Model('N',N(p),'SarcoVersion',1,'Noise',usenoise);
     m.T = T;
     m.dt = dt;
