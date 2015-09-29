@@ -104,8 +104,10 @@ function Kuvw = evaluate(this, uvwdof, t, fibreforces)
             dtn = fe_pos.transgrad(:,pos,m);
 
             if any(isnan(u(:)))
-                fprintf('NaNs in models.muscle.Dynamics#evaluateCoreFun at t=%g! Have a look.\n',t);
-                keyboard;
+%                 fprintf('NaNs in models.muscle.Dynamics#evaluateCoreFun! Have a look.\n');
+%                 keyboard;
+                %
+                error('NaNs in models.muscle.Dynamics#evaluateCoreFun!');
             end
             % Deformation gradient
             F = u * dtn;
