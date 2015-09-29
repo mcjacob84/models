@@ -53,7 +53,7 @@ classdef Constraint < dscomponents.ACoreFun
         
         function copy = clone(this)
             % Create new instance
-            copy = muscle.ConstraintsFun(this.System);
+            copy = models.muscle.Constraint(this.System);
             copy = clone@dscomponents.ACoreFun(this, copy);
         end
     end

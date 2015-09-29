@@ -67,7 +67,7 @@ classdef MusclePlotter < handle
                 end
                 avifile = fullfile(p,[n e]);
                 vw = VideoWriter(avifile);
-                vw.FrameRate = 25;
+                vw.FrameRate = 10;%25;
                 vw.open;
             end
 
