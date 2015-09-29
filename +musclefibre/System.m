@@ -29,6 +29,13 @@ classdef System < models.motorunit.MotorunitBaseSystem
         MotoSarcoLinkIndex;
         
         ds = 0; % No spindle as of now
+        
+        % "length" of one sarcomere unit [cm]
+        %
+        % The default value is oriented on Thomas Heidlauf's work.
+        %
+        % @type double @default 0.0052
+        dx; % [cm]
     end
     
     properties(Dependent)
@@ -48,13 +55,6 @@ classdef System < models.motorunit.MotorunitBaseSystem
         % surface to volume ratio of a muscle fibre in [cm^-1]
         % (assume all fibres have same length and diameter)
         A_m = 500;
-        
-        % "length" of one sarcomere unit [cm]
-        %
-        % The default value is oriented on Thomas Heidlauf's work.
-        %
-        % @type double @default 0.0052
-        dx = 6/1152; % [cm]
     end
     
     properties(Access=private)
@@ -68,6 +68,7 @@ classdef System < models.motorunit.MotorunitBaseSystem
             
             % Set local variables
             this.N = options.N;
+            this.dx = options.dx;
             
             % neuromuscular junction makes more sense (symmetry...)
             %this.MotoSarcoLinkIndex = round(options.N/2);

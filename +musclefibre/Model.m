@@ -49,6 +49,7 @@ classdef Model < models.BaseFullModel
             i.addParamValue('Spindle',false);
             i.addParamValue('N',100,@(n)n>1);
             i.addParamValue('Noise',true,@(v)islogical(v));
+            i.addParamValue('dx',6/1152,@(v)isscalar(v));
             i.parse(varargin{:});
             options = i.Results;
             
