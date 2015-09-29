@@ -44,6 +44,10 @@ classdef Model < models.BaseFullModel
             i.addParamValue('Dim',[40;20;13],@(v)numel(v)==3);
             i.addParamValue('Geo',0.1*[40;20;10;3],@(v)numel(v)==3 || numel(v)==4);
             i.addParamValue('MUTypes',[0 rs.rand(1,3) 1]); % 5 types by default
+            i.addParamValue('Shapes','actual',@(v)any(strcmp(v,{'actual','precomp'})));
+            % The sarcomere implementation version for computation of
+            % shorten's action potential shapes
+            i.addParamValue('SarcoVersion',1);
             i.parse(varargin{:});
             opts = i.Results;
             

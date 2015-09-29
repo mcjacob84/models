@@ -34,6 +34,7 @@ classdef Shorten < models.BaseFullModel
             i.addParamValue('DynamicIC',true);
             i.addParamValue('SPM',false);
             i.addParamValue('OutputScaling',true);
+            i.addParamValue('Noise',true);
             i.parse(varargin{:});
             options = i.Results;
             
@@ -126,6 +127,36 @@ classdef Shorten < models.BaseFullModel
             if nargin < 4
                 pm.done;
             end
+        end
+        
+        function [apshape, times] = getActionPotentialShape(this, mu)
+            % Computes the action potential shape for the current Shorten
+            % model. Always detects the first peak.
+            %
+            % We recommend using DynamicIC=true and SPM=true for speed.
+            %
+            % Parameters:
+            % mu: The current model parameter `\mu` @type colvec<double>
+            % @default this.DefaultMu
+            %
+            % Return values:
+            % apshape: The shape of the action potential with values as-is
+            % from the Shorten model. @type rowvec<double>
+            % times: The corresponding times over which the shape is
+            % computed. @type rowvec<double>
+            if nargin < 2
+                mu = this.DefaultMu;
+            end
+            if this.T < 40
+                warning('T < 40ms! Action potential shape might be uncorrect!');
+            end
+            [t,y] = this.simulate(mu,1);
+            startidx = find((y(1,:) > -80),1,'first');
+            len = find((y(1,startidx:end) < -80),1,'first');
+            pos = startidx + (1:len);
+            apshape = y(1,pos);
+            times = t(pos);
+            %plot(t(pos),y(1,pos)); 
         end
     end
     

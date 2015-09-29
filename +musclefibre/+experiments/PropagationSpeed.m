@@ -6,15 +6,25 @@ if LEAD
     parallel = true; %#ok
     chunksize = 4; % The maximum single trajectory size in GB
 else
-    parallel = false;
-    chunksize = 2; % The maximum single trajectory size in GB
+    parallel = true;
+    chunksize = 3; % The maximum single trajectory size in GB
 end
-%distN = 12; % The number of sarcomeres over which to measure the propagation speed.
-%T = 5000;
+
+% distN = 50; % The number of sarcomeres over which to measure the propagation speed.
+% T = 5000;
+% usenoise = true;
+
+%% Try with only max/min fibres (see mus = below!)
 distN = 300; % The number of sarcomeres over which to measure the propagation speed.
 T = 500;
 usenoise = false;
-minV = -10; %[mV]
+
+% Increase N over fixed dx (longer fibres, speed computation accuracy test)
+% Increase N via smaller dx (finer resolution) -> spatial convergence test
+
+
+%% General
+minV = -20; %[mV]
 buffer = 10; % number of buffer sarcomeres at boundaries, padded to the ones over which velo is measured
 
 % Pad by three sarcomeres to each end
@@ -41,6 +51,7 @@ m.Sampler.Domain = models.motoneuron.ParamDomain;
 mus = m.Sampler.generateSamples(m);
 mus = [0 1; 9 9];
 
+%% Crunch
 base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');
 tag = sprintf('N%d_T%d_dt%g_noise%d',distN,T,m.dt,usenoise);
 thefile = ['data_' tag '.mat'];
@@ -51,14 +62,13 @@ if exist(datafile,'file') == 2
     nmu = size(mus,2);
     sys = m.System;
 else
-    %% Crunch
     sys = m.System;
     pos = [sys.dm+sys.ds+buffer*sys.dsa+1 % fourth sarco = start
           sys.dm+sys.ds+(N-1-buffer)*sys.dsa+1]; % N-3rd sarco = end
     nmu = size(mus,2);
     Vms = cell(1,nmu);
     if parallel
-        matlabpool open; %#ok
+        matlabpool open 2; %#ok
         parfor p = 1:nmu
             m_remote = m;
             orig = m_remote.System.x0;
@@ -131,14 +141,13 @@ for idx = 1:nmu
     
 %     plot(t,Vm(2,:),'r',t(negpos),Vm(2,negpos),'bx')
 %     plot(t,Vm(2,:),'r',t(negpos(firstpos)),Vm(2,negpos(firstpos)),'bx')
-%     plot(t,Vm(1,:),'r',t(peaks_junction),Vm(1,peaks_junction),'bx',...
-%         t,Vm(2,:),'b',t(peaks_end),Vm(2,peaks_end),'rx')
-    
-%     % Find the peak time indices at junction and end
-%     p = find(Vm(1,:) > minV);
-%     peaks_junction = p([1 find(diff(p)>1)+1]);
-%     p = find(Vm(2,:) > minV);
-%     peaks_end = p([1 find(diff(p)>1)+1]);
+    % Trivial case
+    if length(peaks_junction) > length(peaks_end)
+        plot(t,Vm(1,:),'r',t(peaks_junction),Vm(1,peaks_junction),'bx',...
+            t,Vm(2,:),'b',t(peaks_end),Vm(2,peaks_end),'rx')
+        peaks_junction(end) = [];
+        fprintf(2,'Check plot for correct removal of last junction peak!\n');
+    end
 
     % Get the time instances the peak was recorded
     peaktimes = [];
@@ -198,8 +207,12 @@ if size(mus,2) > 2
         pause(.01);        
     end
 else
-    ax = pm.nextPlot(['speed_' tag],['Propagation speed: ' tag],'t [ms]','velocity [m/s]');
-    plot(ax,tgrid,Vi);
+    for k = 1:2
+        ax = pm.nextPlot(sprintf('speed_%s_mu%d', tag,k),...
+            sprintf('Propagation speed: %s, mu=%s',tag,...
+                num2str(mus(:,k))),'t [ms]','velocity [m/s]');
+        plot(ax,tgrid,data(k,:),'b',P{k},V{k},'rx');
+    end
     pm.savePlots(base,'Format',{'pdf','jpg','fig'});
 end
 pm.done;

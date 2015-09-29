@@ -17,7 +17,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         B; % the B matrix (discrete generalized Laplace with conductivity sigma_i)
         
         % velocity of action potentials propagating along the muscle
-        % fibres in cm/ms 
+        % fibres in cm/ms
         % ToDo: maybe type dependent
         APvelocity = 0.2;
         
@@ -53,10 +53,15 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         % The randstream instance
         rs;
         
-        % motoneuron model for computation of firing times at FiringTimesMode 'simulate'
-        mn;
-        
         dims;
+        
+        % motoneuron model for computation of firing times at FiringTimesMode 'simulate'
+        motomodel;
+        last_mean_current;
+        
+        % Shorten model for action potential shape computation
+        shapemodel = [];
+        last_dt = [];
     end
     
     methods
@@ -75,15 +80,12 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             
             this.assembleB;
             
-            this.distributeMotorUnits(opts.MUTypes);
-            this.initAPShapes(opts.MUTypes);
-            this.initNeuroJunctions;
+            % Assigns this.MU**
+            this.distributeMotorUnits;
             
-            % init motoneuron model
-            moto = models.motoneuron.Model;
-            moto.dt = 0.1;
-            moto.EnableTrajectoryCaching = true;
-            this.mn = moto;
+            this.initAPShapes(opts);
+            this.initFiringTimes;
+            this.initNeuroJunctions;
         end
         
         function copy = clone(this)
@@ -92,8 +94,10 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             % Call superclass clone (for deep copy)
             copy = clone@dscomponents.ACompEvalCoreFun(this, copy);
             % Copy local properties
-            copy.rs = this.rs;
-            copy.mn = this.mn; % dont clone the motoneuron model
+            copy.motomodel = this.motomodel; % dont clone the motoneuron model
+            copy.last_mean_current = this.last_mean_current;
+            copy.shapemodel = this.shapemodel;
+            copy.last_dt = this.last_dt;
             copy.dims = this.dims;
             copy.APShapes = this.APShapes;
             copy.APvelocity = this.APvelocity;
@@ -135,13 +139,13 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             if all(all(repmat(mu(:,1),1,size(mu,2)-1) == mu(:,2:end)))
                 this.prepareSimulation(mu(:,1));
                 dy = this.evaluate([], t);
-            else 
+            else
                 dy = zeros(this.fDim, length(t));
                 for k = 1:length(t)
                     this.prepareSimulation(mu(:,k));
                     dy(:,k) = this.evaluate([], t(k));
                 end
-            end 
+            end
         end
         
         function u = getVm(this, t)
@@ -194,9 +198,9 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                 % pick only APs that are relevant at current time
                 rel_ft = ft((ft <= t(tdx)) & (ft >= t(tdx)-muscle_length/v));
                 % iterate over all firing times
-                for fdx = 1:numel(rel_ft)   
+                for fdx = 1:numel(rel_ft)
                     % how far the "front" of the AP corresponding to the current ft propagated at time t(tdx)
-                    front = round(v*(t(tdx)-rel_ft(fdx))/dx);   
+                    front = round(v*(t(tdx)-rel_ft(fdx))/dx);
                     num = min(front+1, numel(APs));
                     tail = front-num+1;   % tail of the current AP
                     APpos = this.dims(1)-front:this.dims(1)-tail;
@@ -234,62 +238,125 @@ classdef RHS < dscomponents.ACompEvalCoreFun
     methods
         function prepareSimulation(this, mu)
             prepareSimulation@dscomponents.ACoreFun(this, mu);
-            if ~strcmp(this.FiringTimesMode, 'custom')
-                this.updateFiringTimes(mu);
-            end
-        end
-        
-        function updateFiringTimes(this, mu)
-            nmu = length(this.MUTypes);
-            if strcmp(this.FiringTimesMode, 'simulate') % long computation possible
-                this.mn.T = this.System.Model.T;
-                for idx = 1:nmu   %@ToDo: simulate only if this type was not simulated before
-                    type = this.MUTypes(idx);
-                    mc = mu(1);
-                    if type <= .6   % adjust unnatural mean currents
-                        mc = min(mc, 3.5);
-                    else
-                        mc = min(mc, 3.5 + (type-.6)/.4 * 4.5);  % line between [0.6,3.5] and [1,8]
-                    end
-                    [t,y] = this.mn.simulate([type; mc], 1);
-                    APtimes = (y(2,2:end) > 40).*(y(2,1:end-1) <= 40);
-                    this.MUFiringTimes{idx} = t(logical(APtimes));
-                end
-            elseif strcmp(this.FiringTimesMode, 'precomputed')
-                d = load('neuroft');   % see also skriptMotoNeuron.m
-                for idx = 1:nmu
-                    type = this.MotorUnits{idx}.type;
-                    mc = mu(1);
-                    if type <= .6   % adjust unnatural mean currents
-                        mc = min(mc, 3.5);
-                    else
-                        mc = min(mc, 3.5 + (type-.6)/.4 * 4.5);  % line between [0.6,3.5] and [1,8]
-                    end
-                    [~,tdx]=min(abs(d.T-type));
-                    [~,mdx]=min(abs(d.MC-mc));
-                    this.MUFiringTimes{idx} = d.FT{tdx,mdx};
-                end
-            end
+            
+            % We need to compute the current
+            % action potential shapes, possibly for each current model
+            % time-step dt
+            this.updateAPShapes;
+            
+            % Update the firing times
+            this.updateFiringTimes(mu);
         end
     end
     
     methods(Access=private)
         
-        function initAPShapes(this, types)
-            % APshape for parameters MU is computed by monodomain equation for one fibre
-            % with a given discretization width dx. It represents V_m at
-            % all discretization points where it is above -80mV.
-            % see also APshape.m
-            datafile = fullfile(fileparts(mfilename('fullpath')),'data','APshape.mat');
-            d = load(datafile);
-            this.APShapes = cell(1,length(types));
-            local_dx = this.System.h(1);
-            for n = 1:length(types)
-                % Get index of closest matching fibre type
-                [~, idx] = min(abs(d.MU - types(n)));
-                % Interpolate on local dx-grid
-                l = (length(d.APshape{idx})-1)*d.dx;  % "length" of AP
-                this.APShapes{n} = interp1(0:d.dx:l, d.APshape{idx}, 0:local_dx:l);
+        function initAPShapes(this, opts)
+            % For actual shape computation use a Shorten model.
+            if strcmp(opts.Shapes,'actual')
+                m = models.motorunit.Shorten(...
+                    'SarcoVersion',opts.SarcoVersion,...
+                    'SPM',true,'DynamicIC',true);
+                m.T = 50;
+                this.shapemodel = m;
+            end
+        end
+        
+        function updateAPShapes(this)
+            % Choose same step size for precomputed shapes
+            cur_dt = this.System.Model.dt;
+            % Only compute if not yet done or step size changed
+            if isempty(this.last_dt) || ~isequal(this.last_dt,cur_dt)
+                types = this.MUTypes;
+                ntypes = length(types);
+                this.APShapes = cell(1,length(types));
+                m = this.shapemodel;
+                % If shapemodel is set, we have the "actual" mode.
+                if ~isempty(m)
+                    pi = ProcessIndicator('Computing %d action potential shapes...',...
+                        ntypes,false,ntypes);
+                    m.dt = cur_dt;
+                    for n = 1:ntypes
+                        % Get shape from internal Shorten model using full
+                        % activation (for early peak)
+                        this.APShapes{n} = m.getActionPotentialShape([types(n);9]);
+                        pi.step;
+                    end
+                else
+                    % Else: "precomp" is set, so load & interpolate shapes
+                    % for current time.
+                    datafile = fullfile(fileparts(mfilename('fullpath')),'data','APshape.mat');
+                    if exist(datafile,'file') ~= 2
+                        error('No precomputed data available. Run the %s script!',...
+                            fullfile(fileparts(mfilename('fullpath')),'data','ActionPotentialShape.m'));
+                    end
+                    d = load(datafile);
+                    pi = ProcessIndicator('Interpolating %d action potential shapes...',...
+                        ntypes,false,ntypes);
+                    for n = 1:ntypes
+                        % Get index of closest matching fibre type
+                        [~, idx] = min(abs(d.mus(1,:) - types(n)));
+                        shape = d.Shapes{idx};
+                        times = d.Times{idx};
+                        % Get absolute time span of shape
+                        tspan = times(end)-times(1);
+                        % Get that resolved by current time-step
+                        ltimes = 0:cur_dt:tspan;
+                        % Interpolate on local time grid
+                        this.APShapes{n} = interp1(times, shape, ltimes);
+                        pi.step;
+                    end
+                end
+                pi.stop;
+                this.last_dt = cur_dt;
+            end
+        end
+        
+        function initFiringTimes(this)
+            % init motoneuron model
+            moto = models.motoneuron.Model(true);
+            moto.dt = 0.1;
+            moto.EnableTrajectoryCaching = true;
+            this.motomodel = moto;
+        end
+        
+        function updateFiringTimes(this, mean_current)
+            % Computes the motoneuron firing times.
+            %
+            % Either pre-computed or for the current fibre-type selection
+            % and parameter (=mean input current)
+            nmu = length(this.MUTypes);
+            if ~isequal(this.last_mean_current,mean_current)
+                this.MUFiringTimes = cell(1,nmu);
+                switch this.FiringTimesMode
+                    % long computation possible
+                    case 'simulate'
+                        m = this.motomodel;
+                        m.T = this.System.Model.T;
+                        pi = ProcessIndicator('Computing firing times for %d motoneurons...',...
+                            nmu,false,nmu);
+                        for idx = 1:nmu   %@ToDo: simulate only if this type was not simulated before
+                            type = this.MUTypes(idx);
+                            [t,y] = m.simulate([type; mean_current], 1);
+                            APtimes = (y(2,2:end) > 40).*(y(2,1:end-1) <= 40);
+                            this.MUFiringTimes{idx} = t(logical(APtimes));
+                            pi.step;
+                        end
+                        pi.stop;
+                    case 'precomputed'
+                        datafile = fullfile(fileparts(mfilename('fullpath')),'data','FiringTimes.mat');
+                        if exist(datafile,'file') ~= 2
+                            error('No precomputed data available. Run the %s script!',...
+                                fullfile(fileparts(mfilename('fullpath')),'data','FiringTimes.m'));
+                        end
+                        d = load(datafile);
+                        for idx = 1:nmu
+                            type = repmat(this.MUTypes(idx),1,size(d.mus,2));
+                            [~,pos] = min(Norm.L2(type - d.mus));
+                            this.MUFiringTimes{idx} = d.Times{pos};
+                        end
+                end
+                this.last_mean_current = mean_current;
             end
         end
         
@@ -322,7 +389,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     error('centers must be matrix of dimension 2 x %g', num);
                 end
             end
-            if nargin < 4 
+            if nargin < 4
                 % Daniel: radii = [norm(geo) norm(geo)*(this.rs.rand(1,number-1)*.5 + .1)];
                 radii=norm(geo(2:3))*sqrt(exp(types * log(100))/100);
             else
@@ -337,7 +404,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             this.MUCenters = centers;
             this.MURadii = radii;
             this.MUTypes = types;
-                
+            
             % Assign fibres to motor units
             % Choose the maximum random value as fibre for a MU. The chance
             % outside the radius around the circle is set to zero.
@@ -356,9 +423,9 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         
         function initNeuroJunctions(this, sigma, mu)
             % Initializes neuron position by sampling from a Gaussian
-            % normal distribution standard deviation sigma and mean mu. 
-            % By default, the mean value is in the middle of the muscle 
-            % fibres and the standard deviation equals 0.3cm. 
+            % normal distribution standard deviation sigma and mean mu.
+            % By default, the mean value is in the middle of the muscle
+            % fibres and the standard deviation equals 0.3cm.
             sys = this.System;
             if nargin < 3
                 mu = sys.Geo(1)/2;
