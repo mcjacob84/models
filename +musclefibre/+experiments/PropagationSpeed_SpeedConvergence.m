@@ -32,7 +32,7 @@ measurelengths = distN*m.System.dx;
 
 %% Crunch
 base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');
-tag = sprintf('speedconv_T%d_dt%g_noise%d',T,dt,usenoise,max(N));
+tag = sprintf('speedconv_T%d_dt%g_noise%d',T,dt,usenoise);
 datafile = fullfile(base,['data_' tag '.mat']);
 
 Vms = cell(1,nn);

@@ -6,7 +6,12 @@ chunksize = 4; % [GB] The maximum single trajectory size
 %
 % This value has been determined by the
 % models.musclefibre.experiments.PropagationSpeed_SpeedConvergence* tests.
-distN = 80;
+%
+% for dt=0.005 distN=80 is acceptable, and for double size dt=0.01 "only"
+% distN=100 is also okay. As this about halves the storage size, we use
+% this variant
+distN = 100;
+dt = .01;
 T = 5000;
 usenoise = false;
 
@@ -21,7 +26,8 @@ if m.System.MotoSarcoLinkIndex ~= 1
     error('Must have MotoSarcoLinkIndex=1 for this experiment.')
 end
 m.T = T;
-m.dt = 0.01;
+% This time-step
+m.dt = dt;
 t = m.Times;
 
 % Compute time intervals for trajectories of limited size
