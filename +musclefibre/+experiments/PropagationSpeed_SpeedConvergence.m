@@ -2,7 +2,8 @@
 % sarcomeres at fixed dx resolution.
 %
 %% Results of simulation on LEAD
-% Use of 
+% Use of about distN=80 gives sufficient accuracy for the case with
+% dt=0.005.
 
 %% Clear
 clear classes;
