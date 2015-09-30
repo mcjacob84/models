@@ -14,7 +14,7 @@ end
 %% Init
 T = 50;
 usenoise = true;
-dt = .005;
+dt = .01;
 m.dt = dt;
 m.T = T;
 t = m.Times;
@@ -24,8 +24,7 @@ minV = -20; %[mV]
 buffer = 10; % number of buffer sarcomeres at boundaries, padded to the ones over which velo is measured
 
 % Pad by three sarcomeres to each end
-distN = round(2:65);
-%distN = round(linspace(2,1000,24));
+distN = unique([2:65 round(linspace(2,1000,24))]);
 N = distN + 2*buffer;
 nn = length(N);
 measurelengths = distN*m.System.dx;

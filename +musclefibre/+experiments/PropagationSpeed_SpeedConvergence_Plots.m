@@ -34,6 +34,7 @@ pm.savePlots(base,'Format',{'jpg','pdf','fig'},'Close',true);
 pm = PlotManager;
 pm.ExportDPI = 300;
 ax = pm.nextPlot(tag,sprintf('SpeedConvergence test %s',...
-        tag),'length [cm]','average speed [m/s]');
-plot(ax,measurelengths,avgs);
+        tag),'N','average speed [m/s]'); %length [cm]
+%plot(ax,measurelengths,avgs);
+plot(ax,N-20,avgs);
 pm.savePlots(base,'Format',{'jpg','pdf','fig'},'Close',true);
