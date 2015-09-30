@@ -1,5 +1,8 @@
 % This script performs a convergence test for increasing number of
 % sarcomeres at fixed dx resolution.
+%
+%% Results of simulation on LEAD
+% Use of 
 
 %% Clear
 clear classes;
@@ -12,23 +15,27 @@ end
 T = 50;
 usenoise = true;
 dt = .005;
+m.dt = dt;
+m.T = T;
+t = m.Times;
 
 %% General
 minV = -20; %[mV]
 buffer = 10; % number of buffer sarcomeres at boundaries, padded to the ones over which velo is measured
 
 % Pad by three sarcomeres to each end
-distN = round(linspace(2,1000,24));
+distN = round(2:65);
+%distN = round(linspace(2,1000,24));
 N = distN + 2*buffer;
 nn = length(N);
+measurelengths = distN*m.System.dx;
 
 %% Crunch
 base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');
-tag = sprintf('speedconv_T%d_dt%g_noise%d',T,dt,usenoise);
+tag = sprintf('speedconv_T%d_dt%g_noise%d',T,dt,usenoise,max(N));
 datafile = fullfile(base,['data_' tag '.mat']);
 
 Vms = cell(1,nn);
-fibrelengths = N*m.System.dx;
 if matlabpool('size') == 0
     matlabpool open;
 end
@@ -47,5 +54,5 @@ end
 if matlabpool('size') > 0
     matlabpool close;
 end
-save(datafile,'distN','N','Vms','fibrelengths');
+save(datafile,'measurelengths','N','Vms','t');
 
