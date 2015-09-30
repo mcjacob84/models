@@ -66,6 +66,7 @@ else
 %     for p = 1:nmu
     parfor p = 1:nmu
         m = models.musclefibre.Model('N',N,'SarcoVersion',1,'Noise',usenoise);
+        m.dt = dt;
         Vm = zeros(2,total_len);
         fprintf('Param %d of %d: Computing %d time intervals\n',p,nmu,length(intervals));
         for iidx = 1:length(intervals)-1
