@@ -176,7 +176,7 @@ classdef Shorten < models.BaseFullModel
             [t,y] = m.simulate;
             m.plot(t,y);
             
-            m = models.motorunit.Shorten(2);
+            m = models.motorunit.Shorten('SarcoVersion',2);
             [t,y] = m.simulate;
             m.plot(t,y);
             
@@ -184,11 +184,13 @@ classdef Shorten < models.BaseFullModel
             [t,y] = m.simulate;
             m.plot(t,y);
             
-            m = models.motorunit.Shorten(1,false,true);
+            m = models.motorunit.Shorten('SarcoVersion',1,...
+              'DynamicIC',false,'SPM',true);
             [t,y] = m.simulate;
             m.plot(t,y);
             
-            m = models.motorunit.Shorten(2,false,true);
+            m = models.motorunit.Shorten('SarcoVersion',2,...
+              'DynamicIC',false,'SPM',true);
             [t,y] = m.simulate;
             m.plot(t,y);
             res = 1;

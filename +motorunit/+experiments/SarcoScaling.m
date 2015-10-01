@@ -8,9 +8,11 @@
 % models.motorunit.SHSystem.ForceOutputScalingPolyCoeff property and used
 % for appropriate scaling of the output signal (depending on the fibre
 % type)
-file = fullfile(fileparts(mfilename('fullpath')),'sarcoscaling');
+sv = 2;
 
-% m = models.motorunit.Shorten(true, true);
+file = fullfile(fileparts(mfilename('fullpath')),sprintf('sarcoscaling_v%d',sv));
+% m = models.motorunit.Shorten('SarcoVersion',sv,'SPM',true,...
+%     'DynamicIC',true,'OutputScaling',false);
 % 
 % m.T = 80;
 % m.dt = .1;
@@ -26,13 +28,14 @@ file = fullfile(fileparts(mfilename('fullpath')),'sarcoscaling');
 % % p = p(:,idx);
 % 
 % % Directly set parameter set
-% p = [linspace(0,1,60); linspace(2,3,60)];
+% p = [linspace(0,1,60); ones(1,60)*4];
 % 
 % n = size(p,2);
 % maxvals = zeros(1,n);
 % maxidx = [];
 % pi = ProcessIndicator('Gathering max forces',n);
-% parfor k=1:n
+% for k=1:n
+% %parfor k=1:n
 %     [t, y, ct, x] = m.simulate(p(:,k),1);%#ok
 %     [maxvals(k), pos] = max(x(59,:));
 %     if pos == m.T+1
@@ -46,12 +49,13 @@ file = fullfile(fileparts(mfilename('fullpath')),'sarcoscaling');
 
 load(file);
 pm = PlotManager(false,2,2);
-tri = delaunay(p(1,:),p(2,:));
-h = pm.nextPlot('all');
-trisurf(tri, p(1,:),p(2,:),maxvals,'Parent',h, 'FaceColor','interp','EdgeColor','interp');
+% tri = delaunay(p(1,:),p(2,:));
+% h = pm.nextPlot('all');
+% trisurf(tri, p(1,:),p(2,:),maxvals,'Parent',h, 'FaceColor','interp','EdgeColor','interp');
 
 % m.Sampler.Domain = MotoneuronParamDomain;
-[~, idx] = m.Sampler.Domain.filter(p);
+% [~, idx] = m.Sampler.Domain.filter(p);
+idx = 1:60;
 % tri = delaunay(p(1,idx),p(2,idx));
 % h = pm.nextPlot('valid');
 % trisurf(tri, p(1,idx),p(2,idx), maxvals(idx), 'Parent',h, 'FaceColor','interp','EdgeColor','interp');
