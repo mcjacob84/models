@@ -7,7 +7,8 @@ clear classes;
 %% Init
 T = 50;
 usenoise = true;
-dt = .005;
+%dt = .005;
+dt = .01;
 
 %% Load
 base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');

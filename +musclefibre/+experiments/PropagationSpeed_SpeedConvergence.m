@@ -2,7 +2,8 @@
 % sarcomeres at fixed dx resolution.
 %
 %% Results of simulation on LEAD
-% Use of 
+% Use of about distN=80 gives sufficient accuracy for the case with
+% dt=0.005.
 
 %% Clear
 clear classes;
@@ -31,7 +32,7 @@ measurelengths = distN*m.System.dx;
 
 %% Crunch
 base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');
-tag = sprintf('speedconv_T%d_dt%g_noise%d',T,dt,usenoise,max(N));
+tag = sprintf('speedconv_T%d_dt%g_noise%d',T,dt,usenoise);
 datafile = fullfile(base,['data_' tag '.mat']);
 
 Vms = cell(1,nn);

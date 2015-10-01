@@ -1,6 +1,11 @@
 % This script performs a spatial convergence test for fixed fibre length
-% and increasingly fine dx resolution. The dx values are chosen orders of
+% and decreasing dx resolution. The dx values are chosen orders of
 % magnitude around the values from T. Heidlauf's Thesis dx of 0.0052.
+%
+%% Results from simulation on LEAD
+% Use dx ~ 10^-2.5=0.0032 [cm] for sufficient
+% spatial resolution. For quick simulations, dx=0.05 is the largest value
+% still having a reasonably good resolution.
 
 %% Clear
 clear classes;
