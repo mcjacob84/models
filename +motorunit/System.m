@@ -67,7 +67,7 @@ classdef System < models.motorunit.MotorunitBaseSystem
                 m = size(s.coeff,1);
                 for k=1:m
                     x0.addMatrix(sprintf('polyval([%s],mu(1))',...
-                        sprintf('%g ',s.coeff(k,:))),full(sparse(k,1,1,m,1)));
+                        sprintf('%.14g ',s.coeff(k,:))),full(sparse(k,1,1,m,1)));
                 end
                 this.x0 = x0;
             else
@@ -101,9 +101,9 @@ classdef System < models.motorunit.MotorunitBaseSystem
             C.addMatrix('1',sparse(1,7,1,2,this.dm+this.dsa));
             % Add scaling for force output A_s
             str = '1';
-            coeff = this.ForceOutputScalingPolyCoeff(options.SarcoVersion,:);
+            coeff = this.ForceOutputScalingPolyCoeff{options.SarcoVersion};
             if this.SingleTwitchOutputForceScaling
-                str = ['polyval([' sprintf('%g ',coeff) '],mu(1))'];
+                str = ['polyval([' sprintf('%.14g ',coeff) '],mu(1))'];
             end
             C.addMatrix(str, sparse(2,59,1,2,this.dm+this.dsa));
             this.C = C;

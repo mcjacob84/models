@@ -26,8 +26,9 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
         % @type rowvec<double>
         %
         % See also: models.motorunit.experiments.SarcoScaling
-        ForceOutputScalingPolyCoeff = [1e5*[0.072141692014344  -0.456658053996476   1.274105896595146  -2.041231359447655   2.058191740934228  -1.353159489096666   0.584711952400098  -0.164458365881107   0.029358733675881  -0.003174883073694   0.000165817182406    0.000048348565452   0.000012193246968];
-                                       -6.739683731541299e+03     6.618743958202118e+04    -2.515302791129484e+05     5.131388336818343e+05      -6.338511810732393e+05     4.977373178973962e+05    -2.511258768635655e+05     8.007511804921835e+04 -1.552484432747866e+04     1.746426487853261e+03    -1.260202711508740e+02     1.326631882948917e+01       1.398960056196235e+00];
+        ForceOutputScalingPolyCoeff = {
+            1e5*[   0.133229113241298  -0.834127708845393   2.314092280509735  -3.754880326472914   3.945406185349044  -2.792486768513515   1.335923148831657  -0.421435990707753   0.082794510979418  -0.008574151547690  -0.000101330255143  0.000228461898458   0.000022092057889];
+            1e10*[  -0.005583080638834   0.051746276520123  -0.220624569577431   0.573660315487840  -1.016764880760808   1.300670698247225  -1.240304735397929   0.897946884962748  -0.498044127370431   0.212068292632907  -0.069047146216459  0.017020761843826  -0.003125097502991   0.000417182230585  -0.000039143308385   0.000002464732214  -0.000000098699610   0.000000002932298   0.000000000218357]};
     end
 
     properties(SetAccess=private)
@@ -159,6 +160,19 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             % Limit mean current depending on fibre type
             mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
             prepareSimulation@models.BaseFirstOrderSystem(this, mu, inputidx);
+        end
+        
+        function y = computeOutput(this, x, mu)
+            if nargin < 3
+                mu = this.mu;
+            end
+            % Subtract the initial value
+            x0 = this.getX0(mu);
+            x = bsxfun(@minus,x,x0);
+            % Get the output
+            y = computeOutput@models.BaseFirstOrderSystem(this, x, mu);
+            % Set those outputs to zero 
+            %y(2,y(2,:)<0) = 0;
         end
         
         function varargout = plot(this, varargin)

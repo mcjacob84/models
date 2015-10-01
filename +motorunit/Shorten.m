@@ -172,6 +172,7 @@ classdef Shorten < models.BaseFullModel
     
     methods(Static)
         function res = test_Shorten
+            res = 1;
             m = models.motorunit.Shorten;
             [t,y] = m.simulate;
             m.plot(t,y);
@@ -186,14 +187,35 @@ classdef Shorten < models.BaseFullModel
             
             m = models.motorunit.Shorten('SarcoVersion',1,...
               'DynamicIC',false,'SPM',true);
+            m.T = 150;
             [t,y] = m.simulate;
             m.plot(t,y);
             
-            m = models.motorunit.Shorten('SarcoVersion',2,...
-              'DynamicIC',false,'SPM',true);
-            [t,y] = m.simulate;
-            m.plot(t,y);
-            res = 1;
+            for sv=1:2
+                m = models.motorunit.Shorten('SarcoVersion',sv,...
+                      'DynamicIC',false,'SPM',true);
+                m.T = 150;
+                m.simulate;
+                
+                for mu=[0 1]
+                    m = models.motorunit.Shorten('SarcoVersion',sv,'SPM',true,...
+                        'OutputScaling',true);
+                    m.T = 150;
+                    [~,y] = m.simulate([mu; 9]);
+                    % Need zero force at beginning
+                    if ~isequal(y(2,1),0)
+                        fprintf('Initial force not equal to zero!');
+                        res = false;
+                    end
+                    % The scaling needs to be such that a single peak has
+                    % force equal to one. Allow 1% difference
+                    % See the +experiments/SarcoScaling script.
+                    if max(y(2,:)-1)>.01
+                        fprintf('More than 1%% error on force scaling!');
+                        res = false;
+                    end
+                end
+            end
         end
     end
     

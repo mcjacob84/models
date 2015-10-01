@@ -8,71 +8,68 @@
 % models.motorunit.SHSystem.ForceOutputScalingPolyCoeff property and used
 % for appropriate scaling of the output signal (depending on the fibre
 % type)
-sv = 2;
+sv = 1;
 
-file = fullfile(fileparts(mfilename('fullpath')),sprintf('sarcoscaling_v%d',sv));
-% m = models.motorunit.Shorten('SarcoVersion',sv,'SPM',true,...
-%     'DynamicIC',true,'OutputScaling',false);
-% 
-% m.T = 80;
-% m.dt = .1;
-% m.EnableTrajectoryCaching = false;
-% 
-% % s = m.Sampler;
-% % s.Samples = 1000;
-% % s.Seed = 1;
-% % m.off1_createParamSamples;
-% % p = m.Data.ParamSamples;
-% % % Sort samples by fibre type
-% % [~, idx] = sort(p(1,:));
-% % p = p(:,idx);
-% 
-% % Directly set parameter set
-% p = [linspace(0,1,60); ones(1,60)*4];
-% 
-% n = size(p,2);
-% maxvals = zeros(1,n);
-% maxidx = [];
-% pi = ProcessIndicator('Gathering max forces',n);
-% for k=1:n
-% %parfor k=1:n
-%     [t, y, ct, x] = m.simulate(p(:,k),1);%#ok
-%     [maxvals(k), pos] = max(x(59,:));
-%     if pos == m.T+1
-%         fprintf('Max at final time for param %d\n',k);
-%         maxidx = [maxidx k];
-%     end
-%     pi.step;%#ok
-% end
-% pi.stop;
-% save(file,'m','p','maxvals','maxidx');
+file = fullfile(fileparts(mfilename('fullpath')),sprintf('sarcoscaling_v%d.mat',sv));
+if exist(file,'file') ~= 2
+    m = models.motorunit.Shorten('SarcoVersion',sv,'SPM',true,...
+        'DynamicIC',true,'OutputScaling',false);
+
+    m.T = 150;
+    m.dt = .1;
+    m.EnableTrajectoryCaching = false;
+
+    % Directly set parameter set
+    p = [linspace(0,1,60); ones(1,60)*9]; % use max mean current, only need single peak
+
+    n = size(p,2);
+    maxvals = zeros(1,n);
+    pi = ProcessIndicator('Gathering max forces',n);
+    for k=1:n
+%     parfor k=1:n
+        [t, y] = m.simulate(p(:,k),1);%#ok
+        [maxvals(k), pos] = max(y(2,:));
+        if pos == length(t)
+            error('Time interval too short!')
+        end
+        pi.step;%#ok
+    end
+    pi.stop;
+    save(file,'p','maxvals');
+end
 
 load(file);
 pm = PlotManager(false,2,2);
-% tri = delaunay(p(1,:),p(2,:));
-% h = pm.nextPlot('all');
-% trisurf(tri, p(1,:),p(2,:),maxvals,'Parent',h, 'FaceColor','interp','EdgeColor','interp');
 
-% m.Sampler.Domain = MotoneuronParamDomain;
-% [~, idx] = m.Sampler.Domain.filter(p);
-idx = 1:60;
-% tri = delaunay(p(1,idx),p(2,idx));
-% h = pm.nextPlot('valid');
-% trisurf(tri, p(1,idx),p(2,idx), maxvals(idx), 'Parent',h, 'FaceColor','interp','EdgeColor','interp');
-
-x = p(1,idx);
-y = 1./maxvals(idx);
+x = p(1,:);
+y = 1./maxvals;
 h = pm.nextPlot('all');
 plot(h, x, y);
-axis(h,'tight');
 
 % Polynomial fit
-h = pm.nextPlot('all');
+reltol = 0.01;
+abstol = 0.01;
+relerr = inf;
+abserr = inf;
+deg = 12;
+while (relerr > reltol || abserr > abstol) && deg < 20
+    c = polyfit(x,y,deg);
+    ay = polyval(c,x);
+    relerr = max(abs((ay-y)./y));
+    abserr = max(abs(ay-y));
+    deg = deg+1;
+end
+h = pm.nextPlot('both');
 plot(h,x,y);
 hold(h,'on');
-c = polyfit(x,y,12);
 ax = 0:.01:1;
 ay = polyval(c,ax);
 plot(h,ax,ay,'r');
-axis(h,'tight');
+
+% Error
+h = pm.nextPlot('err');
+ay = polyval(c,x);
+plot(h,x,y-ay,'r',x,(y-ay)./y,'b');
+relerr = max(abs((ay-y)./y))
+abserr = max(abs(ay-y))
 save(file,'c','-APPEND');

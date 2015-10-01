@@ -15,7 +15,7 @@ classdef Pool < handle
     properties
         FibreTypes;
         Version;
-        ShortenInput = @(t)3;
+        %ShortenInput = @(t)3;
     end
     
     properties(SetAccess=private)
@@ -36,10 +36,10 @@ classdef Pool < handle
             this.shorten = models.motorunit.Shorten('SarcoVersion',2);
         end
         
-        function prepareSimulation(this, T, meancurrent)
+        function prepareSimulation(this, model, meancurrent)
             ft = this.FibreTypes;
             nf = length(ft);
-            a = zeros(nf,T+300);
+            a = zeros(nf,model.T+300);
             this.fugle.Seed = 1;
             if this.Version == 1
                 for fidx = 1:nf
@@ -52,10 +52,12 @@ classdef Pool < handle
                 end
             elseif this.Version == 2
                 m = this.shorten;
-                m.T = T;
-                m.System.Inputs{1} = this.ShortenInput;
+                m.T = model.T;
+                m.dt = model.dt;
+                %m.System.Inputs{1} = this.ShortenInput;
                 for fidx = 1:nf
-                    a(fidx,:) = this.shorten.simulate([ft(fidx); meancurrent],1);
+                    [~,y] = this.shorten.simulate([ft(fidx); meancurrent],1);
+                    a(fidx,:) = y(2,:);
                 end
             end
             this.alpha = a;
