@@ -72,17 +72,18 @@ function [JK, Jalpha, JLamDot] = getStateJacobianImpl(this, uvwdof, t)
         if havefibretypes
             alphaconst = [];
             fibretypeweights = mc.FibreTypeWeights;
-            nfibres = size(fibretypeweights,2);
             if sys.HasMotoPool
-                FibreForces = mc.Pool.getActivation(t);
+                % Use the un-combined signal, as we have
+                % different ftw's at each gauss point
+                [~, FibreForces] = mc.Pool.getActivation(t);
             elseif hasforceargument
                 FibreForces = uvwdof(sys.NumTotalDofs+1:end) * min(1,t);
-                totalsizeS = num_elements*num_gausspoints*nfibres;
+                totalsizeS = num_elements*num_gausspoints*this.nfibres;
                 iS = zeros(totalsizeS,1);
                 jS = zeros(totalsizeS,1);
                 sS = zeros(totalsizeS,1);
                 cur_offS = 0;
-                columns_sarco_link = 53:56:56*nfibres;
+                columns_sarco_link = 53:56:56*this.nfibres;
             else
                 error('No implemented');
             end
@@ -373,7 +374,7 @@ function [JK, Jalpha, JLamDot] = getStateJacobianImpl(this, uvwdof, t)
             
             %% Grad_s K(u,w,s)
             if hasforceargument
-                for k = 1:nfibres
+                for k = 1:this.nfibres
                     dPsk = alpha_prefactor * fibretypeweights(gp,k,m) * F * a0;
                     iS(cur_offS + relidx_pos) = elemidx_v_out_linear-size_pos_vec;
                     jS(cur_offS + relidx_pos) = columns_sarco_link(k);
@@ -397,14 +398,14 @@ function [JK, Jalpha, JLamDot] = getStateJacobianImpl(this, uvwdof, t)
     
     Jalpha = [];
     if hasforceargument
-        Jalpha = sparse(iS,jS,sS,3*N,nfibres*56);
+        Jalpha = sparse(iS,jS,sS,3*N,this.nfibres*56);
         % Remove those that are connected to dirichlet values
         Jalpha([sys.idx_u_bc_glob; sys.idx_v_bc_glob],:) = [];
     end
     
     JLamDot = [];
     if haveldotpos
-        JLamDot = sparse(ildot,double(jldot),sldot,this.nfibres,6*N);
+        JLamDot = sparse(ildot,double(jldot),sldot,this.this.nfibres,6*N);
         JLamDot(:,sys.idx_uv_bc_glob) = [];
     end
 end

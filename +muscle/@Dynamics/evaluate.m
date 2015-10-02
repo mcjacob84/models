@@ -55,7 +55,9 @@ function Kuvw = evaluate(this, uvwdof, t, fibreforces)
             alphaconst = [];
             fibretypeweights = mc.FibreTypeWeights;
             if sys.HasMotoPool
-                FibreForces = mc.Pool.getActivation(t);
+                % Use the un-combined signal, as we have
+                % different ftw's at each gauss point
+                [~, FibreForces] = mc.Pool.getActivation(t);
             elseif sys.HasForceArgument
                 FibreForces = fibreforces;
             else

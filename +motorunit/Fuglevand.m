@@ -53,7 +53,7 @@ classdef Fuglevand < handle
             this.Seed = 1;
         end
         
-        function forces = getForces(this, mu, T)
+        function forces = getForces(this, mu, T, dt)
             
             if nargin < 3
                 T = 2000;
@@ -62,8 +62,15 @@ classdef Fuglevand < handle
                 end
             end
             
+            % Create desired time grid before messing with T
+            t = 0:dt:T;
+                       
             % Add window of single peak to simulation time
             T = T + this.lengthWin;
+            
+            % buffer as the start time is inconsistent
+            buffer = 300; %[ms]
+            T = T + buffer;
             
             firing = zeros(1,T);
             forces = firing;
@@ -126,6 +133,15 @@ classdef Fuglevand < handle
             end
             % Subtract window of single peak from force
             forces = forces(1:end-this.lengthWin);
+            
+            startpos = find(forces,1)-10;
+            if startpos > 0
+                forces(:,1:startpos) = [];
+                forces(:,end-buffer+startpos+1:end) = [];
+            end
+            
+            % Interpolate to desired time grid
+            forces = interp1(1:length(forces),forces,t,'cubic');
         end
         
         function set.Seed(this, value)

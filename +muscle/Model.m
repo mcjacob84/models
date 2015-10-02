@@ -277,6 +277,14 @@ classdef Model < models.BaseFullModel
             pm.done;
         end
         
+        function plotPoolSignal(this)
+            if ~isempty(this.Config.Pool)
+                [a,all] = this.Config.Pool.getActivation(this.Times);
+                figure;
+                plot(this.Times,a,'r',this.Times,all,'g');
+            end
+        end
+        
         function varargout = plotGeometrySetup(this, varargin)
             mu = this.System.mu;
             if isempty(mu)

@@ -85,7 +85,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
         function configUpdated(this)
             sys = this.fsys;
             mc = sys.Model.Config;
-            if ~isempty(mc.FibreTypeWeights)
+            if ~isempty(mc.Pool)
                 this.nfibres = size(mc.FibreTypeWeights,2);
             end
             if ~isempty(mc)
@@ -104,7 +104,7 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             sys = this.fsys;
             mc = sys.Model.Config;
             if ~isempty(mc.Pool)
-                mc.Pool.prepareSimulation(sys.Model.T,mu(4));
+                mc.Pool.prepare(mu(4),sys.Model.T,sys.Model.dt);
             end
             % Returns an all zero function if mu(2) is less or equal to zero!
             this.alpha = mc.getAlphaRamp(mu(2));
