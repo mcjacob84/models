@@ -60,9 +60,9 @@ classdef System < models.BaseSecondOrderSystem
             this.maxvforhole = maxv;
             
             % Evtl. den Zeitschritt verkleinern, so dass der Ball nicht pro Schritt
-            % die Lochweite überspringen kann ODER
-            % Mindestens eine Auflösung von 24 Bildern pro sekunde, damit beim
-            % Aviexport ein flüssiges Video entsteht!
+            % die Lochweite Ã¼berspringen kann ODER
+            % Mindestens eine AuflÃ¶sung von 24 Bildern pro sekunde, damit beim
+            % Aviexport ein flÃ¼ssiges Video entsteht!
             dt = m.dt;
             if (dt > 2*m.rad_hole/maxv) || (dt > 1/24)
                 this.MaxTimestep = min(0.9*2*m.rad_hole/maxv, 1/24);
@@ -70,13 +70,13 @@ classdef System < models.BaseSecondOrderSystem
                 this.MaxTimestep = dt;
             end
         end
-    end
-    
-    methods(Access=protected)
+        
         function dv = getDerivativeDirichletValues(this)
             dv = [];
         end
-        
+    end
+    
+    methods(Access=protected)
         function val = getDerivativeInitialValues(~, mu)
             val = mu(3:4);
         end

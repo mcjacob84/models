@@ -176,9 +176,7 @@ classdef DynLinTimoshenkoSystem < models.BaseSecondOrderSystem
             
             this.updateSparsityPattern;
         end
-    end
-    
-    methods(Access=protected)
+        
         function val = getDerivativeDirichletValues(this, t)
             val = [];
         end

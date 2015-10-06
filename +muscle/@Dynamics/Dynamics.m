@@ -105,6 +105,9 @@ classdef Dynamics < dscomponents.ACompEvalCoreFun
             mc = sys.Model.Config;
             if ~isempty(mc.Pool)
                 mc.Pool.prepare(mu(4),sys.Model.T,sys.Model.dt);
+                % Ensure we have a normalized force generated - otherwise
+                % most simulations break at 15-fold force
+                mc.Pool.NormalizedForce = true;
             end
             % Returns an all zero function if mu(2) is less or equal to zero!
             this.alpha = mc.getAlphaRamp(mu(2));

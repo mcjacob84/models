@@ -150,8 +150,9 @@ classdef System < models.motorunit.MotorunitBaseSystem
 %             C.addMatrix('1',sparse(1,7,1,2,this.dm+this.dsa));
 %             % Add scaling for force output A_s
 %             str = '1';
+%             coeff = this.ForceOutputScalingPolyCoeff{options.SarcoVersion};
 %             if this.SingleTwitchOutputForceScaling
-%                 str = ['polyval([' sprintf('%g ',this.ForceOutputScalingPolyCoeff) '],mu(1))'];
+%                 str = ['polyval([' sprintf('%g ',coeff) '],mu(1))'];
 %             end
 %             C.addMatrix(str, sparse(2,59,1,2,this.dm+this.dsa));
         end
