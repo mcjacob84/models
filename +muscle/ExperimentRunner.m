@@ -29,7 +29,7 @@ classdef ExperimentRunner < handle
             this.Config = config;
             
             % Do parallel if parallel toolbox is around!
-            this.RunParallel = exist('matlabpool','file') == 2;
+            this.RunParallel = PCPool.isAvailable;
             this.StoreExperimentData = true;
         end
         
@@ -107,18 +107,14 @@ classdef ExperimentRunner < handle
             % Run all the settings!
             if this.RunParallel && ~this.multipleexperiments
                 fprintf('Running %d experiment configurations in parallel...\n',c.NumConfigurations);
-                closeafterrun = false;
-                if matlabpool('size') == 0
-                    matlabpool open;
-                    closeafterrun = true;
-                end
+                closeafterrun = PCPool.open;
                 parfor nr = 1:c.NumConfigurations
                     t = getCurrentTask();
                     fprintf('Worker %d: Running configuration %d\n',t.ID,nr);
                     [out(nr,:), ~, ct(nr)] = this.runExperimentConfig(nr, mu);%#ok
                 end
                 if closeafterrun
-                    matlabpool close;
+                    PCPool.close;
                 end
                 fprintf('done');
             else
@@ -146,11 +142,7 @@ classdef ExperimentRunner < handle
             this.multipleexperiments = nex > 1;
             
             if this.RunParallel && nex > 1
-                closeafterrun = false;
-                if matlabpool('size') == 0
-                    matlabpool open;
-                    closeafterrun = true;
-                end
+                closeafterrun = PCPool.open;
                 fprintf('Running %d experiments (%d configs each) in parallel...\n',nex,c.NumConfigurations);
                 parfor k=1:nex
                     t = getCurrentTask();
@@ -159,7 +151,7 @@ classdef ExperimentRunner < handle
                 end
                 fprintf('done');
                 if closeafterrun
-                    matlabpool close;
+                    PCPool.close;
                 end
             else
                 pi = ProcessIndicator('Running experiment configurations (%d each) for %d parameters',...

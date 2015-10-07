@@ -60,9 +60,7 @@ else
     nmu = size(mus,2);
     Vms = cell(1,nmu);
     ctimes = zeros(1,nmu);
-    if matlabpool('size') == 0
-        matlabpool open;
-    end
+    PCPool.open;
 %     for p = 1:nmu
     parfor p = 1:nmu
         m = models.musclefibre.Model('N',N,'SarcoVersion',1,'Noise',usenoise);
@@ -78,8 +76,6 @@ else
         end
         Vms{p} = Vm;
     end
-    if matlabpool('size') > 0
-        matlabpool close;
-    end
+    PCPool.close;
     save(datafile,'mus','distN','N','t','Vms','ctimes');
 end

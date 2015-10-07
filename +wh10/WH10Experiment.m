@@ -128,17 +128,17 @@ classdef WH10Experiment < models.BaseFullModel
             end
             
             %% Create output error plot for u3 and theta=0.05
-            ma = ModelAnalyzer(rmodels{3});
+            ma = ModelAnalyzer(rmodels{min(3,length(degs))});
             ma.SingleFigures = true;
             d.ReducedModel.ErrorEstimator = d.Est(7).Estimator;
-            ma.analyzeError([],3,pm);
+            ma.analyzeError([],2,pm);
             pm.FilePrefix = 'WH10_in3_deg05';
             %pm.savePlots(dir,'Format','eps','Close',true,'Selection',3);
             
             %% Table stuff
-            range = 1:4:13;
-            sort = [range (range)+1 (range)+2 (range)+3];
-            d.createStatsTables(sort);
+%             range = 1:4:13;
+%             sort = [range (range)+1 (range)+2 (range)+3];
+            d.createStatsTables;
         end
         
         function d = Experiment4(dim)

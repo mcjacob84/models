@@ -41,7 +41,7 @@ else
     maxidx = [];
     endvals = zeros(m.System.f.xDim,n);
     ctimes = zeros(1,n);
-    pi = ProcessIndicator('Running %d simulations with one twitch',n/(max(1,matlabpool('size'))),false,n);
+    pi = ProcessIndicator('Running %d simulations with one twitch',n/(max(1,PCPool.size)),false,n);
     %for k=1:n
     parfor k=1:n
         [t, y, ctimes(k), x] = m.simulate(p(:,k),1);%#ok

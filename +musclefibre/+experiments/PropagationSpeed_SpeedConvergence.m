@@ -36,9 +36,7 @@ tag = sprintf('speedconv_T%d_dt%g_noise%d',T,dt,usenoise);
 datafile = fullfile(base,['data_' tag '.mat']);
 
 Vms = cell(1,nn);
-if matlabpool('size') == 0
-    matlabpool open;
-end
+PCPool.open;
 parfor p = 1:nn
 % for p = 1:nn
     m = models.musclefibre.Model('N',N(p),'SarcoVersion',1,'Noise',usenoise);
@@ -51,8 +49,6 @@ parfor p = 1:nn
     fprintf('Finished run %d with N=%d',p,N(p));
     Vms{p} = y(pos,:);
 end
-if matlabpool('size') > 0
-    matlabpool close;
-end
+PCPool.close;
 save(datafile,'measurelengths','N','Vms','t');
 
