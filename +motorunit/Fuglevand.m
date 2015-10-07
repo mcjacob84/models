@@ -54,11 +54,22 @@ classdef Fuglevand < handle
         end
         
         function forces = getForces(this, mu, T, dt)
+            % Obtain the modeled force response for given parameter and
+            % times
+            %
+            % Parameters:
+            % mu: The parameter containing fibre type and exitation level
+            % @type rowvec<double> @default [0.1 5]
+            % T: The final time `T` @type double @default 2000
+            % dt: The time-step `\Delta t` @type double @default 1
             
-            if nargin < 3
-                T = 2000;
-                if nargin < 2
-                    mu = [.1 5];
+            if nargin < 4
+                dt = 1;
+                if nargin < 3
+                    T = 2000;
+                    if nargin < 2
+                        mu = [.1 5];
+                    end
                 end
             end
             

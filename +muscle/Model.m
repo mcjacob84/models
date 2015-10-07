@@ -479,7 +479,7 @@ classdef Model < models.BaseFullModel
                 m.System.UseDirectMassInversion = true;
                 [t,y] = m.simulate(mu);
             catch ME
-                ME.getReport('extended');
+                ME.getReport('extended')
                 res = false;
             end
         end

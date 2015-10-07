@@ -54,8 +54,6 @@ classdef Debug < models.muscle.AMuscleConfig
         
         function configureModel(this, m)
             configureModel@models.muscle.AMuscleConfig(this, m);
-%             sys = m.System;
-%             f = sys.f;
             m.T = 50;
             m.dt = m.T / 30;
             m.ODESolver.RelTol = 1e-5;
@@ -66,25 +64,20 @@ classdef Debug < models.muscle.AMuscleConfig
             case 2
                 m.DefaultMu(1:2) = [1; m.T/2];
             case 3
-                m.T = 400;
+                m.T = 100;
                 m.dt = 1;
-                types = [0 .2 .4 .6 .8 1];
+                types = [0 .6 1];
                 fe = this.FEM;
                 geo = fe.Geometry;
                 ftw = zeros(fe.GaussPointsPerElem,length(types),geo.NumElements);
                 % Test: Use only slow-twitch muscles
                 ftw(:,1,:) = .4;
-                ftw(:,2,:) = .05;
-                ftw(:,3,:) = .05;
-                ftw(:,4,:) = .1;
-                ftw(:,5,:) = .2;
-                ftw(:,6,:) = .2;
+                ftw(:,2,:) = .3;
+                ftw(:,3,:) = .3;
                 this.FibreTypeWeights = ftw;
                 p = models.motorunit.Pool(2);
                 p.FibreTypes = types;
                 this.Pool = p;
-%                 m.ODESolver.RelTol = .01;
-%                 m.ODESolver.AbsTol = .1;
                 m.Plotter.DefaultArgs = {'Pool',true};
                 m.DefaultMu(4) = 4;
             case {4,5,6}

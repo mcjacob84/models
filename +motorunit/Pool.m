@@ -236,11 +236,11 @@ classdef Pool < handle
             m = models.motorunit.Shorten('SarcoVersion',1);
             p = models.motorunit.Pool(2,m);
             T = 60;
-            [f,allf] = p.simulate(4,T,.1);
-            p.prepare(4,T,.1);
-            t = 0:.1:T;
+            [f,allf] = p.simulate(4,T,.01);
+            p.prepare(4,T,.01);
+            t = 0:.01:T;
             a = p.getActivation(t);
-            res = res && isequal(f,a);
+            res = res && max(f(:)-a(:)) < 0.002;
             figure;
             plot(t,f,'r',t,allf,'g');
         end

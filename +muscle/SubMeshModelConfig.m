@@ -1,4 +1,4 @@
-classdef SubMeshModelConfig < models.models.muscle.AMuscleConfig
+classdef SubMeshModelConfig < models.muscle.AMuscleConfig
     %SUBMESHMODELCONFIG A Model config providing the same settings as
     %another model config but for a submesh
     

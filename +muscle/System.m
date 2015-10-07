@@ -387,12 +387,6 @@ classdef System < models.BaseSecondOrderSystem
                 this.D = this.fD;
             end
             
-            % Update the MooneyRivlinICConst to have stress-free IC
-            % This depends on the current muscle/tendon parameters for
-            % mooney-rivlin (updated one step before)
-            this.MooneyRivlinICConst = -2*this.MuscleTendonParamc10...
-                -4*this.MuscleTendonParamc01;
-            
             % Get velocity dirichlet conditions time-function
             mc = this.Model.Config;
             if ~isempty(mc.VelocityBCTimeFun)
@@ -408,6 +402,12 @@ classdef System < models.BaseSecondOrderSystem
             % Update muscle/tendon parameters on all gauss points.
             % We have mu-dependent mooney-rivlin and markert laws.
             this.updateTendonMuscleParamsGP;
+            
+            % Update the MooneyRivlinICConst to have stress-free IC
+            % This depends on the current muscle/tendon parameters for
+            % mooney-rivlin (updated one step before)
+            this.MooneyRivlinICConst = -2*this.MuscleTendonParamc10...
+                -4*this.MuscleTendonParamc01;
         end
         
         function uvwall = includeDirichletValues(this, t, uvw)
@@ -755,12 +755,13 @@ classdef System < models.BaseSecondOrderSystem
             % This method is invoked AFTER prepareSimulation is called,
             % i.e. this.mu is set and all components are initialized
             mu = this.mu;
-            % Only do stuff if mu changed; getting the ratios can be a bit
+            
+            % Only do stuff if mu or sizes have changed; getting the ratios can be a bit
             % more costly.
-            if ~isequal(this.fLastMu,mu)
-                mc = this.Model.Config;
-                fe = mc.FEM;
-                tmr = zeros(fe.GaussPointsPerElem,fe.Geometry.NumElements);
+            mc = this.Model.Config;
+            fe = mc.FEM;
+            tmr = zeros(fe.GaussPointsPerElem,fe.Geometry.NumElements);
+            if ~isequal(this.fLastMu,mu) || any(size(this.MuscleTendonRatioGP) ~= size(tmr))    
                 if this.HasTendons
                     g = fe.Geometry;
                     for m = 1:g.NumElements

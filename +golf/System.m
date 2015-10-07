@@ -47,6 +47,11 @@ classdef System < models.BaseSecondOrderSystem
             x0.addMatrix('mu(2)',[0;1]);
             this.x0 = x0;
             
+            dx0 = dscomponents.AffineInitialValue;
+            dx0.addMatrix('mu(3)',[1;0]);
+            dx0.addMatrix('mu(4)',[0;1]);
+            this.x0deriv = dx0;
+            
             this.f = models.golf.Force(this);
             
             this.updateSparsityPattern;
@@ -75,11 +80,4 @@ classdef System < models.BaseSecondOrderSystem
             dv = [];
         end
     end
-    
-    methods(Access=protected)
-        function val = getDerivativeInitialValues(~, mu)
-            val = mu(3:4);
-        end
-    end
-    
 end
