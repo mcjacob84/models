@@ -63,9 +63,7 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
         %
         % See also: models.motorunit.experiments.SarcoScaling 
         SingleTwitchOutputForceScaling = true;
-    end
-
-    properties(SetAccess=private)
+        
         sarco;
         moto;
         
@@ -78,8 +76,22 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
         noiseGen;
     end
     
-    properties(Access=protected, Transient)
+    properties(SetAccess=protected)
+        % The index of the neuromuscular junction Vm signal in the overall
+        % y state vector.
+        %
+        % Used in SinglePeakMode and for signal linking
+        MotoSarcoLinkIndex;
+    end
+
+    properties(SetAccess=private, Transient)
         peakstart = false;
+        
+        % Flag indicating that a peak already occurred.
+        %
+        % This is set by the system's ODE callback function and is used
+        % in the Dynamics functions to disable the moto-sarco signal.
+        HadPeak = false;
     end
     
     properties(Access=private)
@@ -143,11 +155,7 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             this.sarco.setType(mu(1));
             this.moto.setType(mu(1));
             this.noiseGen.setFibreType(mu(1));
-            this.MaxTimestep = this.Model.dt*100;
-            % Helper method to reset the "peak counter" of the dynamics.
-            if this.SinglePeakMode
-                this.peakstart = false;
-            end
+            %this.MaxTimestep = this.Model.dt*100;
         end
         
         function prepareSimulation(this, mu, inputidx)
@@ -156,6 +164,13 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             % exceeded.
             %
             % See also: models.motoneuron.ParamDomainDetection upperlimit_poly
+            
+            if this.SinglePeakMode
+                this.peakstart = false;
+                this.HadPeak = false;
+                s = this.Model.ODESolver;
+                s.odeopts.OutputFcn = @this.singlePeakModeOutputFcn;
+            end
             
             % Limit mean current depending on fibre type
             mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
@@ -166,20 +181,29 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             if nargin < 3
                 mu = this.mu;
             end
-            % Subtract the initial value
+            forcepos = this.dm+52+(1:this.dsa:(size(x,1)-this.dsa));
+            % Subtract the initial value for the force part
             x0 = this.getX0(mu);
-            x = bsxfun(@minus,x,x0);
+            x(forcepos,:) = bsxfun(@minus,x(forcepos,:),x0(forcepos));
             % Get the output
             y = computeOutput@models.BaseFirstOrderSystem(this, x, mu);
             % Set those outputs to zero 
             %y(2,y(2,:)<0) = 0;
         end
-        
-        function varargout = plot(this, varargin)
-            % plots some interesting states of the model
-            %
-            % See also: musclefibres.System
-            [varargout{1:nargout}] = this.System.plot(varargin{:});
+    end
+    
+    methods(Access=private)
+        function status = singlePeakModeOutputFcn(this, ~, y, flag)
+            if ~strcmp(flag,'done')
+                pos = this.MotoSarcoLinkIndex;
+                if y(pos) > -20 && ~this.peakstart
+                    this.peakstart = true;
+                elseif y(pos) < -20 && this.peakstart
+                    this.peakstart = false;
+                    this.HadPeak = true;
+                end
+            end
+            status = 0;
         end
     end
     

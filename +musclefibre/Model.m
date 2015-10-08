@@ -34,6 +34,10 @@ classdef Model < models.BaseFullModel
         RandSeed = 1;
     end
     
+    properties(SetAccess=private)
+        Options;
+    end
+    
     methods
         function this = Model(varargin)
             % Creates a new muscle fibre model
@@ -42,21 +46,27 @@ classdef Model < models.BaseFullModel
             % N: number of sarcomeres @default 100
             
             i = inputParser;
-            i.addParamValue('SarcoVersion',1);
-            i.addParamValue('DynamicIC',true);
-            i.addParamValue('SPM',false);
-            i.addParamValue('OutputScaling',true);
-            i.addParamValue('Spindle',false);
-            i.addParamValue('N',100,@(n)n>1);
-            i.addParamValue('Noise',true,@(v)islogical(v));
+            i.addParameter('SarcoVersion',1);
+            i.addParameter('DynamicIC',true);
+            i.addParameter('SPM',false);
+            i.addParameter('OutputScaling',true);
+            i.addParameter('Spindle',false);
+            i.addParameter('N',100,@(n)n>2);
+            i.addParameter('Noise',true,@(v)islogical(v));
+            i.addParameter('JunctionN',1,@(n)isposintscalar(n));
             % For default dx, see the
             % experiments.PropagationSpeed_SpatialConvergence* scripts
-            i.addParamValue('dx',10^-2.5,@(v)isscalar(v));
+            i.addParameter('dx',10^-2.5,@(v)isscalar(v));
             i.parse(varargin{:});
             options = i.Results;
             
+            if options.JunctionN > options.N
+                error('The junction N must be smaller or equal to N');
+            end
+            
             name = sprintf('Muscle fibre model (%d cells)',options.N);
             this = this@models.BaseFullModel(name);
+            this.Options = options;
             this.System = models.musclefibre.System(this, options);
             this.TrainingInputs = 1;
             this.SaveTag = sprintf('musclefibre_%dcells',options.N);
@@ -81,22 +91,26 @@ classdef Model < models.BaseFullModel
         
         function pm = plot(this, t, y, pm)
             if nargin < 4
-                pm = PlotManager(false,2,2);
+                pm = PlotManager(false,1,2);
                 pm.LeaveOpen = true;
             end
-            sys = this.System;
-            off = sys.dm+sys.ds+(sys.MotoSarcoLinkIndex-1)*sys.dsa+1;
-            h = pm.nextPlot('moto','Motoneuron V_s','time','value');
-            plot(h,t,y(2,:));
-            h = pm.nextPlot('sarco','Linked sarcomere: A_2','time','A_2');
-            plot(h,t,y(off+52,:));
-            h = pm.nextPlot('sarco','Linked sarcomere: V_s','time','V_s');
-            plot(h,t,y(off,:));
-            
-            h = pm.nextPlot('sarco','All sarcomeres: V_s','time','value');
-            Vsidx = sys.dm+sys.ds + 1:sys.dsa:size(y,1);
-            plot(h,t,y(Vsidx,:));
-
+            h = pm.nextPlot('moto','Motoneuron V_m','time','value');
+            plot(h,t,y(1,:));
+            o = this.Options;
+            mu = this.System.mu;
+            if isempty(mu)
+                mu = this.DefaultMu;
+            end
+            tit = sprintf('Sarcomere (Version=%d) A_2, mu=%g\nN=%d, SPM=%d, DynIC=%d, OS=%d',...
+                o.SarcoVersion,mu(1),o.N,o.SPM,o.DynamicIC,o.OutputScaling);
+            h = pm.nextPlot('sarco',tit,'time [ms]','fibre position [cm]');
+            dx = this.System.dx*(1:(size(y,1)-1));
+            [DX,T] = meshgrid(t,dx);
+            surf(DX,T,y(2:end,:),'EdgeColor','none','FaceColor','interp','Parent',h);
+            hold(h,'on');
+            Jpos = o.JunctionN+1;
+            o = ones(size(t));
+            plot3(h,t,dx(Jpos)*o,0*o,'r');
             if nargin < 4
                 pm.done;
             end    
@@ -117,39 +131,6 @@ classdef Model < models.BaseFullModel
     end
     
     methods(Static)
-        function res = test_MusclefibreModels
-            res = true;
-            for N = [2 5]
-                for sv = [1 2]
-                    for ic = logical([0 1])
-                        try
-                            fprintf('Testing N=%d,SV=%d,DynIC=%d\n',N,sv,ic);
-                            m = models.musclefibre.Model('N',N,...
-                                'SarcoVersion',sv,'DynamicIC',ic);
-                            m.T = 40;
-                            m.dt = .01;
-                            m.simulate;
-
-                            ms = models.musclefibre.Model('N',N,...
-                                'SarcoVersion',sv,'DynamicIC',ic,...
-                                'SPM',true);
-                            ms.T = 40;
-                            ms.dt = .01;
-                            ms.simulate;
-                        catch ME
-                            display(ME)
-                            res = false;
-                            break;
-                        end
-                    end
-                    if ~res
-                        break;
-                    end
-                end
-                if ~res
-                    break;
-                end
-            end
-        end
+        
     end
 end

@@ -30,11 +30,11 @@ classdef Shorten < models.BaseFullModel
             % Creates a new motor unit model
             
             i = inputParser;
-            i.addParamValue('SarcoVersion',1);
-            i.addParamValue('DynamicIC',true);
-            i.addParamValue('SPM',false);
-            i.addParamValue('OutputScaling',true);
-            i.addParamValue('Noise',true);
+            i.addParameter('SarcoVersion',1);
+            i.addParameter('DynamicIC',true);
+            i.addParameter('SPM',false);
+            i.addParameter('OutputScaling',true);
+            i.addParameter('Noise',true);
             i.parse(varargin{:});
             options = i.Results;
             
@@ -45,7 +45,7 @@ classdef Shorten < models.BaseFullModel
                 this.T = 150; % [ms]
             end
             
-            this.dt = .1; % [ms]
+            this.dt = 0.1; % [ms]
             
             this.SaveTag = sprintf('motorunit_shorten_sp%d_dynic%d',...
                 options.SPM,options.DynamicIC);
@@ -58,12 +58,7 @@ classdef Shorten < models.BaseFullModel
             this.TrainingInputs = 1;
             this.EnableTrajectoryCaching = true;
             
-            s = solvers.MLWrapper(@ode15s);
-            if options.SPM
-                sys = this.System;
-                s.odeopts.OutputFcn = @sys.singlePeakModeOutputFcn;
-            end
-            this.ODESolver = s;
+            this.ODESolver = solvers.MLWrapper(@ode15s);
             
             % Set parameter domain already
             s = sampling.RandomSampler;

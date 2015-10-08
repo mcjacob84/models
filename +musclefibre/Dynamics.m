@@ -87,15 +87,11 @@ classdef Dynamics < models.motorunit.MotorunitBaseDynamics
             dy(dm+ds+1:end,:) = reshape(sadydt, dsa*N,[]);
             
             %% Link of motoneuron to sarcomer cell
-            % Fix link moto-sarcomer for to middle cell
-            fac = this.MSLink_MaxFactor*ones(1,size(y,2));
-            dynfac = y(2,:) < this.MSLink_MaxFactorSignal;
-            fac(dynfac) = this.getLinkFactor(y(2,dynfac));
-            
-            linkpos = dm+ds+(this.System.MotoSarcoLinkIndex-1)*dsa+1;
-            % if t>15 && t < 30  switch off AP
-            dy(linkpos,:) = dy(linkpos,:) + fac.*y(2,:)./sa.SarcoConst(1,:);
-            % end
+            if ~sys.HadPeak
+                linkpos = sys.MotoSarcoLinkIndex;
+                dy(linkpos,:) = dy(linkpos,:) + this.getLinkFactor(y(2,:))...
+                    .*y(2,:)./sa.SarcoConst(1,:);
+            end
         end
         
         function dy = evaluateCoreFun(this, y, t, mu)%#ok
@@ -130,12 +126,7 @@ classdef Dynamics < models.motorunit.MotorunitBaseDynamics
                 %J(dm+ds+(idx-1)*dsa+1:dm+ds+idx*dsa,dm+ds+(idx-1)*dsa+1:dm+ds+idx*dsa) = JSarco(:,(idx-1)*dsa+1:idx*dsa);
             end
             J = blkdiag(Jm,Jsp,Jsa{:});
-            
-            fac = this.MSLink_MaxFactor*ones(1,size(y,2));
-            dynfac = y(2,:) < this.MSLink_MaxFactorSignal;
-            fac(dynfac) = this.getLinkFactor(y(2,dynfac));
-            linkpos = dm+ds+(this.System.MotoSarcoLinkIndex-1)*dsa+1;
-            J(linkpos,2) = fac./sa.SarcoConst(1,:);
+            J(s.MotoSarcoLinkIndex,2) = this.getLinkFactor(y(2,:))./sa.SarcoConst(1,:);
         end
         
         function copy = clone(this)
@@ -148,18 +139,6 @@ classdef Dynamics < models.motorunit.MotorunitBaseDynamics
             % Copy local properties
             % No local properties are to be copied here, as so far everything is done in the
             % constructor.
-        end
-        
-        function pm = plotMotoSacroLinkFactorCurve(this)
-            x = 0:.1:80;
-            pm = PlotManager;
-            pm.LeaveOpen = true;
-            h = pm.nextPlot('moto_sarco_link_factor','Factor for motoneuro to sarcomere link','Moto V_s','Factor');
-            fx = this.MSLink_MaxFactor*ones(1,length(x));
-            dynfac = x < this.MSLink_MaxFactorSignal;
-            fx(dynfac) = this.getLinkFactor(x(dynfac));
-            plot(h,x,fx);
-            pm.done;
         end
         
         function initJSparsityPattern(this)
@@ -177,8 +156,7 @@ classdef Dynamics < models.motorunit.MotorunitBaseDynamics
                 Jsa{idx} = s.sarco.JSparsityPattern;
             end
             J = blkdiag(s.moto.JSparsityPattern,Jsp,Jsa{:});
-            linkpos = s.dm+s.ds+(this.System.MotoSarcoLinkIndex-1)*s.dsa+1;
-            J(linkpos,2) = true;
+            J(s.MotoSarcoLinkIndex,2) = true;
             this.JSparsityPattern = logical(J);
         end
     end

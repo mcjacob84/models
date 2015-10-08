@@ -19,6 +19,8 @@ classdef System < models.motorunit.MotorunitBaseSystem
             
             this.NumStateDofs = this.dm+this.dsa;
             this.updateDimensions;
+            % First (and only) sarcomere index is Vm
+            this.MotoSarcoLinkIndex = this.dm +1;
             
             %% Set system components
             % Core nonlinearity
@@ -34,18 +36,6 @@ classdef System < models.motorunit.MotorunitBaseSystem
             this.assembleX0;
             
             this.updateSparsityPattern;
-        end
-        
-        function status = singlePeakModeOutputFcn(this, ~, y, flag)
-            if ~strcmp(flag,'done')
-                if y(this.dm+1) > -20 && ~this.peakstart
-                    this.peakstart = true;
-                elseif y(this.dm+1) < -20 && this.peakstart
-                    this.peakstart = false;
-                    this.f.hadpeak = true;
-                end
-            end
-            status = 0;
         end
     end
     
@@ -86,10 +76,10 @@ classdef System < models.motorunit.MotorunitBaseSystem
             B = dscomponents.AffLinInputConv;
             % Base noise input mapping
             B.addMatrix('1./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
-                sparse(2,1,1,this.dm+this.dsa,2));
+                sparse(2,1,1,this.NumStateDofs,2));
             % Independent noise input mapping with µ_2 as mean current factor
             B.addMatrix('mu(2,:)./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
-                sparse(2,2,1,this.dm+this.dsa,2));
+                sparse(2,2,1,this.NumStateDofs,2));
             this.B = B;
         end
         
@@ -98,14 +88,14 @@ classdef System < models.motorunit.MotorunitBaseSystem
             % entry in second row.
             C = dscomponents.AffLinOutputConv;
             % Extract V_s
-            C.addMatrix('1',sparse(1,7,1,2,this.dm+this.dsa));
+            C.addMatrix('1',sparse(1,7,1,2,this.NumStateDofs));
             % Add scaling for force output A_s
             str = '1';
             coeff = this.ForceOutputScalingPolyCoeff{options.SarcoVersion};
             if this.SingleTwitchOutputForceScaling
                 str = ['polyval([' sprintf('%.14g ',coeff) '],mu(1))'];
             end
-            C.addMatrix(str, sparse(2,59,1,2,this.dm+this.dsa));
+            C.addMatrix(str, sparse(2,59,1,2,this.NumStateDofs));
             this.C = C;
         end                
     end

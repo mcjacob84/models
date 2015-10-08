@@ -43,15 +43,30 @@ classdef MotorunitBaseDynamics < dscomponents.ACoreFun
             this = this@dscomponents.ACoreFun(sys);
         end
         
-        function f = getLinkFactor(this, y)
+        function factor = getLinkFactor(this, signal)
             % scalar link factor motoneuron to middle sarcomere
             %
-            % See also: FibreDynamics.evaluate
+            % See also: Dynamics.evaluate
+            %
             % Parameters:
-            % y: @type rowvec<double>  second state from motoneuron
-            % submodel
-            f = this.MSLink_MinFactor + exp(-(y-this.MSLink_MaxFactorSignal).^2/150)...
+            % signal: @type rowvec<double>  second state from motoneuron
+            % submodel            
+            factor = this.MSLink_MaxFactor*ones(1,length(signal));
+            dynfac = signal < this.MSLink_MaxFactorSignal;
+            factor(dynfac) = this.MSLink_MinFactor + exp(-(signal(dynfac)-this.MSLink_MaxFactorSignal).^2/150)...
                 *(this.MSLink_MaxFactor-this.MSLink_MinFactor);
+        end
+        
+        function pm = plotMotoSacroLinkFactorCurve(this)
+            x = 0:.1:80;
+            pm = PlotManager;
+            pm.LeaveOpen = true;
+            h = pm.nextPlot('moto_sarco_link_factor','Factor for motoneuro to sarcomere link','Moto V_s','Factor');
+            fx = this.MSLink_MaxFactor*ones(1,length(x));
+            dynfac = x < this.MSLink_MaxFactorSignal;
+            fx(dynfac) = this.getLinkFactor(x(dynfac));
+            plot(h,x,fx);
+            pm.done;
         end
     end
     

@@ -23,11 +23,6 @@ classdef System < models.motorunit.MotorunitBaseSystem
         % See also: musclefibres.Model
         N;
         
-        % The number of the sarcomere that gets the input of the motoneuron
-        %
-        % @type integer
-        MotoSarcoLinkIndex;
-        
         ds = 0; % No spindle as of now
         
         % "length" of one sarcomere unit [cm]
@@ -70,12 +65,10 @@ classdef System < models.motorunit.MotorunitBaseSystem
             this.N = options.N;
             this.dx = options.dx;
             
-            % neuromuscular junction makes more sense (symmetry...)
-            %this.MotoSarcoLinkIndex = round(options.N/2);
-            this.MotoSarcoLinkIndex = 1;
-            
             this.NumStateDofs = this.dsa*options.N+this.dm+this.ds;
             this.updateDimensions;
+            % First (and only) sarcomere index is Vm
+            this.MotoSarcoLinkIndex = this.dm+this.ds+(options.JunctionN-1)*this.dsa+1;
             
             % Linear diffusion part
             this.assembleA;
@@ -88,7 +81,7 @@ classdef System < models.motorunit.MotorunitBaseSystem
             this.assembleB;
             
             % Affine-Linear output C
-            this.assembleC;
+            this.assembleC(options);
             
             % Initial values
             this.assembleX0(options);
@@ -113,12 +106,11 @@ classdef System < models.motorunit.MotorunitBaseSystem
             sar=this.dsa; % dimension of single sarcomer part
             size=this.dm+this.ds+sar*this.N;
 
-            i=[n0+1+sar:sar:size,n0+1:sar:size,n0+1:sar:size-sar];    % row index
-            j=[n0+1:sar:size-sar,n0+1:sar:size,n0+1+sar:sar:size];   % column index
+            i=[n0+1+sar:sar:size,n0+1:sar:size,n0+1:sar:size-sar]; % row index
+            j=[n0+1:sar:size-sar,n0+1:sar:size,n0+1+sar:sar:size]; % column index
             s=[ones(1,this.N-1),-1,-2*ones(1,this.N-2),-1,ones(1,this.N-1)];   % values
             s = (this.sigma/this.A_m) * s / this.dx^2;
             As = sparse(i,j,s,size,size);
-            
             
             % Pre-multiply constant part
             A = dscomponents.AffLinCoreFun(this);
@@ -135,26 +127,30 @@ classdef System < models.motorunit.MotorunitBaseSystem
             B = dscomponents.AffLinInputConv;
             % Base noise input mapping
             B.addMatrix('1./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
-                sparse(2,1,1,this.dm+this.ds+this.dsa*this.N,2));
+                sparse(2,1,1,this.NumStateDofs,2));
             % Independent noise input mapping with µ_2 as mean current factor
             B.addMatrix('mu(2,:)./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
-                sparse(2,2,1,this.dm+this.ds+this.dsa*this.N,2));
+                sparse(2,2,1,this.NumStateDofs,2));
             this.B = B;
         end
         
-        function assembleC(this)
-%             % input conversion matrix, depends on fibre type. Has only one
-%             % entry in second row.
-%             C = dscomponents.AffLinOutputConv;
-%             % Extract V_s
-%             C.addMatrix('1',sparse(1,7,1,2,this.dm+this.dsa));
-%             % Add scaling for force output A_s
-%             str = '1';
-%             coeff = this.ForceOutputScalingPolyCoeff{options.SarcoVersion};
-%             if this.SingleTwitchOutputForceScaling
-%                 str = ['polyval([' sprintf('%g ',coeff) '],mu(1))'];
-%             end
-%             C.addMatrix(str, sparse(2,59,1,2,this.dm+this.dsa));
+        function assembleC(this, options)
+            % input conversion matrix, depends on fibre type. Has only one
+            % entry in second row.
+            C = dscomponents.AffLinOutputConv;
+            % Extract V_s
+            C.addMatrix('1',sparse(1,this.MotoSarcoLinkIndex,1,...
+                this.N+1,this.NumStateDofs));
+            % Add scaling for force output A_s
+            str = '1';
+            coeff = this.ForceOutputScalingPolyCoeff{options.SarcoVersion};
+            if this.SingleTwitchOutputForceScaling
+                str = ['polyval([' sprintf('%.14g ',coeff) '],mu(1))'];
+            end
+            C.addMatrix(str, sparse((1:this.N)+1,...
+                this.dm+52+(1:this.dsa:this.dsa*this.N),ones(1,this.N),...
+                this.N+1,this.NumStateDofs));
+            this.C = C;
         end
         
         function assembleX0(this,options)
@@ -167,7 +163,7 @@ classdef System < models.motorunit.MotorunitBaseSystem
                 s = load(fullfile(fileparts(which(mc.Name)),...
                     sprintf('x0coeff%d.mat',this.SarcoVersion)));
                 x0 = dscomponents.AffineInitialValue;
-                m = this.dm+this.ds+this.N*this.dsa;
+                m = this.NumStateDofs;
                 % The first this.dm coeffs are for the motoneuron
                 for k=1:this.dm
                     x0.addMatrix(sprintf('polyval([%s],mu(1))',...

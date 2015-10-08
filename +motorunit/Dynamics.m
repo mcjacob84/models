@@ -139,20 +139,17 @@ classdef Dynamics < models.motorunit.MotorunitBaseDynamics
             dy(dm+1:end) = sa.dydt(y(dm+1:end),t);
             
             %% Link of motoneuron to sarcomer cell
-            if this.spm && this.hadpeak
+            if sys.SinglePeakMode && sys.HadPeak
                 signal = 0;
             elseif this.LinkSarcoMoto
-                fac = this.MSLink_MaxFactor;
-                if y(2) < this.MSLink_MaxFactorSignal
-                    fac = this.getLinkFactor(y(2));
-                end
                 % "Link" at the only sarcomere
-                signal = fac*y(2)/sa.SarcoConst(1);
+                signal = this.getLinkFactor(y(2))*y(2)/sa.SarcoConst(1);
             else
                 % Bypass of the motoneuron: external input for sarcomere
                 signal = this.extInput(t);
             end
-            dy(dm+1,:) = dy(dm+1,:) + signal;
+            linkpos = sys.MotoSarcoLinkIndex;
+            dy(linkpos,:) = dy(linkpos,:) + signal;
         end
         
         function dy = evaluateCoreFun(this, y, t, mu)%#ok
@@ -184,12 +181,8 @@ classdef Dynamics < models.motorunit.MotorunitBaseDynamics
             J(dm+1:bs,dm+1:bs) = sa.Jdydt(y(dm+1:end), t);
             
             if this.LinkSarcoMoto
-                fac = this.MSLink_MaxFactor;
-                if (y(2) < this.MSLink_MaxFactorSignal)
-                    fac = this.getLinkFactor(y(2));
-                end
                 % link position is dm+1
-                J(dm+1,2) = fac/sa.SarcoConst(1);
+                J(s.MotoSarcoLinkIndex,2) = this.getLinkFactor(y(2))/sa.SarcoConst(1);
             end
         end
         
@@ -221,9 +214,10 @@ classdef Dynamics < models.motorunit.MotorunitBaseDynamics
             J(dm+1:size,dm+1:size) = sys.sarco.JSparsityPattern;
             
             % MS link
-            linkpos = dm+1;
-            J(linkpos,2) = true;
-            this.JSparsityPattern = logical(J);            
+            if this.LinkSarcoMoto
+                J(sys.MotoSarcoLinkIndex,2) = true;
+            end
+            this.JSparsityPattern = logical(J);
         end
     end
 end
