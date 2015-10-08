@@ -19,14 +19,14 @@ classdef Model < models.BaseFullModel
     end
     
     properties(Dependent)
-        % Flag indicating whether to use custom firing times of the motor units.
-        % Otherwise, the firing times are generated automatically by using the parameter mu.
-        FiringTimesMode;
-        
         % Position (index) of the neuromuscular junction of each fibre. By
         % default randomly anywhere on the fibres.
         % matrix<integer> of dimension dim(2) \times zdim_m
         neuronpos;
+    end
+    
+    properties(SetAccess=private)
+        Options;
     end
     
     methods
@@ -41,16 +41,18 @@ classdef Model < models.BaseFullModel
             rs = RandStream('mt19937ar','Seed',12345);
             
             i = inputParser;
-            i.addParamValue('Dim',[40;20;13],@(v)numel(v)==3);
-            i.addParamValue('Geo',0.1*[40;20;10;3],@(v)numel(v)==3 || numel(v)==4);
-            i.addParamValue('MUTypes',[0 rs.rand(1,3) 1]); % 5 types by default
-            i.addParamValue('Shapes','actual',@(v)any(strcmp(v,{'actual','precomp'})));
+            i.addParameter('Dim',[40;20;13],@(v)numel(v)==3);
+            i.addParameter('Geo',0.1*[40;20;10;3],@(v)numel(v)==3 || numel(v)==4);
+            i.addParameter('MUTypes',[0 rs.rand(1,3) 1]); % 5 types by default
+            i.addParameter('Shapes','actual',@(v)any(strcmp(v,{'actual','precomp'})));
+            i.addParameter('FiringTimes','actual',@(v)any(strcmp(v,{'actual','precomp'})));
             % The sarcomere implementation version for computation of
             % shorten's action potential shapes
-            i.addParamValue('SarcoVersion',1);
+            i.addParameter('SarcoVersion',1);
             i.parse(varargin{:});
             opts = i.Results;
             
+            this.Options = opts;
             % Make sure we have column vectors
             geo = reshape(opts.Geo,[],1);
             opts.Dim = reshape(opts.Dim,[],1);
@@ -196,7 +198,8 @@ classdef Model < models.BaseFullModel
                 surf(ax, yaxis, xaxis, phi(:,:,end),'FaceColor','interp','EdgeColor','interp');  % pcolor?
                 title(ax,sprintf('Surface EMG at time %gms',t(idx)));
                 colorbar;
-                pause(.2);
+                colormap jet;
+                pause(.05);
                 if ~ishandle(ax)
                     break;
                 end
@@ -216,11 +219,12 @@ classdef Model < models.BaseFullModel
             h = this.System.h;
             fprintf('The discretization width is h = [%g, %g, %g]cm in x-, y- and z-direction.\n',h(1),h(2),h(3));
             fprintf('The muscle fibres are grouped into %g motor units.\n',length(this.System.f.MUTypes));
-            if ~strcmp(this.System.f.FiringTimesMode,'precomputed')
+            FT = this.Options.FiringTimes;
+            if strcmpi(FT,'precomp')
                 disp('The motoneurons'' firing times were precomputed by a motoneuron model.');
-            elseif ~strcmp(this.System.f.FiringTimesMode,'simulate')
+            elseif strcmp(FT,'actual')
                 disp('The motoneurons'' firing times are determined by simulation of a motoneuron model.');
-            elseif ~strcmp(this.System.f.FiringTimesMode,'custom')
+            else
                 disp('Custom motoneuron firing times are used.');
             end
         end
@@ -241,7 +245,7 @@ classdef Model < models.BaseFullModel
                 pos=[];
                 for i=1:sys.dim(2)
                     for j=1:sys.zdim_m
-                        if this.MUGeoTypeIdx(i,j) == num
+                        if sys.f.MUGeoTypeIdx(i,j) == num
                             pos = [pos,[i;j]];%#ok
                         end
                     end
@@ -333,6 +337,9 @@ classdef Model < models.BaseFullModel
         function h = plot1D(this, t, y, point)
             % plots the EMG signal at point over time
             geo = this.System.Geo;
+            if nargin < 4
+                point = geo(1:3)/2;
+            end
             if numel(point) ~= 3
                 error('Input argument point must have 3 entries.\n');
             end
@@ -360,14 +367,6 @@ classdef Model < models.BaseFullModel
     end
     
     methods  % getters and setters: interface to System and RHS
-        function value = get.FiringTimesMode(this)
-            value = this.System.f.FiringTimesMode;
-        end
-        
-        function set.FiringTimesMode(this, value)
-            this.System.f.FiringTimesMode = value;
-        end
-        
         function value = get.neuronpos(this)
             value = this.System.f.neuronpos;
         end

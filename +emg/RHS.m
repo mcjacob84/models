@@ -36,12 +36,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         MUGeoTypeIdx;
     end
     
-    properties
-        % Flag indicating whether to use custom firing times of the motor units.
-        % Otherwise, the firing times are generated automatically by using the parameter mu.
-        % 'precomputed', 'simulate', 'custom'
-        FiringTimesMode = 'simulate';
-        
+    properties 
         % Position (index) of the neuromuscular junction of each fibre. By
         % default randomly anywhere on the fibres.
         % matrix<integer> of dimension dim(2) \times zdim_m
@@ -84,7 +79,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             this.distributeMotorUnits;
             
             this.initAPShapes(opts);
-            this.initFiringTimes;
+            this.initFiringTimes(opts);
             this.initNeuroJunctions;
         end
         
@@ -102,7 +97,6 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             copy.APShapes = this.APShapes;
             copy.APvelocity = this.APvelocity;
             copy.MUGeoTypeIdx = this.MUGeoTypeIdx;
-            copy.FiringTimesMode = this.FiringTimesMode;
             copy.neuronpos = this.neuronpos;
             copy.MUCenters = this.MUCenters;
             copy.MURadii = this.MURadii;
@@ -283,9 +277,11 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                         pi.step;
                     end
                 else
+                    sv = this.System.Model.Options.SarcoVersion;
                     % Else: "precomp" is set, so load & interpolate shapes
                     % for current time.
-                    datafile = fullfile(fileparts(mfilename('fullpath')),'data','APshape.mat');
+                    datafile = fullfile(fileparts(mfilename('fullpath')),'data',...
+                        sprintf('ShapeData_v%d.mat',sv));
                     if exist(datafile,'file') ~= 2
                         error('No precomputed data available. Run the %s script!',...
                             fullfile(fileparts(mfilename('fullpath')),'data','ActionPotentialShape.m'));
@@ -303,7 +299,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                         % Get that resolved by current time-step
                         ltimes = 0:cur_dt:tspan;
                         % Interpolate on local time grid
-                        this.APShapes{n} = interp1(times, shape, ltimes);
+                        this.APShapes{n} = interp1(times, shape, ltimes, 'pchip', shape(1));
                         pi.step;
                     end
                 end
@@ -312,12 +308,14 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             end
         end
         
-        function initFiringTimes(this)
+        function initFiringTimes(this, opts)
             % init motoneuron model
-            moto = models.motoneuron.Model(true);
-            moto.dt = 0.1;
-            moto.EnableTrajectoryCaching = true;
-            this.motomodel = moto;
+            if strcmpi(opts.FiringTimes,'actual')
+                moto = models.motoneuron.Model(true);
+                moto.dt = 0.1;
+                moto.EnableTrajectoryCaching = true;
+                this.motomodel = moto;
+            end
         end
         
         function updateFiringTimes(this, mean_current)
@@ -328,33 +326,31 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             nmu = length(this.MUTypes);
             if ~isequal(this.last_mean_current,mean_current)
                 this.MUFiringTimes = cell(1,nmu);
-                switch this.FiringTimesMode
-                    % long computation possible
-                    case 'simulate'
-                        m = this.motomodel;
-                        m.T = this.System.Model.T;
-                        pi = ProcessIndicator('Computing firing times for %d motoneurons...',...
-                            nmu,false,nmu);
-                        for idx = 1:nmu   %@ToDo: simulate only if this type was not simulated before
-                            type = this.MUTypes(idx);
-                            [t,y] = m.simulate([type; mean_current], 1);
-                            APtimes = (y(2,2:end) > 40).*(y(2,1:end-1) <= 40);
-                            this.MUFiringTimes{idx} = t(logical(APtimes));
-                            pi.step;
-                        end
-                        pi.stop;
-                    case 'precomputed'
-                        datafile = fullfile(fileparts(mfilename('fullpath')),'data','FiringTimes.mat');
-                        if exist(datafile,'file') ~= 2
-                            error('No precomputed data available. Run the %s script!',...
-                                fullfile(fileparts(mfilename('fullpath')),'data','FiringTimes.m'));
-                        end
-                        d = load(datafile);
-                        for idx = 1:nmu
-                            type = repmat(this.MUTypes(idx),1,size(d.mus,2));
-                            [~,pos] = min(Norm.L2(type - d.mus));
-                            this.MUFiringTimes{idx} = d.Times{pos};
-                        end
+                m = this.motomodel;
+                if ~isempty(m)    
+                    m.T = this.System.Model.T;
+                    pi = ProcessIndicator('Computing firing times for %d motoneurons...',...
+                        nmu,false,nmu);
+                    for idx = 1:nmu  
+                        type = this.MUTypes(idx);
+                        [t,y] = m.simulate([type; mean_current], 1);
+                        APtimes = (y(2,2:end) > 40).*(y(2,1:end-1) <= 40);
+                        this.MUFiringTimes{idx} = t(logical(APtimes));
+                        pi.step;
+                    end
+                    pi.stop;
+                else
+                    datafile = fullfile(fileparts(mfilename('fullpath')),'data','FiringTimes.mat');
+                    if exist(datafile,'file') ~= 2
+                        error('No precomputed data available. Run the %s script!',...
+                            fullfile(fileparts(mfilename('fullpath')),'data','FiringTimes.m'));
+                    end
+                    d = load(datafile);
+                    for idx = 1:nmu
+                        type = repmat(this.MUTypes(idx),1,size(d.mus,2));
+                        [~,pos] = min(Norm.L2(type - d.mus(1,:)));
+                        this.MUFiringTimes{idx} = d.Times{pos};
+                    end
                 end
                 this.last_mean_current = mean_current;
             end
@@ -553,19 +549,6 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     fx(:,k) = this.evaluateComponents(pts, ends, idx, self, [], t(k), mu(:,k));
                 end
             end
-        end
-    end
-    
-    
-    %% Setters & Getters
-    methods
-        function set.FiringTimesMode(this, value)
-            if ~any([strcmp(value, 'precomputed'), ...
-                    strcmp(value, 'simulate'), strcmp(value, 'custom')])
-                error(['Invalid value for property FiringTimesMode. Possible',...
-                    ' are ''precomputed'', ''simulate'' and ''custom''.\n'])
-            end
-            this.FiringTimesMode = value;
         end
     end
 end
