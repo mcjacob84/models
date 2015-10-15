@@ -2,26 +2,34 @@
 clear classes;
 
 distN = 100; % The number of sarcomeres over which to measure the propagation speed.
-T = 5000;
+Tfinal = 5000;
 dt = .01;
 usenoise = false;
 
 %% General
-minV = -20; %[mV]
-m = models.musclefibre.Model('N',N,'SarcoVersion',1,'Noise',usenoise);
-sys = m.System;
+% minV = -20; %[mV]
 
 %% Crunch
 base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');
-tag = sprintf('N%d_T%d_dt%g_noise%d',distN,T,dt,usenoise);
+tag = sprintf('N%d_T%d_dt%g_noise%d',distN,Tfinal,dt,usenoise);
 thefile = ['data_' tag '.mat'];
 load(fullfile(base,thefile));
-nmu = size(mus,2);
-
+m = models.musclefibre.Model('N',N,'SarcoVersion',1,'Noise',usenoise);
+sys = m.System;
+len = distN*sys.dx;
 
 %% Process
-len = distN*sys.dx;
-[T,V,tgrid,Vinterp,Vpoly] = models.musclefibre.experiments.getVelocities(0:dt:T, Vms, len);
+[T,V,tgrid,Vinterp,Vpoly,invalid] = models.musclefibre.experiments.getVelocities(0:dt:Tfinal, Vms, len);
+mus(:,invalid) = [];
+nmu = size(mus,2);
+
+%% Plot failure runs
+for k=invalid
+    Vm = Vms{k};
+    ax = pm.nextPlot(sprintf('fail_%d_%s',k,tag),...
+        sprintf('mu=[%g %g], |T{k}|=%d',mus(:,k),length(T{k})),'time','velocity');
+    plot(ax,t,Vm(1,:),'r',t,Vm(2,:),'b');
+end
 
 %% SVR
 % svr = general.regression.ScalarNuSVR;
@@ -51,6 +59,7 @@ tri = delaunay(mus(1,:),mus(2,:));
 minV = min(data(:));
 maxV = max(data(:));
 
+%% Draw 2
 for idx = 1:numi
     if ~ishandle(ax)
         break;
@@ -65,11 +74,27 @@ for idx = 1:numi
 end
 pm.done;
 
+%% Plot discrete signals
+pm = PlotManager(false,4,4);
+sel1 = find(mus(2,:) > 3);
+[~,sel1_sort] = sort(mus(1,sel1),'ascend');
+sel1 = sel1(sel1_sort);
+nvm = length(sel1);
+avgs = zeros(1,nvm);
+for idx=1:nvm
+    k = sel1(idx);
+    avgs(idx) = mean(V{k});
+    ax = pm.nextPlot(sprintf('ps_%s_part%d-%d',tag,k,k+15),...
+        sprintf('mu=[%g %g], avg v=%g [m/s]',mus(:,k),...
+            avgs(idx)),'time','velocity');
+    plot(ax,T{k},V{k});
+    drawnow;
+end
+
 %% Plot
 pm = PlotManager(false,2,3);
 pm.ExportDPI = 300;
 nvm = length(Vms);
-avgs = zeros(1,nvm);
 for k=1:nvm
     Vm = Vms{k};
     avgs(k) = mean(V{k});
@@ -78,14 +103,17 @@ for k=1:nvm
             avgs(k)),'time','Vm');
     plot(ax,t,Vm(1,:),'r',t,Vm(2,:),'b');
 end
+%%
 pm.savePlots(base,'Format',{'jpg','pdf','fig'},'Close',true);
+%%
 pm = PlotManager;
 pm.ExportDPI = 300;
 ax = pm.nextPlot(tag,sprintf('SpeedConvergence test %s',...
         tag),'N','average speed [m/s]'); %length [cm]
 %plot(ax,measurelengths,avgs);
 plot(ax,N-20,avgs);
-%pm.savePlots(base,'Format',{'jpg','pdf','fig'},'Close',true);
+%%
+pm.savePlots(base,'Format',{'jpg','pdf','fig'},'Close',true);
 %%
 % [~,sidx] = sort(mus(1,:),'ascend');
 % [X_,Y_] = meshgrid(mus(1,sidx),tgrid);

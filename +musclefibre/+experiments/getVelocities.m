@@ -1,4 +1,4 @@
-function [T,V,tgrid,Vinterp,Vpoly] = getVelocities(t, Vms, distances, tgrid, minV)
+function [T,V,tgrid,Vinterp,Vpoly,invalid] = getVelocities(t, Vms, distances, tgrid, minV)
 
 % Defaults
 if nargin < 5
@@ -15,9 +15,8 @@ end
 V = cell(1,nruns);
 T = cell(1,nruns);
 tsteps = length(tgrid);
-Vinterp = zeros(nruns,tsteps);
-Vpoly = zeros(nruns,tsteps);
 pi = ProcessIndicator('Extracting velocities for %d runs',nruns,false,nruns);
+invalid = [];
 for idx = 1:nruns
     Vm = Vms{idx};
     
@@ -56,12 +55,24 @@ for idx = 1:nruns
     tdiff = diff(peaktimes,1);
     V{idx} = 10*distances(idx)./tdiff; % [cm/ms = 0.01m/0.001s = .1m/s]
     T{idx} = peaktimes(1,:);
-    if size(peaktimes,2) > 1
-        Vi = interp1(T{idx},V{idx},tgrid,'cubic');
-        Vinterp(idx,:) = Vi;
-        c = polyfit(T{idx},V{idx},3);
-        Vpoly(idx,:) = polyval(c,tgrid);
+    if length(T{idx}) < 2
+        invalid = [invalid idx];%#ok    
     end
     pi.step;
 end
 pi.stop;
+%% Remove invalid runs
+Vms(invalid) = [];
+nruns = length(Vms);
+V(invalid) = [];
+T(invalid) = [];
+%% Compute interpolated data
+Vinterp = zeros(nruns,tsteps);
+Vpoly = zeros(nruns,tsteps);
+for idx = 1:nruns
+    Vi = interp1(T{idx},V{idx},tgrid,'pchip');
+    Vinterp(idx,:) = Vi;
+    c = polyfit(T{idx},V{idx},3);
+    Vpoly(idx,:) = polyval(c,tgrid);
+end
+
