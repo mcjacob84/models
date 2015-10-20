@@ -1,81 +1,141 @@
 %% Clear
-clear classes;
-%% Init
-chunksize = 4; % [GB] The maximum single trajectory size
-% The number of sarcomeres over which to measure the propagation speed.
-%
-% This value has been determined by the
-% models.musclefibre.experiments.PropagationSpeed_SpeedConvergence* tests.
-%
-% for dt=0.005 distN=80 is acceptable, and for double size dt=0.01 "only"
-% distN=100 is also okay. As this about halves the storage size, we use
-% this variant
-distN = 100;
+clear classes;%#ok
+
+distN = 100; % The number of sarcomeres over which to measure the propagation speed.
+Tfinal = 5000;
 dt = .01;
-T = 5000;
+t = 0:dt:Tfinal;
 usenoise = false;
 
 %% General
-minV = -20; %[mV]
-buffer = 10; % number of buffer sarcomeres at boundaries, padded to the ones over which velo is measured
-
-% Pad by buffer sarcomeres to each end
-N = distN + 2*buffer;
-m = models.musclefibre.Model('N',N,'SarcoVersion',1,'Noise',usenoise);
-if m.System.MotoSarcoLinkIndex ~= 1
-    error('Must have MotoSarcoLinkIndex=1 for this experiment.')
-end
-m.T = T;
-% This time-step
-m.dt = dt;
-t = m.Times;
-
-% Compute time intervals for trajectories of limited size
-total_len = length(t);
-nchunks = ceil(m.System.NumTotalDofs*8*total_len/(1024^3*chunksize));
-interval_idx = floor(linspace(1,total_len,nchunks));
-intervals = t(interval_idx);
-
-%% Generate params
-% Take a regular mesh and filter by the Motoneuron-Input domain
-% See m.System.Params(:).Desired for grid resolution
-s = sampling.GridSampler;
-s.Domain = models.motoneuron.ParamDomain;
-mus = s.generateSamples(m);
+% minV = -20; %[mV]
 
 %% Crunch
 base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');
-tag = sprintf('N%d_T%d_dt%g_noise%d',distN,T,m.dt,usenoise);
-thefile = ['data_' tag '.mat'];
-datafile = fullfile(base,thefile);
+tag = sprintf('N%d_T%d_dt%g_noise%d',distN,Tfinal,dt,usenoise);
+thefile = [tag '_data.mat'];
+load(fullfile(base,thefile));
+m = models.musclefibre.Model('N',N,'SarcoVersion',1,'Noise',usenoise);
+sys = m.System;
+len = distN*sys.dx;
 
-if exist(datafile,'file') == 2
-    load(datafile);
-    nmu = size(mus,2);
-    sys = m.System;
-else
-    sys = m.System;
-    pos = [sys.dm+sys.ds+buffer*sys.dsa+1 % buffer'st sarco = start
-          sys.dm+sys.ds+(N-1-buffer)*sys.dsa+1]; % N-buffer'st sarco = end
-    nmu = size(mus,2);
-    Vms = cell(1,nmu);
-    ctimes = zeros(1,nmu);
-    PCPool.open;
-%     for p = 1:nmu
-    parfor p = 1:nmu
-        m = models.musclefibre.Model('N',N,'SarcoVersion',1,'Noise',usenoise);
-        m.dt = dt;
-        Vm = zeros(2,total_len);
-        fprintf('Param %d of %d: Computing %d time intervals\n',p,nmu,length(intervals));
-        for iidx = 1:length(intervals)-1
-            m.t0 = intervals(iidx);
-            m.T = intervals(iidx+1);
-            [~,y,ctimes(p)] = m.simulate(mus(:,p));
-            Vm(:,interval_idx(iidx):interval_idx(iidx+1)) = y(pos,:);
-            m.System.x0 = dscomponents.ConstInitialValue(y(:,end));
-        end
-        Vms{p} = Vm;
+%% Process
+p = models.musclefibre.experiments.Processor;
+[T,V,invalid] = p.getVelocities(t, Vms, len);
+mus(:,invalid) = [];
+nmu = size(mus,2);
+tgrid = linspace(0,Tfinal,1000);
+[Vinterp,Vpoly] = p.getInterpolatedVelocities(T,V,tgrid,6);
+
+%% Assemble training data
+tgrid_ = repmat(tgrid,size(mus,2),1);
+xi = [repmat(mus,1,length(tgrid))
+      tgrid_(:)'];
+ximax = max(xi,[],2);
+xi = bsxfun(@times,xi,1./ximax);
+atd = data.ApproxTrainData(xi,[],[]);
+atd.fxi = Vpoly(:)';
+
+%% Store results
+thefile = [tag '_traindata_ps.mat'];
+save(fullfile(base,thefile),'Vpoly','tgrid','mus','T','V');
+
+%% Compute VKOGA
+% Get VKOGA instance
+alg = approx.algorithms.VKOGA;
+alg.MaxExpansionSize = 600;
+alg.UsefPGreedy = false;
+
+nG = 20;
+k = [2 3];
+
+% Create configuration for VKOGA
+gammas = linspace(.1,2,nG);
+comb = Utils.createCombinations(gammas,k);
+wc = kernels.config.WendlandConfig('G',comb(1,:),'S',comb(2,:));
+wc.Dimension = 3;
+ec = kernels.config.ExpansionConfig;
+ec.StateConfig = wc;
+alg.ExpConfig = ec;
+
+%% Execute computations
+kexp = alg.computeApproximation(atd);
+%kexp_dbase = kexp.toTranslateBase;
+
+%% Plot the results 1 - visual surface
+FunVis2D(kexp, atd);
+%% Plot the results 2 - approximation errors
+alg.plotSummary;
+
+%% Store results
+thefile = [tag '_results_ps.mat'];
+save(fullfile(base,thefile),'kexp','ximax','atd','mus');
+ps = kexp.toTranslateBase;
+save(fullfile(base,'propspeed_amplitudes.mat'),'ps','ximax','-APPEND');
+
+%% Draw
+numi = 1000;
+pm = PlotManager;
+%data = Vinterp;
+data = Vpoly;
+ax = pm.nextPlot('avgspeed','Average speed (of interpolated velocities) over time for all parameters','time [ms]','speed [m/s]');
+plot(ax,tgrid,mean(data,1));
+
+%% Draw 2
+ax = pm.nextPlot('propspeed','Action potential propagation speed [m/s]','fibre type','mean input current');
+tri = delaunay(mus(1,:),mus(2,:));
+minV = min(data(:));
+maxV = max(data(:));
+zlim(ax,[minV maxV]);
+view(ax,[-150 0]);
+hold(ax,'on');
+trih = [];
+for idx = 1:numi
+    delete(trih);
+    if ~ishandle(ax)
+        break;
     end
-    PCPool.close;
-    save(datafile,'mus','distN','N','t','Vms','ctimes');
+    trih = trisurf(tri,mus(1,:),mus(2,:),data(:,idx),...
+        'FaceColor','interp','EdgeColor','k','Parent',ax);    
+    title(sprintf('Action potential propagation speed [m/s] at %gs',tgrid(idx)));
+    drawnow;
+    pause(.01);        
 end
+pm.done;
+
+%% Plot discrete signals
+pm = PlotManager(false,4,4);
+sel1 = find(mus(2,:) > 3);
+%sel1 = find(mus(2,:) <= 3);
+[~,sel1_sort] = sort(mus(1,sel1),'ascend');
+sel1 = sel1(sel1_sort);
+nvm = length(sel1);
+avgs = zeros(1,nvm);
+for idx=1:16%nvm
+    k = sel1(idx);
+    avgs(idx) = mean(V{k});
+    c = polyfit(T{k},V{k},6);
+    ax = pm.nextPlot(sprintf('ps_%s_part%d-%d',tag,k,k+15),...
+        sprintf('mu=[%g %g], avg v=%g [m/s]',mus(:,k),...
+            avgs(idx)),'time','velocity');
+    plot(ax,T{k},V{k},'r',tgrid,polyval(c,tgrid),'b');
+    %plot(ax,T{k},V{k},'r');
+    axis(ax,[0 5000 0 2.1]);
+    drawnow;
+end
+
+%% Plot plain signals
+pm = PlotManager(false,2,3);
+pm.ExportDPI = 300;
+nvm = length(Vms);
+for k=1:nvm
+    Vm = Vms{k};
+    avgs(k) = mean(V{k});
+    ax = pm.nextPlot(sprintf('ps_%s_part%d-%d',tag,k,k+5),...
+        sprintf('len=%g, avg v=%g [m/s]',len,...
+            avgs(k)),'time','Vm');
+    plot(ax,t,Vm(1,:),'r',t,Vm(2,:),'b');
+end
+%%
+pm.savePlots(base,'Format',{'jpg','pdf','fig'},'Close',true);
+

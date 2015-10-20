@@ -49,6 +49,7 @@ classdef Model < models.BaseFullModel
             % The sarcomere implementation version for computation of
             % shorten's action potential shapes
             i.addParameter('SarcoVersion',1);
+            i.addParameter('DynAmpPS',true,@(v)islogical(v) && isscalar(v));
             i.parse(varargin{:});
             opts = i.Results;
             
@@ -363,6 +364,23 @@ classdef Model < models.BaseFullModel
             end
             ylabel([yl, ' [mV]']);
             legend([yl, '(t)'], ['|',yl,'(t)|']);
+        end
+        
+        function plotAPShapes(this)
+            rhs = this.System.f;
+            nmu = length(rhs.MUTypes);
+            pm = PlotManager(false,2,2);
+            pm.LeaveOpen = true;
+            for k=1:nmu                
+                ft = rhs.MUTypes(k);
+                ax = pm.nextPlot(sprintf('apshape%d_type%g',k,ft),...
+                    sprintf('ActionPotential shape %d: fibre_type %g',k,ft),...
+                    't [ms]','Vm [mV]');
+                sh = rhs.APShapes{k};
+                t = (0:(length(sh)-1))*this.dt;
+                plot(ax,t,sh);
+            end
+            pm.done;
         end
     end
     

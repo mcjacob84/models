@@ -72,6 +72,16 @@ classdef Model < models.BaseFullModel
             % See also: musclefibres.MuscleFibreSystem
             [varargout{1:nargout}] = this.System.plot(varargin{:});
         end
+        
+        function plotUpperLimitPoly(this)
+            ft = 0:.01:1;
+            maxmc = polyval(this.System.upperlimit_poly,ft);
+            d = models.motoneuron.ParamDomain;
+            ax = d.plot;
+            hold(ax,'on');
+            plot(ax,ft,maxmc,'b');
+            %plot(ax,ft,maxmc-1,'g');
+        end
     end
     
     methods

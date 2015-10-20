@@ -1,5 +1,5 @@
-% Script to pre-compute several action potential shapes for faster use
-% within the emg model. This is optional, as the correct shapes for the
+% Script to pre-compute several firing times for faster use
+% within the emg model. This is optional, as the correct firing times for the
 % selected motor-units can be computed directly for the fibre types used
 % in each emg model.
 numsamples = 200;
