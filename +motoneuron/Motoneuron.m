@@ -119,11 +119,10 @@ classdef Motoneuron < KerMorObject
             c(9,:) = 120*s;     % para.Vna
             c(10,:) = -10*s;     % para.Vk
             c(11,:) = 0*s;     % para.Vl
-            
             this.Constants = c;
             
-            %% Assemble noise signal for each fibre - thus far only
-            % used in models.fullmuscle
+            %% Assemble noise signal for each fibre
+            % thus far only used in models.fullmuscle!!
             ng = models.motoneuron.NoiseGenerator;
             ng.setFibreType(fibretypes(1));
             thenoise = zeros(this.nt,length(ng.indepNoise));

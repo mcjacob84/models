@@ -73,6 +73,17 @@ classdef Model < models.BaseFullModel
             [varargout{1:nargout}] = this.System.plot(varargin{:});
         end
         
+        function [peaks, cov_isi,cov_dr,freq] = analyze(~, t, y)
+            p = models.musclefibre.experiments.Processor;
+            p.minV = 55;
+            peaks = p.getPeakIdx(t, y(2,:));
+            pt = diff(t(peaks));
+            cov_isi = std(pt)/mean(pt);
+            dr = 1./(pt/1000);
+            cov_dr = std(dr)/mean(dr);
+            freq = mean(dr);
+        end
+        
         function plotUpperLimitPoly(this)
             ft = 0:.01:1;
             maxmc = polyval(this.System.upperlimit_poly,ft);

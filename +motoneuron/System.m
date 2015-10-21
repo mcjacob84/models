@@ -47,8 +47,9 @@ classdef System < models.BaseFirstOrderSystem
             % Call superclass constructor
             this = this@models.BaseFirstOrderSystem(model);
             
-            this.addParam('fibre_type', 0, 'Range', [0 1]);
-            this.addParam('mean_current_factor', 3, 'Range', [0 9]);
+            this.addParam('fibre_type', 0, 'Range', [0 1],'Desired',30);
+            this.addParam('mean_current_factor', 3, 'Range', [0 9],'Desired',30);
+            this.addParam('noise_scaling', 1, 'Range', [.05 1],'Desired',30);
             
             this.NumStateDofs = 6;
             
@@ -69,12 +70,32 @@ classdef System < models.BaseFirstOrderSystem
             % input conversion matrix, depends on fibre type. Has only one
             % entry in second row.
             B = dscomponents.AffLinInputConv;
-            % Base noise input mapping
-            B.addMatrix('1./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
-                sparse(2,1,1,6,2));
-            % Independent noise input mapping with µ_2 as mean current factor
-            B.addMatrix('mu(2,:)./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
-                sparse(2,2,1,6,2));
+%             % Base noise input mapping
+%             B.addMatrix('1./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
+%                 sparse(2,1,1,6,2));
+%             % Independent noise input mapping with µ_2 as mean current factor
+%             B.addMatrix('mu(2,:)./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
+%                 sparse(2,2,1,6,2));
+            % Base+Independent noise scale with µ_2 as mean current factor
+            
+            % Good! (both)
+%             mufun = '((mu(2,:)<1) .* mu(2,:) + (mu(2,:)>=1) .* mu(2,:).^0.3).*(2*mu(1,:)+1)';
+            
+            mufun = '9*((mu(2,:)/9).^mu(3,:))';
+%             mufun = '0';
+%             mufun = '1';
+%             mufun = 'mu(2,:).*(mu(1,:)+1)';
+%             mufun = 'mu(2,:).*(mu(1,:)+1)^.5';
+            B.addMatrix(['(' mufun ')./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)'],...
+                sparse([2 2],[1 2],[1 1],6,3));
+            % Mean input mapping
+            mufun = 'mu(2,:)';
+%             mufun = 'sqrt(mu(2,:))';
+%             mufun = 'mu(2,:).*(mu(1,:)+1)';
+%             mufun = 'mu(2,:)./(mu(1,:)+1)^2';
+%             mufun = '(mu(2,:)<1) .* mu(2,:) + (mu(2,:)>=1) .* mu(2,:).^0.3';
+            B.addMatrix(['(' mufun ')./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)'],...
+                sparse(2,3,1,6,3));
             this.B = B;
             
             % Constant initial values
@@ -115,19 +136,24 @@ classdef System < models.BaseFirstOrderSystem
             end
             
             % Input
-            h = pm.nextPlot('input','Input currents (base + indep)','time','value');
+            h = pm.nextPlot('input','Input currents (base + indep + mean)','time','value');
             plot(h,t,this.noiseGen.getInput(t));
             
             % Effective input
             if ~isempty(this.mu)
-                h = pm.nextPlot('eff_input','Effective input current','time','value');
                 B = this.B.compose([],this.mu);
-                plot(h,t,B(2,:)*this.noiseGen.getInput(t));
+                noise = B(2,:)*this.noiseGen.getInput(t);
+                h = pm.nextPlot('eff_input',...
+                    sprintf('Effective input current, noise mean=%g',mean(noise)),'time','value');
+                plot(h,t,noise);
             end
             
             % Firing rate
-            h = pm.nextPlot('moto','Motoneuron V_s','time','value');
-            plot(h,t,y(2,:));
+            [peaks, cov_isi,cov_dr,freq] = this.analyze(t, y);
+            h = pm.nextPlot('moto',...
+                sprintf('Motoneuron V_s\nmu=[%g %g]\nCoV(ISI)=%g, CoV(DR)=%g, Hz=%g',...
+                this.mu,cov_isi,cov_dr,freq),'time','value');
+            plot(h,t,y(2,:),'b',t(peaks),y(2,peaks),'rx');
             
             if nargin < 4
                 pm.done;

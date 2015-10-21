@@ -33,6 +33,7 @@ classdef NoiseGenerator < handle
         factor;
         baseMean;
         indepMean;
+        version;
     end
     
     methods
@@ -49,7 +50,7 @@ classdef NoiseGenerator < handle
             % - noiseP: The noise data. "Common noise (alpha+beta)"
             mc = metaclass(this);
             p = load(fullfile(fileparts(which(mc.Name)),'neuro_input'));
-            this.factor = sqrt(p.thetaP)*(1/p.scaleP);
+            this.factor = sqrt(p.thetaP)/p.scaleP;
             this.AP = p.AP;
             [this.b, this.a] = butter(2,p.LOWPASSP*2/1000,'low');
             % Base noise
@@ -61,10 +62,11 @@ classdef NoiseGenerator < handle
             rs = RandStream('mt19937ar','Seed',round(this.RandSeed*mu_fibretype*100));
             noiseSI = filter(this.b,this.a,rs.randn(1,length(this.baseNoise)));
             % Independent noise
-            iNoise = this.factor/std(noiseSI)*noiseSI;
-            % The mean current only goes into the independent noise, so we do this
-            % transformation here already and use a 2D input function.
-            this.indepNoise = (iNoise + 1)*this.AP;
+            this.indepNoise = this.AP*this.factor/std(noiseSI)*noiseSI;
+            % Old formulation: include 1*AP in indep noise. Need split of
+            % that now, so have 3D input function
+%             iNoise = this.factor/std(noiseSI)*noiseSI;
+%             this.indepNoise = (iNoise + 1)*this.AP;
             this.indepMean = mean(this.indepNoise);
         end
         
@@ -80,12 +82,13 @@ classdef NoiseGenerator < handle
                 u = zeros(2,length(t));
                 u(1,:) = this.baseMean;
                 u(2,:) = this.indepMean;
+                u(3,:) = this.AP;
             else
-                pos = round(mod(t,length(this.baseNoise))+1);
+                pos = ceil(mod(t+eps,length(this.baseNoise)));
 
                 % total noise. the mean current incl. factor is build into the affine input
                 % mapping B.
-                u = [this.baseNoise(pos); this.indepNoise(pos)];
+                u = [this.baseNoise(pos); this.indepNoise(pos); ones(size(pos))*this.AP];
             end
         end
     end

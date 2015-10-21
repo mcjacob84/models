@@ -85,10 +85,7 @@ classdef Processor < handle
                 Vpoly(idx,:) = polyval(c,tgrid);
             end
         end
-        
-    end
-    
-    methods(Access=private)
+
         function [peaks_junction, peaks_end] = getPeakLocations(this, t, Vm)
             peaks_junction = this.getPeakIdx(t, Vm(1,:));
             peaks_end = this.getPeakIdx(t, Vm(2,:));
