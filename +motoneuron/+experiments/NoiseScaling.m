@@ -3,14 +3,14 @@ clear classes;
 %%
 m = models.motoneuron.Model;
 m.TrainingParams = 1:2;
-m.T = 300;
+m.T = 2000;
 
 % Manually choose scaling
-ns = logspace(-1.5,.5,12);
+ns = logspace(log10(.8),log10(2),32);
 
 %%
 s = sampling.RandomSampler;
-s.Samples = 60;
+s.Samples = 100;
 s.Domain = models.motoneuron.ParamDomain;
 mus = s.generateSamples(m);
 

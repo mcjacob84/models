@@ -33,7 +33,6 @@ classdef NoiseGenerator < handle
         factor;
         baseMean;
         indepMean;
-        version;
     end
     
     methods
