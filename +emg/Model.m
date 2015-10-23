@@ -44,12 +44,13 @@ classdef Model < models.BaseFullModel
             i.addParameter('Dim',[40;20;13],@(v)numel(v)==3);
             i.addParameter('Geo',0.1*[40;20;10;3],@(v)numel(v)==3 || numel(v)==4);
             i.addParameter('MUTypes',[0 rs.rand(1,3) 1]); % 5 types by default
-            i.addParameter('Shapes','actual',@(v)any(strcmp(v,{'actual','precomp'})));
-            i.addParameter('FiringTimes','actual',@(v)any(strcmp(v,{'actual','precomp'})));
+            i.addParameter('Shapes','precomp',@(v)any(strcmp(v,{'actual','precomp'})));
+            i.addParameter('FiringTimes','precomp',@(v)any(strcmp(v,{'actual','precomp'})));
             % The sarcomere implementation version for computation of
             % shorten's action potential shapes
             i.addParameter('SarcoVersion',1);
-            i.addParameter('DynAmpPS',true,@(v)islogical(v) && isscalar(v));
+            i.addParameter('DynamicAmplitudes',true,@(v)islogical(v) && isscalar(v));
+            i.addParameter('DynamicPropagationSpeed',true,@(v)islogical(v) && isscalar(v));
             i.parse(varargin{:});
             opts = i.Results;
             

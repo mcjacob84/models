@@ -6,7 +6,7 @@ clear classes;%#ok
 args = {'Shapes','precomp','FiringTimes','precomp','MUTypes',.6};
 %args = [args {'Dim',[150 2 3],'Geo',[15 3 2 1]}];
 mw = models.emg.Model(args{:});
-mo = models.emg.Model(args{:},'DynAmpPS',false);
+mo = models.emg.Model(args{:},'DynamicAmplitudes',false);
 mw.T = 500;
 mo.T = 500;
 mw.dt = .1;

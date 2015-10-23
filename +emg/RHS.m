@@ -51,6 +51,9 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         
         dims;
         
+        % The selected options
+        options;
+        
         % motoneuron model for computation of firing times at FiringTimesMode 'simulate'
         motomodel;
         last_mean_current;
@@ -73,6 +76,9 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         end
         
         function init(this, opts)
+            this.options = opts;
+            this.MUTypes = opts.MUTypes;
+            
             this.xDim = prod(opts.Dim);
             this.fDim = prod(opts.Dim)+1;
             sys = this.System;
@@ -198,10 +204,10 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             % the max requested times
             ft = this.MUFiringTimes{muidx};
             ft(ft > max(t)) = [];
-            if isempty(this.ps_kexp)
-                amp_fac = ones(size(ft));
-                v = this.APvelocity/10*ones(size(ft));
-            else
+            
+            o = this.options;
+            % Compute current kernel approx xi data
+            if o.DynamicPropagationSpeed || o.DynamicAmplitudes
                 % S is the scaling of mu_1,mu_2,t arguments to the learned
                 % expansion - the time has a different order of magnitude
                 % and is hence scaled so that all arguments are of equal
@@ -225,15 +231,24 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                 % same
                 xi = [repmat([ftype; mc]./s(1:2),1,length(ft))
                       ft/s(3)];
-                % Get learned velocities!
-                v = this.ps_kexp.evaluate(xi)/10;
+            end
+            % Dynamic amplitudes
+            if o.DynamicAmplitudes
                 % Get learned amplitudes!
                 amp = this.amp_kexp.evaluate(xi);
                 amp_fac = (amp-base)/this.APShapes_misc(2,muidx);
+            else
+                amp_fac = ones(size(ft));
+            end
+            % Dynamic propagation speeds
+            if o.DynamicPropagationSpeed
+                % Get learned velocities!
+                v = this.ps_kexp.evaluate(xi)/10;
+            else
+                v = this.APvelocity/10*ones(size(ft));
             end
             sys = this.System;
             dx = sys.h(1);
-            
             xdim = this.dims(1);
             xpos = (0:xdim-1)*dx;
             % Initialize the Vm matrix with double spatial size, so that
@@ -360,7 +375,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     end
                 end
                 pi.stop;
-                % Postprocessing in case of dynamic shape amplitudes
+                % Postprocessing (for dynamic shape amplitudes)
                 this.APShapes_misc = zeros(2,ntypes);
                 for n = 1:ntypes
                     sh = this.APShapes{n};
@@ -464,7 +479,6 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             % Store for later use (plots etc)
             this.MUCenters = centers;
             this.MURadii = radii;
-            this.MUTypes = types;
             
             % Assign fibres to motor units
             % Choose the maximum random value as fibre for a MU. The chance
@@ -504,7 +518,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         end
         
         function initDynamicAmpPS(this, opts)
-            if opts.DynAmpPS
+            if opts.DynamicPropagationSpeed || opts.DynamicAmplitudes
                 base = fullfile(fileparts(mfilename('fullpath')),'data');
                 datafile = fullfile(base,'propspeed_amplitudes.mat');
                 s = load(datafile);
