@@ -74,11 +74,11 @@ classdef System < models.motorunit.MotorunitBaseSystem
             % The divisor in both coefficient functions is the old para.CS
             % value!!
             B = dscomponents.AffLinInputConv;
-            % Base noise input mapping
-            B.addMatrix('1./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
-                sparse(2,1,1,this.NumStateDofs,2));
-            % Independent noise input mapping with µ_2 as mean current factor
+            % Mean input mapping
             B.addMatrix('mu(2,:)./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
+                sparse(2,1,1,this.NumStateDofs,2));
+            % Noise input mapping
+            B.addMatrix('(9*((mu(2,:)/9).^1.24635))./(pi*(exp(log(100)*mu(1,:))*3.55e-05 + 77.5e-4).^2)',...
                 sparse(2,2,1,this.NumStateDofs,2));
             this.B = B;
         end

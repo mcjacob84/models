@@ -19,8 +19,7 @@ classdef Motoneuron < KerMorObject
 
     properties(SetAccess=private)
         Constants;
-        TypeNoise;
-        BaseNoise;
+        Noise;
         FibreTypeNoiseFactors;
         JSparsityPattern;
         InitialValues;
@@ -125,14 +124,13 @@ classdef Motoneuron < KerMorObject
             % thus far only used in models.fullmuscle!!
             ng = models.motoneuron.NoiseGenerator;
             ng.setFibreType(fibretypes(1));
-            thenoise = zeros(this.nt,length(ng.indepNoise));
-            thenoise(1,:) = ng.indepNoise;
+            thenoise = zeros(this.nt,length(ng.totalNoise));
+            thenoise(1,:) = ng.totalNoise;
             for k=2:this.nt
                 ng.setFibreType(fibretypes(k));
-                thenoise(k,:) = ng.indepNoise;
+                thenoise(k,:) = ng.totalNoise;
             end
-            this.TypeNoise = thenoise;
-            this.BaseNoise = ng.baseNoise;
+            this.Noise = thenoise;
             
             % The noise signal added to the soma is multiplied with a
             % fibretype-dependent factor.
@@ -143,8 +141,7 @@ classdef Motoneuron < KerMorObject
         function copy = clone(this)
             copy = models.motoneuron.Motoneuron;
             copy.Constants = this.Constants;
-            copy.TypeNoise = this.TypeNoise;
-            copy.BaseNoise = this.BaseNoise;
+            copy.Noise = this.Noise;
             copy.FibreTypeNoiseFactors = this.FibreTypeNoiseFactors;
             copy.nt = this.nt;
         end

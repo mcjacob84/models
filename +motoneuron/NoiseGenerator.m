@@ -25,14 +25,14 @@ classdef NoiseGenerator < handle
     end
     
     properties(SetAccess=private)
-        indepNoise;
+        totalNoise;
         baseNoise;
         a;
         b;
         AP;
         factor;
         baseMean;
-        indepMean;
+        totalMean;
     end
     
     methods
@@ -61,12 +61,9 @@ classdef NoiseGenerator < handle
             rs = RandStream('mt19937ar','Seed',round(this.RandSeed*mu_fibretype*100));
             noiseSI = filter(this.b,this.a,rs.randn(1,length(this.baseNoise)));
             % Independent noise
-            this.indepNoise = this.AP*this.factor/std(noiseSI)*noiseSI;
-            % Old formulation: include 1*AP in indep noise. Need split of
-            % that now, so have 3D input function
-%             iNoise = this.factor/std(noiseSI)*noiseSI;
-%             this.indepNoise = (iNoise + 1)*this.AP;
-            this.indepMean = mean(this.indepNoise);
+            indepNoise = this.AP*this.factor/std(noiseSI)*noiseSI;
+            this.totalNoise = this.baseNoise + indepNoise;
+            this.totalMean = this.baseMean + mean(indepNoise);
         end
         
         function u = getInput(this, t)
@@ -76,18 +73,22 @@ classdef NoiseGenerator < handle
             %
             % As theoretically the finite noise samples are ending at some stage, we put them
             % in an infinite loop via mod(t,numsamples).
+            %
+            % Return values:
+            % u: A 2xlength(t) vector containing the mean current as first
+            % component and the total (fibre-type dependent) noise as
+            % second component.
             
             if this.DisableNoise
                 u = zeros(2,length(t));
-                u(1,:) = this.baseMean;
-                u(2,:) = this.indepMean;
-                u(3,:) = this.AP;
+                u(1,:) = this.AP; 
+                u(2,:) = this.totalMean;
             else
-                pos = ceil(mod(t+eps,length(this.baseNoise)));
-
-                % total noise. the mean current incl. factor is build into the affine input
+                pos = ceil(mod(t+eps,length(this.totalNoise)));
+                % total noise. the mean current factor is build into the affine input
                 % mapping B.
-                u = [this.baseNoise(pos); this.indepNoise(pos); ones(size(pos))*this.AP];
+                u = [ones(size(pos))*this.AP
+                     this.totalNoise(pos)];
             end
         end
     end
