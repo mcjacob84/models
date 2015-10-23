@@ -45,7 +45,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         neuronpos;
     end
     
-    properties(Access=private)
+    properties(SetAccess=private)
         % The randstream instance
         rs;
         
@@ -67,6 +67,11 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         ps_kexp = [];
         xiscale = [];
         upperlimit_poly = [];
+        
+        % musclefibre model for Shape=full simulations
+        musclefibremodel;
+        mfsignals;
+        fullshapes;
     end
     
     methods
@@ -95,6 +100,17 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             this.initAPShapes(opts);
             this.initFiringTimes(opts);
             this.initNeuroJunctions;
+            if strcmp(opts.Shapes,'full')
+                this.fullshapes = true;
+                mf = models.musclefibre.Model(...
+                    'SarcoVersion',opts.SarcoVersion,...
+                    'N',sys.dim(1),'dx',sys.h(1),...
+                    'DynamicIC',true,'SPM',false,'OutputScaling',false,...
+                    'Spindle',false,'Noise',true,...
+                    'JunctionN',1);
+                mf.EnableTrajectoryCaching = true;
+                this.musclefibremodel = mf;
+            end
         end
         
         function copy = clone(this)
@@ -194,84 +210,92 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             % time points t. For each MU, V_m is computed over a
             % representative fibre that is twice as long as the actual muscle and
             % has its neuromuscular junction in the middle (=index d(1))
-            
             tlen = length(t);
-            base = this.APShapes_misc(1,muidx);
-            shape = this.APShapes{muidx};
-            shapelen = length(shape);
-            
-            % Get firing times and remove those that fire beyond
-            % the max requested times
-            ft = this.MUFiringTimes{muidx};
-            ft(ft > max(t)) = [];
-            
-            o = this.options;
-            % Compute current kernel approx xi data
-            if o.DynamicPropagationSpeed || o.DynamicAmplitudes
-                % S is the scaling of mu_1,mu_2,t arguments to the learned
-                % expansion - the time has a different order of magnitude
-                % and is hence scaled so that all arguments are of equal
-                % importance to the expansion (more stable learning)
-                s = this.xiscale;
-                ftype = this.MUTypes(muidx);
-                mc = this.mu;
-                % Restrict mean current to upper limit values!
-                % HACK: -1 as the upperlimit poly is okay w.r.t to the
-                % resulting frequencies, but the ParamDomain from Timm
-                % Strecker is more restrictive. As a consequence, the
-                % usable parameters for the learned expansion only make
-                % sense within the ParamDomain, which is approximately
-                % bounded above by polyval-1.
-                mc = min(polyval(this.upperlimit_poly,ftype)-1,mc);
-                % Arguments: fibre_type, mean_current, time
-                % Important here is to take the speed and amplitudes
-                % for the time instant the junction fire signal was
-                % received, as propagating potentials would have decreasing
-                % amplitudes over time even though the signal would be the
-                % same
-                xi = [repmat([ftype; mc]./s(1:2),1,length(ft))
-                      ft/s(3)];
-            end
-            % Dynamic amplitudes
-            if o.DynamicAmplitudes
-                % Get learned amplitudes!
-                amp = this.amp_kexp.evaluate(xi);
-                amp_fac = (amp-base)/this.APShapes_misc(2,muidx);
-            else
-                amp_fac = ones(size(ft));
-            end
-            % Dynamic propagation speeds
-            if o.DynamicPropagationSpeed
-                % Get learned velocities!
-                v = this.ps_kexp.evaluate(xi)/10;
-            else
-                v = this.APvelocity/10*ones(size(ft));
-            end
-            sys = this.System;
-            dx = sys.h(1);
             xdim = this.dims(1);
-            xpos = (0:xdim-1)*dx;
-            % Initialize the Vm matrix with double spatial size, so that
-            % the signals can be placed in both directions on the fibre
-            Vm = base*ones(2*xdim-1,tlen);
-            for fidx = 1:length(ft)
-                % Scale shape by current ft amplitude
-                shape_amp = (shape-base)*amp_fac(fidx)+base;
-                % Get the amount of time passed until the signal reaches
-                % each sarcomere (including the local one at 0)
-                shifted_ft = xpos / v(fidx);
-                % Get pairwise difference and find absolute minima =
-                % matching locations
-                [~,shifted_tidx] = min(abs(bsxfun(@minus,t-ft(fidx),shifted_ft')),[],2);
-                for xidx = 1:xdim
-                    % Detect how many shape time-steps can be inserted
-                    % (might go over the time-index)
-                    shapesteps = min(shapelen,tlen-shifted_tidx(xidx));
-                    % Set the shapes from center (=xdim) to both sides
-                    Vm(xdim+xidx-1,shifted_tidx(xidx)+(1:shapesteps)) = ...
-                        shape_amp(1:shapesteps);
-                    Vm(xdim-xidx+1,shifted_tidx(xidx)+(shapesteps:-1:1)) = ...
-                        shape_amp(shapesteps:-1:1);
+            if this.fullshapes
+                sig = this.mfsignals{muidx};
+                Vm = zeros(2*xdim-1,tlen);
+                Vm(xdim:end,:) = sig;
+                Vm(xdim:-1:1,:) = sig;
+            else
+                o = this.options;    
+                
+                base = this.APShapes_misc(1,muidx);
+                shape = this.APShapes{muidx};
+                shapelen = length(shape);
+
+                % Get firing times and remove those that fire beyond
+                % the max requested times
+                ft = this.MUFiringTimes{muidx};
+                ft(ft > max(t)) = [];
+
+
+                % Compute current kernel approx xi data
+                if o.DynamicPropagationSpeed || o.DynamicAmplitudes
+                    % S is the scaling of mu_1,mu_2,t arguments to the learned
+                    % expansion - the time has a different order of magnitude
+                    % and is hence scaled so that all arguments are of equal
+                    % importance to the expansion (more stable learning)
+                    s = this.xiscale;
+                    ftype = this.MUTypes(muidx);
+                    mc = this.mu;
+                    % Restrict mean current to upper limit values!
+                    % HACK: -1 as the upperlimit poly is okay w.r.t to the
+                    % resulting frequencies, but the ParamDomain from Timm
+                    % Strecker is more restrictive. As a consequence, the
+                    % usable parameters for the learned expansion only make
+                    % sense within the ParamDomain, which is approximately
+                    % bounded above by polyval-1.
+                    mc = min(polyval(this.upperlimit_poly,ftype)-1,mc);
+                    % Arguments: fibre_type, mean_current, time
+                    % Important here is to take the speed and amplitudes
+                    % for the time instant the junction fire signal was
+                    % received, as propagating potentials would have decreasing
+                    % amplitudes over time even though the signal would be the
+                    % same
+                    xi = [repmat([ftype; mc]./s(1:2),1,length(ft))
+                          ft/s(3)];
+                end
+                % Dynamic amplitudes
+                if o.DynamicAmplitudes
+                    % Get learned amplitudes!
+                    amp = this.amp_kexp.evaluate(xi);
+                    amp_fac = (amp-base)/this.APShapes_misc(2,muidx);
+                else
+                    amp_fac = ones(size(ft));
+                end
+                % Dynamic propagation speeds
+                if o.DynamicPropagationSpeed
+                    % Get learned velocities!
+                    v = this.ps_kexp.evaluate(xi)/10;
+                else
+                    v = this.APvelocity/10*ones(size(ft));
+                end
+                sys = this.System;
+                dx = sys.h(1);
+                xpos = (0:xdim-1)*dx;
+                % Initialize the Vm matrix with double spatial size, so that
+                % the signals can be placed in both directions on the fibre
+                Vm = base*ones(2*xdim-1,tlen);
+                for fidx = 1:length(ft)
+                    % Scale shape by current ft amplitude
+                    shape_amp = (shape-base)*amp_fac(fidx)+base;
+                    % Get the amount of time passed until the signal reaches
+                    % each sarcomere (including the local one at 0)
+                    shifted_ft = xpos / v(fidx);
+                    % Get pairwise difference and find absolute minima =
+                    % matching locations
+                    [~,shifted_tidx] = min(abs(bsxfun(@minus,t-ft(fidx),shifted_ft')),[],2);
+                    for xidx = 1:xdim
+                        % Detect how many shape time-steps can be inserted
+                        % (might go over the time-index)
+                        shapesteps = min(shapelen,tlen-shifted_tidx(xidx));
+                        % Set the shapes from center (=xdim) to both sides
+                        Vm(xdim+xidx-1,shifted_tidx(xidx)+(1:shapesteps)) = ...
+                            shape_amp(1:shapesteps);
+                        Vm(xdim-xidx+1,shifted_tidx(xidx)+(shapesteps:-1:1)) = ...
+                            shape_amp(shapesteps:-1:1);
+                    end
                 end
             end
         end
@@ -303,14 +327,19 @@ classdef RHS < dscomponents.ACompEvalCoreFun
     methods
         function prepareSimulation(this, mu)
             prepareSimulation@dscomponents.ACoreFun(this, mu);
-            
-            % We need to compute the current
-            % action potential shapes, possibly for each current model
-            % time-step dt
-            this.updateAPShapes;
-            
-            % Update the firing times
-            this.updateFiringTimes(mu);
+            % For a full fibre simulation we need evaluations of the
+            % different musclefibre types
+            if strcmp(this.options.Shapes,'full')
+                this.precomputeFibreSignals(mu);
+            else
+                % We need to compute the current
+                % action potential shapes, possibly for each current model
+                % time-step dt
+                this.updateAPShapes;
+
+                % Update the firing times
+                this.updateFiringTimes(mu);
+            end
         end
     end
     
@@ -335,9 +364,11 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                 types = this.MUTypes;
                 ntypes = length(types);
                 this.APShapes = cell(1,length(types));
-                m = this.shapemodel;
+                
                 % If shapemodel is set, we have the "actual" mode.
-                if ~isempty(m)
+                switch this.options.Shapes
+                    case 'actual'
+                    m = this.shapemodel;
                     pi = ProcessIndicator('Computing %d action potential shapes...',...
                         ntypes,false,ntypes);
                     m.dt = cur_dt;
@@ -347,8 +378,8 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                         this.APShapes{n} = m.getActionPotentialShape([types(n);9]);
                         pi.step;
                     end
-                else
-                    sv = this.System.Model.Options.SarcoVersion;
+                case 'precomp'
+                    sv = this.options.SarcoVersion;
                     % Else: "precomp" is set, so load & interpolate shapes
                     % for current time.
                     datafile = fullfile(fileparts(mfilename('fullpath')),'data',...
@@ -373,8 +404,19 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                         this.APShapes{n} = interp1(times, shape, ltimes, 'pchip', shape(1));
                         pi.step;
                     end
+                    pi.stop;
+                case 'rosen'
+                    % This is the rosenfalck' ap shape function
+                    rosenfalck = @(z)96*z.^3.*exp(-z)-80;
+                    % Average ap shape goes up to 8ms
+                    z = 0:cur_dt:8;
+                    for n = 1:ntypes
+                        % Scale the rosenfalck function by two as the
+                        % function is defined over 0-15ms (too long)
+                        this.APShapes{n} = rosenfalck(2*z);
+                    end
                 end
-                pi.stop;
+                
                 % Postprocessing (for dynamic shape amplitudes)
                 this.APShapes_misc = zeros(2,ntypes);
                 for n = 1:ntypes
@@ -528,6 +570,29 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                 s = load(models.motoneuron.Model.FILE_UPPERLIMITPOLY);
                 this.upperlimit_poly = s.upperlimit_poly;
             end
+        end
+        
+        function precomputeFibreSignals(this, mu)
+            types = this.MUTypes;
+            ntypes = length(types);
+            mf = this.musclefibremodel;
+            % Set equal time and steps
+            m = this.System.Model;
+            mf.T = m.T;
+            mf.dt = m.dt;
+            pi = ProcessIndicator('Computing full signals for %d fibre types',...
+                ntypes,false,ntypes);
+            for k = 1:ntypes
+                [~,~,~,x] = mf.simulate([types(k); mu],1);
+                % Find positions of Vm on each sarcomere
+                moto_off = mf.System.dm;
+                % Each first sarcomere model dimension contains the current
+                % Vm value
+                pos = moto_off + (1:mf.System.dsa:size(x,1)-moto_off);
+                this.mfsignals{k} = x(pos,:);
+                pi.step;
+            end
+            pi.stop;
         end
     end
     

@@ -4,7 +4,7 @@
 % in each emg model.
 numsamples = 200;
 m = models.motoneuron.Model;
-% 5000 ms should be enough in terms of precomputed times
+% 10000 ms should be enough in terms of precomputed times
 m.T = 10000;
 % Fine time resolution to have sufficient detail for fine emg simulations.
 m.dt = .1;
@@ -18,11 +18,13 @@ m.off1_createParamSamples;
 mus = m.Data.ParamSamples;
 Times = cell(1,numsamples);
 pi = ProcessIndicator('Computing motoneuron firing times',numsamples,false);
+PCPool.open;
 parfor i = 1:numsamples
     [t,y] = m.simulate(mus(:,i), 1);%#ok
     FT = (y(2,2:end) > 40).*(y(2,1:end-1) <= 40);
     Times{i} = t(logical(FT));
     pi.step;%#ok
 end
+PCPool.close;
 pi.stop;
-save ShapeData Times mus;
+save FiringTimes Times mus;

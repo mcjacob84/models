@@ -44,7 +44,8 @@ classdef Model < models.BaseFullModel
             i.addParameter('Dim',[40;20;13],@(v)numel(v)==3);
             i.addParameter('Geo',0.1*[40;20;10;3],@(v)numel(v)==3 || numel(v)==4);
             i.addParameter('MUTypes',[0 rs.rand(1,3) 1]); % 5 types by default
-            i.addParameter('Shapes','precomp',@(v)any(strcmp(v,{'actual','precomp'})));
+            i.addParameter('Shapes','precomp',...
+                @(v)any(strcmp(v,{'actual','precomp','rosen','full'})));
             i.addParameter('FiringTimes','precomp',@(v)any(strcmp(v,{'actual','precomp'})));
             % The sarcomere implementation version for computation of
             % shorten's action potential shapes
@@ -380,6 +381,49 @@ classdef Model < models.BaseFullModel
                 sh = rhs.APShapes{k};
                 t = (0:(length(sh)-1))*this.dt;
                 plot(ax,t,sh);
+            end
+            pm.done;
+        end
+        
+        function pm = plotPrecompAPShapes(this)
+            sv = this.Options.SarcoVersion;
+            % Else: "precomp" is set, so load & interpolate shapes
+            % for current time.
+            datafile = fullfile(fileparts(mfilename('fullpath')),'data',...
+                sprintf('ShapeData_v%d.mat',sv));
+            s = load(datafile);
+            pm = PlotManager;
+            pm.LeaveOpen = true;
+            ax = pm.nextPlot('precomp_apshapes',...
+                sprintf('Precomputed AP shapes for %d parameters',length(s.Times)),...
+                't [ms]','potential [mV]');
+            hold(ax,'on');
+            for k=1:length(s.Times)
+                plot(ax,s.Times{k},s.Shapes{k});
+            end
+        end
+        
+        function pm = plotVm(this, mean_current)
+            if nargin < 2
+                mean_current = this.DefaultMu;
+            end
+            sys = this.System;
+            xdim = sys.dim(1);
+            sys.prepareSimulation(mean_current,[]);
+            types = this.Options.MUTypes;
+            nmu = length(types);
+            [T,X] = meshgrid(this.Times,(-xdim+1:xdim-1)*sys.h(1));
+            pm = PlotManager(false,1,2);
+            pm.LeaveOpen = true;
+            for k=1:nmu
+                Vm = sys.f.computeMUActivation(this.Times,k);
+                % Use only the "right" side (symmetric)
+                %Vm = Vm(xdim:end,:);
+                ax = pm.nextPlot('Vm',...
+                    sprintf('Vm signal over space and time for mu=%g and fibre type %g',...
+                    mean_current,types(k)),...
+                    't [ms]','fibre location [cm]');
+                surf(T,X,Vm,'Parent',ax,'EdgeColor','interp');
             end
             pm.done;
         end

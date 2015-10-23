@@ -14,6 +14,7 @@ Shapes = cell(1,numsamples);
 Times = cell(1,numsamples);
 pm = PlotManager(false,4,4);
 pi = ProcessIndicator('Computing action potential shapes',numsamples,false);
+PCPool.open;
 parfor i = 1:numsamples
     [Shapes{i}, Times{i}] = m.getActionPotentialShape(mus(:,i));%#ok
     %ax = pm.nextPlot('dummy',sprintf('Action Potential Shape for mu=[%g,
@@ -21,5 +22,6 @@ parfor i = 1:numsamples
     %plot(ax,Times{i},ShapeData{i});
     pi.step;%#ok
 end
+PCPool.close;
 pi.stop;
 save ShapeData Shapes Times mus

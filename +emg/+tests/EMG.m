@@ -3,7 +3,7 @@ classdef EMG < matlab.unittest.TestCase
     %   Detailed explanation goes here
     
     properties(TestParameter)
-        shapes = {'precomp' 'actual'};
+        shapes = {'precomp' 'actual' 'rosen'};
         FT = {'precomp' 'actual'};
         sv = {1 2};
     end
@@ -31,6 +31,14 @@ classdef EMG < matlab.unittest.TestCase
             m.plotMU3d(1);
             m.plotMU3d;
             m.plotMuscleConfiguration;
+            m.plotPrecompAPShapes;
+        end
+        
+        function FullSignal(~)
+            m = models.emg.Model('Shapes','full','MUTypes',[0 1]);
+            m.T = 50;
+            m.dt = .1;
+            [t,y] = m.simulate;
         end
     end
     
