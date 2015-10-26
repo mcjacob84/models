@@ -63,7 +63,7 @@ nmu = size(mus,2);
 Vms = cell(1,nmu);
 ctimes = zeros(1,nmu);
 PCPool.open;
-%     for p = 1:nmu
+% for p = 1:nmu
 parfor p = 1:nmu
     m = models.musclefibre.Model('N',N,'SarcoVersion',1,'Noise',usenoise);
     m.dt = dt;
@@ -72,12 +72,11 @@ parfor p = 1:nmu
     for iidx = 1:length(intervals)-1
         m.t0 = intervals(iidx);
         m.T = intervals(iidx+1);
-        [~,y,ctimes(p)] = m.simulate(mus(:,p));
-        Vm(:,interval_idx(iidx):interval_idx(iidx+1)) = y(pos,:);%#ok
-        m.System.x0 = dscomponents.ConstInitialValue(y(:,end));
+        [~,~,ctimes(p),x] = m.simulate(mus(:,p));
+        Vm(:,interval_idx(iidx):interval_idx(iidx+1)) = x(pos,:);%#ok
+        m.System.x0 = dscomponents.ConstInitialValue(x(:,end));
     end
     Vms{p} = Vm;
 end
-PCPool.close;
 save(datafile,'mus','distN','N','t','Vms','ctimes');
-
+PCPool.close;
