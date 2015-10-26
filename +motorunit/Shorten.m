@@ -154,12 +154,18 @@ classdef Shorten < models.BaseFullModel
                 warning('T < 40ms! Action potential shape might be uncorrect!');
             end
             [t,y] = this.simulate(mu,1);
+            % Criteria via absolute value is bad for slow-twitch fibres.
             startidx = find((y(1,:) > basemV),1,'first');
+            diffstartidx = find((diff(y(1,:)) > .01),1,'first');
+            maxlowms = .1;
+            if abs(diffstartidx - startidx)*this.dt > maxlowms
+                startidx = max(0,diffstartidx-round(maxlowms/this.dt));
+            end
             len = find((y(1,startidx:end) < basemV),1,'first');
             pos = startidx + (1:len);
             apshape = y(1,pos);
             times = t(pos)-min(t(pos));
-            %plot(t(pos),y(1,pos)); 
+            %plot(times,apshape); 
         end
     end
     
