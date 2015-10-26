@@ -18,7 +18,7 @@ chunksize = 4; % [GB] The maximum single trajectory size
 % this variant
 distN = 100;
 dt = .01;
-T = 5000;
+T = 10000;
 usenoise = false;
 
 %% General
@@ -28,7 +28,7 @@ buffer = 10; % number of buffer sarcomeres at boundaries, padded to the ones ove
 % Pad by buffer sarcomeres to each end
 N = distN + 2*buffer;
 m = models.musclefibre.Model('N',N,'SarcoVersion',1,'Noise',usenoise);
-if m.System.MotoSarcoLinkIndex ~= 1
+if m.Options.JunctionN ~= 1
     error('Must have MotoSarcoLinkIndex=1 for this experiment.')
 end
 m.T = T;
@@ -45,12 +45,13 @@ intervals = t(interval_idx);
 %% Generate params
 % Take a regular mesh and filter by the Motoneuron-Input domain
 % See m.System.Params(:).Desired for grid resolution
-s = sampling.GridSampler;
+s = sampling.RandomSampler;
+s.Samples = 350;
 s.Domain = models.motoneuron.ParamDomain;
 mus = s.generateSamples(m);
 
 %% Crunch
-base = fullfile(KerMor.App.DataDirectory,'musclefibre','propagationspeed');
+base = fullfile(KerMor.App.DataDirectory,'musclefibre_propagationspeed');
 tag = sprintf('N%d_T%d_dt%g_noise%d',distN,T,m.dt,usenoise);
 thefile = [tag '_data.mat'];
 datafile = fullfile(base,thefile);
