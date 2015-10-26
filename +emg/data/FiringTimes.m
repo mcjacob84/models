@@ -21,8 +21,8 @@ pi = ProcessIndicator('Computing motoneuron firing times',numsamples,false);
 PCPool.open;
 parfor i = 1:numsamples
     [t,y] = m.simulate(mus(:,i), 1);%#ok
-    FT = (y(2,2:end) > 40).*(y(2,1:end-1) <= 40);
-    Times{i} = t(logical(FT));
+    peaks = m.analyze(t,y);
+    Times{i} = t(peaks);
     pi.step;%#ok
 end
 PCPool.close;

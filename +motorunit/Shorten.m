@@ -124,7 +124,7 @@ classdef Shorten < models.BaseFullModel
             end
         end
         
-        function [apshape, times] = getActionPotentialShape(this, mu)
+        function [apshape, times] = getActionPotentialShape(this, mu, basemV)
             % Computes the action potential shape for the current Shorten
             % model. Always detects the first peak.
             %
@@ -133,24 +133,32 @@ classdef Shorten < models.BaseFullModel
             % Parameters:
             % mu: The current model parameter `\mu` @type colvec<double>
             % @default this.DefaultMu
+            % basemV: The base potential from which to measure the shape.
+            % The shape's start will be the first time-step where the
+            % signal is greater than basemV and the end will be the first
+            % time-step the signal will be below basemV.
+            % @type double @default -80[mV]
             %
             % Return values:
             % apshape: The shape of the action potential with values as-is
             % from the Shorten model. @type rowvec<double>
             % times: The corresponding times over which the shape is
             % computed. @type rowvec<double>
-            if nargin < 2
-                mu = this.DefaultMu;
+            if nargin < 3
+                basemV = -80;
+                if nargin < 2
+                    mu = this.DefaultMu;
+                end
             end
             if this.T < 40
                 warning('T < 40ms! Action potential shape might be uncorrect!');
             end
             [t,y] = this.simulate(mu,1);
-            startidx = find((y(1,:) > -80),1,'first');
-            len = find((y(1,startidx:end) < -80),1,'first');
+            startidx = find((y(1,:) > basemV),1,'first');
+            len = find((y(1,startidx:end) < basemV),1,'first');
             pos = startidx + (1:len);
             apshape = y(1,pos);
-            times = t(pos);
+            times = t(pos)-min(t(pos));
             %plot(t(pos),y(1,pos)); 
         end
     end

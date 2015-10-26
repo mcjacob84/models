@@ -48,7 +48,7 @@ classdef NoiseGenerator < handle
             % - scaleP: total standard deviation, "AP/scale"
             % - noiseP: The noise data. "Common noise (alpha+beta)"
             mc = metaclass(this);
-            p = load(fullfile(fileparts(which(mc.Name)),'neuro_input'));
+            p = load(fullfile(fileparts(which(mc.Name)),'data','neuro_input'));
             this.factor = sqrt(p.thetaP)/p.scaleP;
             this.AP = p.AP;
             [this.b, this.a] = butter(2,p.LOWPASSP*2/1000,'low');

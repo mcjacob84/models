@@ -358,7 +358,8 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         
         function updateAPShapes(this)
             % Choose same step size for precomputed shapes
-            cur_dt = this.System.Model.dt;
+            fm = this.System.Model;
+            cur_dt = fm.dt;
             % Only compute if not yet done or step size changed
             if isempty(this.last_dt) || ~isequal(this.last_dt,cur_dt)
                 types = this.MUTypes;
@@ -382,11 +383,11 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     sv = this.options.SarcoVersion;
                     % Else: "precomp" is set, so load & interpolate shapes
                     % for current time.
-                    datafile = fullfile(fileparts(mfilename('fullpath')),'data',...
+                    datafile = fullfile(fm.DataDir,...
                         sprintf('ShapeData_v%d.mat',sv));
                     if exist(datafile,'file') ~= 2
                         error('No precomputed data available. Run the %s script!',...
-                            fullfile(fileparts(mfilename('fullpath')),'data','ActionPotentialShape.m'));
+                            fullfile(fm.DataDir,'ActionPotentialShape.m'));
                     end
                     d = load(datafile);
                     pi = ProcessIndicator('Interpolating %d action potential shapes...',...
@@ -407,13 +408,15 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     pi.stop;
                 case 'rosen'
                     % This is the rosenfalck' ap shape function
-                    rosenfalck = @(z)96*z.^3.*exp(-z)-80;
+                    r = general.functions.Rosenfalck;
+                    r.basemV = -80;
+                    rosenfalck = r.getFunction;
                     % Average ap shape goes up to 8ms
                     z = 0:cur_dt:8;
                     for n = 1:ntypes
                         % Scale the rosenfalck function by two as the
                         % function is defined over 0-15ms (too long)
-                        this.APShapes{n} = rosenfalck(2*z);
+                        this.APShapes{n} = rosenfalck(z);
                     end
                 end
                 
@@ -445,12 +448,13 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             %
             % Either pre-computed or for the current fibre-type selection
             % and parameter (=mean input current)
+            fm = this.System.Model;
             nmu = length(this.MUTypes);
             if ~isequal(this.last_mean_current,mean_current)
                 this.MUFiringTimes = cell(1,nmu);
                 m = this.motomodel;
                 if ~isempty(m)    
-                    m.T = this.System.Model.T;
+                    m.T = fm.T;
                     pi = ProcessIndicator('Computing firing times for %d motoneurons...',...
                         nmu,false,nmu);
                     for idx = 1:nmu  
@@ -462,10 +466,10 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     end
                     pi.stop;
                 else
-                    datafile = fullfile(fileparts(mfilename('fullpath')),'data','FiringTimes.mat');
+                    datafile = fullfile(fm.DataDir,'FiringTimes.mat');
                     if exist(datafile,'file') ~= 2
                         error('No precomputed data available. Run the %s script!',...
-                            fullfile(fileparts(mfilename('fullpath')),'data','FiringTimes.m'));
+                            fullfile(fm.DataDir,'FiringTimes.m'));
                     end
                     d = load(datafile);
                     for idx = 1:nmu
@@ -561,7 +565,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         
         function initDynamicAmpPS(this, opts)
             if opts.DynamicPropagationSpeed || opts.DynamicAmplitudes
-                base = fullfile(fileparts(mfilename('fullpath')),'data');
+                base = this.System.Model.DataDir;
                 datafile = fullfile(base,'propspeed_amplitudes.mat');
                 s = load(datafile);
                 this.xiscale = s.ximax;

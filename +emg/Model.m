@@ -10,6 +10,11 @@ classdef Model < models.BaseFullModel
     %
     % @new{0,7,ts,2014-03-24} Added this class.
     %
+    
+    properties(Constant)
+        DataDir = fullfile(fileparts(mfilename('fullpath')),'data');
+    end
+    
     properties
         % Seed that can be used by random number generator instances in order to enable result
         % reproduction.

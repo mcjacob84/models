@@ -36,9 +36,9 @@ classdef EMG < matlab.unittest.TestCase
         
         function FullSignal(~)
             m = models.emg.Model('Shapes','full','MUTypes',[0 1]);
-            m.T = 50;
+            m.T = 10;
             m.dt = .1;
-            [t,y] = m.simulate;
+            m.simulate;
         end
     end
     

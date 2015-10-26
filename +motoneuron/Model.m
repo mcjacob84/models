@@ -19,7 +19,7 @@ classdef Model < models.BaseFullModel
 %
 
     properties(Constant)
-        FILE_UPPERLIMITPOLY = fullfile(fileparts(mfilename('fullpath')),'upperlimitpoly.mat');
+        FILE_UPPERLIMITPOLY = fullfile(fileparts(mfilename('fullpath')),'data','upperlimitpoly.mat');
     end
 
     properties(Dependent)

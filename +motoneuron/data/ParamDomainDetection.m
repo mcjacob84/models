@@ -8,7 +8,7 @@ MaxHz = 50;
 % Here, the fibre type and mean activation current along the MaxHz-contour
 % are used to fit a polynomial that yields  the maximum mean input current
 % for any fibre type.
-basedir = fileparts(mfilename('fullpath'));
+basedir = fullfile(fileparts(which('models.motoneuron.Model')),'data');
 
 %%
 m = models.motoneuron.Model;
@@ -34,10 +34,10 @@ parfor k = 1 : ns
     [~,~,~,Hz(k)] = m.analyze(t, y);
 end
 PCPool.close;
-save paramdomaindetection_data Hz ct mus;
+save(fullfile(basedir,'paramdomaindetection_data.mat'),'Hz','ct','mus');
 
 %% or load !
-% load paramdomaindetection_data
+% load(fullfile(basedir,'paramdomaindetection_data.mat'));
 
 %% Colormap
 mHz = min(Hz);
