@@ -27,6 +27,10 @@ classdef Model < models.BaseFullModel
     % - \c Documentation http://www.morepas.org/software/kermor/index.html
     % - \c License @ref licensing
     
+    properties(Constant)
+        dxDefault = 10^-2.5;
+    end
+    
     properties
         % Seed that can be used by random number generator instances in order to enable result
         % reproduction.
@@ -56,7 +60,8 @@ classdef Model < models.BaseFullModel
             i.addParameter('JunctionN',1,@(n)isposintscalar(n));
             % For default dx, see the
             % experiments.PropagationSpeed_SpatialConvergence* scripts
-            i.addParameter('dx',10^-2.5,@(v)isscalar(v));
+            i.addParameter('dx',models.musclefibre.Model.dxDefault,...
+                @(v)isscalar(v));
             i.parse(varargin{:});
             options = i.Results;
             

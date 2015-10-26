@@ -27,10 +27,11 @@ classdef System < models.motorunit.MotorunitBaseSystem
         
         % "length" of one sarcomere unit [cm]
         %
-        % The default value is oriented on Thomas Heidlauf's work.
+        % The default value has been computed after an spatial convergence
+        % test, see +experiments package
         %
-        % @type double @default 0.0052
-        dx; % [cm]
+        % @type double @default `10^-2.5 \approx 0.0032`
+        dx = 10^-2.5; % [cm]
     end
     
     properties(Dependent)

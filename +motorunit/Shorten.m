@@ -158,8 +158,8 @@ classdef Shorten < models.BaseFullModel
             startidx = find((y(1,:) > basemV),1,'first');
             diffstartidx = find((diff(y(1,:)) > .01),1,'first');
             maxlowms = .1;
-            if abs(diffstartidx - startidx)*this.dt > maxlowms
-                startidx = max(0,diffstartidx-round(maxlowms/this.dt));
+            if (diffstartidx - startidx)*this.dt > maxlowms
+                startidx = max(1,diffstartidx-round(maxlowms/this.dt));
             end
             len = find((y(1,startidx:end) < basemV),1,'first');
             pos = startidx + (1:len);
