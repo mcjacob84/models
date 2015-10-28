@@ -70,6 +70,7 @@ alg.plotSummary;
 %% Store results
 thefile = [tag '_results_ps.mat'];
 save(fullfile(base,thefile),'kexp','ximax','atd','mus');
+save(fullfile(base,thefile),'alg','-APPEND','-v7.3');
 ps = kexp.toTranslateBase;
 save(fullfile(base,'propagationspeed.mat'),'ps','ximax');
 

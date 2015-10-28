@@ -65,13 +65,15 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         % Fields for dynamic amplitude & propagation speed data
         amp_kexp = [];
         ps_kexp = [];
-        xiscale = [];
+        amp_xiscale = [];
+        ps_xiscale = [];
         upperlimit_poly = [];
         
         % musclefibre model for Shape=full simulations
         musclefibremodel;
         mfsignals;
         fullshapes;
+        submesh_idx;
     end
     
     methods
@@ -102,9 +104,19 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             this.initNeuroJunctions;
             if strcmp(opts.Shapes,'full')
                 this.fullshapes = true;
+                if opts.HighResFullShapeSimulations
+                    dx = models.musclefibre.Model.dxDefault;
+                    N = round(sys.Geo(1)/dx);
+                    % Coarse index within fine resolution
+                    this.submesh_idx = round(linspace(1,N,sys.dim(1)));
+                else
+                    N = sys.dim(1);
+                    dx = sys.h(1);
+                    this.submesh_idx = 1:N;
+                end
                 mf = models.musclefibre.Model(...
                     'SarcoVersion',opts.SarcoVersion,...
-                    'N',sys.dim(1),'dx',sys.h(1),...
+                    'N',N,'dx',dx,...
                     'DynamicIC',true,'SPM',false,'OutputScaling',false,...
                     'Spindle',false,'Noise',true,...
                     'JunctionN',1);
@@ -232,11 +244,6 @@ classdef RHS < dscomponents.ACompEvalCoreFun
 
                 % Compute current kernel approx xi data
                 if o.DynamicPropagationSpeed || o.DynamicAmplitudes
-                    % S is the scaling of mu_1,mu_2,t arguments to the learned
-                    % expansion - the time has a different order of magnitude
-                    % and is hence scaled so that all arguments are of equal
-                    % importance to the expansion (more stable learning)
-                    s = this.xiscale;
                     ftype = this.MUTypes(muidx);
                     mc = this.mu;
                     % Restrict mean current to upper limit values!
@@ -247,6 +254,14 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     % sense within the ParamDomain, which is approximately
                     % bounded above by polyval-1.
                     mc = min(polyval(this.upperlimit_poly,ftype)-1,mc);
+                end
+                % Dynamic amplitudes
+                if o.DynamicAmplitudes
+                    % S is the scaling of mu_1,mu_2,t arguments to the learned
+                    % expansion - the time has a different order of magnitude
+                    % and is hence scaled so that all arguments are of equal
+                    % importance to the expansion (more stable learning)
+                    s = this.amp_xiscale;
                     % Arguments: fibre_type, mean_current, time
                     % Important here is to take the speed and amplitudes
                     % for the time instant the junction fire signal was
@@ -255,9 +270,6 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     % same
                     xi = [repmat([ftype; mc]./s(1:2),1,length(ft))
                           ft/s(3)];
-                end
-                % Dynamic amplitudes
-                if o.DynamicAmplitudes
                     % Get learned amplitudes!
                     amp = this.amp_kexp.evaluate(xi);
                     amp_fac = (amp-base)/this.APShapes_misc(2,muidx);
@@ -266,6 +278,10 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                 end
                 % Dynamic propagation speeds
                 if o.DynamicPropagationSpeed
+                    % See o.DynamicAmplitudes case for comments
+                    s = this.ps_xiscale;
+                    xi = [repmat([ftype; mc]./s(1:2),1,length(ft))
+                          ft/s(3)];
                     % Get learned velocities!
                     v = this.ps_kexp.evaluate(xi)/10;
                 else
@@ -377,6 +393,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                         % Get shape from internal Shorten model using full
                         % activation (for early peak)
                         this.APShapes{n} = m.getActionPotentialShape([types(n);9]);
+                        %this.APShapes{n} = interp1(times, shape, ltimes, 'pchip', shape(1));
                         pi.step;
                     end
                 case 'precomp'
@@ -566,11 +583,18 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         function initDynamicAmpPS(this, opts)
             if opts.DynamicPropagationSpeed || opts.DynamicAmplitudes
                 base = this.System.Model.DataDir;
-                datafile = fullfile(base,'propspeed_amplitudes.mat');
+                datafile = fullfile(base,'amplitudes.mat');
                 s = load(datafile);
-                this.xiscale = s.ximax;
-                this.ps_kexp = s.ps;
+                this.amp_xiscale = s.ximax;
                 this.amp_kexp = s.amp;
+                datafile = fullfile(base,'propagationspeed.mat');
+                s = load(datafile);
+                this.ps_xiscale = s.ximax;
+                if ~isequal(this.amp_xiscale,this.ps_xiscale)
+                    warning('Xi argument scaling is not equal! Please check');
+%                     keyboard;
+                end
+                this.ps_kexp = s.ps;
                 s = load(models.motoneuron.Model.FILE_UPPERLIMITPOLY);
                 this.upperlimit_poly = s.upperlimit_poly;
             end
@@ -593,7 +617,11 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                 % Each first sarcomere model dimension contains the current
                 % Vm value
                 pos = moto_off + (1:mf.System.dsa:size(x,1)-moto_off);
-                this.mfsignals{k} = x(pos,:);
+                fine_signal = x(pos,:);
+                % Only store the effectively needed signals from the
+                % potentially finer submodel simulation.
+                % See HighResFullShapeSimulations option!
+                this.mfsignals{k} = fine_signal(this.submesh_idx,:);
                 pi.step;
             end
             pi.stop;
