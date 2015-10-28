@@ -152,7 +152,7 @@ classdef Fuglevand < handle
             end
             
             % Interpolate to desired time grid
-            forces = interp1(1:length(forces),forces,t,'cubic');
+            forces = interp1(1:length(forces),forces,t,'pchip');
         end
         
         function set.Seed(this, value)
