@@ -1,8 +1,8 @@
 %% Clear
 clear classes;%#ok
-
+%%
 distN = 100; % The number of sarcomeres over which to measure the propagation speed.
-Tfinal = 5000;
+Tfinal = 10000;
 dt = .01;
 t = 0:dt:Tfinal;
 usenoise = false;
@@ -71,7 +71,7 @@ alg.plotSummary;
 thefile = [tag '_results_ps.mat'];
 save(fullfile(base,thefile),'kexp','ximax','atd','mus');
 ps = kexp.toTranslateBase;
-save(fullfile(base,'propspeed_amplitudes.mat'),'ps','ximax','-APPEND');
+save(fullfile(base,'propagationspeed.mat'),'ps','ximax');
 
 %% Draw
 numi = 1000;

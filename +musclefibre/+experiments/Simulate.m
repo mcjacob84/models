@@ -52,6 +52,7 @@ mus = s.generateSamples(m);
 
 %% Crunch
 base = fullfile(KerMor.App.DataDirectory,'musclefibre_propagationspeed');
+Utils.ensureDir(base);
 tag = sprintf('N%d_T%d_dt%g_noise%d',distN,T,m.dt,usenoise);
 thefile = [tag '_data.mat'];
 datafile = fullfile(base,thefile);
@@ -78,5 +79,5 @@ parfor p = 1:nmu
     end
     Vms{p} = Vm;
 end
-save(datafile,'mus','distN','N','t','Vms','ctimes');
+save(datafile,'mus','distN','N','t','Vms','ctimes','-v7.3');
 PCPool.close;
