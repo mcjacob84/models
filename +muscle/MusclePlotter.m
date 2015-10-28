@@ -471,12 +471,17 @@ classdef MusclePlotter < handle
         
         function opts = parsePlotArgs(this, args)
             i = inputParser;
+            ne = this.Config.Geometry.NumElements;
+            fibres = true;
+            if ne > 80
+                fibres = false;
+            end
             i.KeepUnmatched = true;
             i.addParamValue('Vid',[],@(v)~isempty(v));
             i.addParamValue('Forces',false,@(v)islogical(v));
             i.addParamValue('Velo',false,@(v)islogical(v));
             i.addParamValue('Pressure',false,@(v)islogical(v));
-            i.addParamValue('Fibres',true,@(v)islogical(v));
+            i.addParamValue('Fibres',fibres,@(v)islogical(v));
             i.addParamValue('Skel',false,@(v)islogical(v));
             i.addParamValue('Pool',false,@(v)islogical(v));
             i.addParamValue('PM',[],@(v)isa(v,'PlotManager'));
