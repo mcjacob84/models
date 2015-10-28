@@ -122,8 +122,14 @@ classdef Dynamics < models.motorunit.MotorunitBaseDynamics
             sa = s.sarco;
             Jsa = cell(1,N);
             ycolwise = reshape(y(dm+ds+1:end,:),dsa,[]);
+            [i,j] = find(sa.JSparsityPattern');
+            % New, faster evaluation! Stick all into the Jdydt function
+            % and create N sparse matrices from that!
+            % Tricky pattern transpose and swap of i,j though
+            Jsaall = sa.Jdydt(ycolwise, t);
             for idx = 1:N
-                Jsa{idx} = sa.Jdydt(ycolwise(:,idx), t);
+%                 Jsa{idx} = sa.Jdydt(ycolwise(:,idx), t);
+                Jsa{idx} = sparse(j,i,Jsaall(:,idx),dsa,dsa);
             end
             J = blkdiag(Jm,Jsp,Jsa{:});
             J(s.MotoSarcoLinkIndex,2) = this.getLinkFactor(y(2,:))./sa.SarcoConst(1,:);
