@@ -117,13 +117,13 @@ classdef Dynamics < models.motorunit.MotorunitBaseDynamics
                 Jsp = s.spindle.Jdydt(y(dm+1:dm+ds,:), t);
             else
                 Jm = s.moto.Jdydt(y(1:dm,:), t, 1);
-                Jsp = [];
+                Jsp = sparse(0,0);
             end
             sa = s.sarco;
             Jsa = cell(1,N);
+            ycolwise = reshape(y(dm+ds+1:end,:),dsa,[]);
             for idx = 1:N
-                Jsa{idx} = sa.Jdydt(reshape(y(dm+ds+1:end,:),dsa,[]), t);
-                %J(dm+ds+(idx-1)*dsa+1:dm+ds+idx*dsa,dm+ds+(idx-1)*dsa+1:dm+ds+idx*dsa) = JSarco(:,(idx-1)*dsa+1:idx*dsa);
+                Jsa{idx} = sa.Jdydt(ycolwise(:,idx), t);
             end
             J = blkdiag(Jm,Jsp,Jsa{:});
             J(s.MotoSarcoLinkIndex,2) = this.getLinkFactor(y(2,:))./sa.SarcoConst(1,:);
@@ -147,15 +147,18 @@ classdef Dynamics < models.motorunit.MotorunitBaseDynamics
             % TODO: feedback spindle to neuro
             s = this.System;
             
-            Jsp = [];
+            % Attention: Using double matrix patterns for blkdiag is way
+            % faster than sparse logicals, see blkdiag implementation.
+            Jm = double(s.moto.JSparsityPattern);
+            Jsp = sparse(0,0);
             if this.options.Spindle
-                Jsp = [s.spindle.JSparsityPattern];
+                Jsp = double(s.spindle.JSparsityPattern);
             end
             Jsa = cell(1,s.N);
             for idx = 1:s.N
-                Jsa{idx} = s.sarco.JSparsityPattern;
+                Jsa{idx} = double(s.sarco.JSparsityPattern);
             end
-            J = blkdiag(s.moto.JSparsityPattern,Jsp,Jsa{:});
+            J = blkdiag(Jm,Jsp,Jsa{:});
             J(s.MotoSarcoLinkIndex,2) = true;
             this.JSparsityPattern = logical(J);
         end

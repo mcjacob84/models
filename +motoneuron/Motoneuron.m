@@ -62,7 +62,7 @@ classdef Motoneuron < KerMorObject
         
         function J = Jdydt(this, y, ~, typeidx)
             c = this.Constants(:,typeidx);
-            J = zeros(6,6);    
+            J = sparse(6,6);    
             J(1,1) = -(c(1) + c(5))/c(7);
             J(2,1) = c(5)/c(8);
             J(1,2) = c(5)/c(7);
