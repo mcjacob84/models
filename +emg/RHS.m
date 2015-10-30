@@ -69,11 +69,8 @@ classdef RHS < dscomponents.ACompEvalCoreFun
         ps_xiscale = [];
         upperlimit_poly = [];
         
-        % musclefibre model for Shape=full simulations
-        musclefibremodel;
-        mfsignals;
-        fullshapes;
-        submesh_idx;
+        fullshapes = false;
+        dvm;
     end
     
     methods
@@ -104,24 +101,8 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             this.initNeuroJunctions;
             if strcmp(opts.Shapes,'full')
                 this.fullshapes = true;
-                if opts.HighResFullShapeSimulations
-                    dx = models.musclefibre.Model.dxDefault;
-                    N = round(sys.Geo(1)/dx);
-                    % Coarse index within fine resolution
-                    this.submesh_idx = round(linspace(1,N,sys.dim(1)));
-                else
-                    N = sys.dim(1);
-                    dx = sys.h(1);
-                    this.submesh_idx = 1:N;
-                end
-                mf = models.musclefibre.Model(...
-                    'SarcoVersion',opts.SarcoVersion,...
-                    'N',N,'dx',dx,...
-                    'DynamicIC',true,'SPM',false,'OutputScaling',false,...
-                    'Spindle',false,'Noise',true,...
-                    'JunctionN',1);
-                mf.EnableTrajectoryCaching = true;
-                this.musclefibremodel = mf;
+                this.dvm = models.emg.DetailedVm(sys.Geo(1),...
+                    sys.dim(1),opts.SarcoVersion);
             end
         end
         
@@ -224,8 +205,20 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             % has its neuromuscular junction in the middle (=index d(1))
             tlen = length(t);
             xdim = this.dims(1);
+            
+            ftype = this.MUTypes(muidx);
+            mc = this.mu;
+            % Restrict mean current to upper limit values!
+            % HACK: -1 as the upperlimit poly is okay w.r.t to the
+            % resulting frequencies, but the ParamDomain from Timm
+            % Strecker is more restrictive. As a consequence, the
+            % usable parameters for the learned expansion only make
+            % sense within the ParamDomain, which is approximately
+            % bounded above by polyval-1.
+            mc = min(polyval(this.upperlimit_poly,ftype)-1,mc);
+            mu = [ftype; mc];
             if this.fullshapes
-                sig = this.mfsignals{muidx};
+                sig = this.dvm.computeSignal(t, mu);
                 Vm = zeros(2*xdim-1,tlen);
                 Vm(xdim:end,:) = sig;
                 Vm(xdim:-1:1,:) = sig;
@@ -241,20 +234,6 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                 ft = this.MUFiringTimes{muidx};
                 ft(ft > max(t)) = [];
 
-
-                % Compute current kernel approx xi data
-                if o.DynamicPropagationSpeed || o.DynamicAmplitudes
-                    ftype = this.MUTypes(muidx);
-                    mc = this.mu;
-                    % Restrict mean current to upper limit values!
-                    % HACK: -1 as the upperlimit poly is okay w.r.t to the
-                    % resulting frequencies, but the ParamDomain from Timm
-                    % Strecker is more restrictive. As a consequence, the
-                    % usable parameters for the learned expansion only make
-                    % sense within the ParamDomain, which is approximately
-                    % bounded above by polyval-1.
-                    mc = min(polyval(this.upperlimit_poly,ftype)-1,mc);
-                end
                 % Dynamic amplitudes
                 if o.DynamicAmplitudes
                     % S is the scaling of mu_1,mu_2,t arguments to the learned
@@ -268,7 +247,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     % received, as propagating potentials would have decreasing
                     % amplitudes over time even though the signal would be the
                     % same
-                    xi = [repmat([ftype; mc]./s(1:2),1,length(ft))
+                    xi = [repmat(mu./s(1:2),1,length(ft))
                           ft/s(3)];
                     % Get learned amplitudes!
                     amp = this.amp_kexp.evaluate(xi);
@@ -345,9 +324,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             prepareSimulation@dscomponents.ACoreFun(this, mu);
             % For a full fibre simulation we need evaluations of the
             % different musclefibre types
-            if strcmp(this.options.Shapes,'full')
-                this.precomputeFibreSignals(mu);
-            else
+            if ~this.fullshapes
                 % We need to compute the current
                 % action potential shapes, possibly for each current model
                 % time-step dt
@@ -600,32 +577,6 @@ classdef RHS < dscomponents.ACompEvalCoreFun
             end
         end
         
-        function precomputeFibreSignals(this, mu)
-            types = this.MUTypes;
-            ntypes = length(types);
-            mf = this.musclefibremodel;
-            % Set equal time and steps
-            m = this.System.Model;
-            mf.T = m.T;
-            mf.dt = m.dt;
-            pi = ProcessIndicator('Computing full signals for %d fibre types',...
-                ntypes,false,ntypes);
-            for k = 1:ntypes
-                [~,~,~,x] = mf.simulate([types(k); mu],1);
-                % Find positions of Vm on each sarcomere
-                moto_off = mf.System.dm;
-                % Each first sarcomere model dimension contains the current
-                % Vm value
-                pos = moto_off + (1:mf.System.dsa:size(x,1)-moto_off);
-                fine_signal = x(pos,:);
-                % Only store the effectively needed signals from the
-                % potentially finer submodel simulation.
-                % See HighResFullShapeSimulations option!
-                this.mfsignals{k} = fine_signal(this.submesh_idx,:);
-                pi.step;
-            end
-            pi.stop;
-        end
     end
     
     

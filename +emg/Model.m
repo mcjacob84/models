@@ -57,15 +57,6 @@ classdef Model < models.BaseFullModel
             i.addParameter('SarcoVersion',1);
             i.addParameter('DynamicAmplitudes',true,@(v)islogical(v) && isscalar(v));
             i.addParameter('DynamicPropagationSpeed',true,@(v)islogical(v) && isscalar(v));
-            % Set to true if you want to use high-resolution simulations
-            % for full shape fibre simulations.
-            % This means the default (fine) spatial resolution of the
-            % musclefibre model is used internally to compute the signal.
-            % Otherwise, the musclefibre propagation model will use the
-            % same spatial resolution as given for the emg geometry. For
-            % coarse grids, this can lead to unprecise action potential
-            % propagation speeds.
-            i.addParameter('HighResFullShapeSimulations',false,@(v)islogical(v) && isscalar(v));
             i.parse(varargin{:});
             opts = i.Results;
             

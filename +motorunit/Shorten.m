@@ -124,15 +124,15 @@ classdef Shorten < models.BaseFullModel
             end
         end
         
-        function [apshape, times] = getActionPotentialShape(this, mu, basemV)
+        function [apshape, times] = getActionPotentialShape(this, fibre_type, basemV)
             % Computes the action potential shape for the current Shorten
             % model. Always detects the first peak.
             %
             % We recommend using DynamicIC=true and SPM=true for speed.
             %
             % Parameters:
-            % mu: The current model parameter `\mu` @type colvec<double>
-            % @default this.DefaultMu
+            % fibre_type: The desired fibre type within [0,1] @type double
+            % @default this.DefaultMu(1)
             % basemV: The base potential from which to measure the shape.
             % The shape's start will be the first time-step where the
             % signal is greater than basemV and the end will be the first
@@ -147,13 +147,14 @@ classdef Shorten < models.BaseFullModel
             if nargin < 3
                 basemV = -80;
                 if nargin < 2
-                    mu = this.DefaultMu;
+                    fibre_type = this.DefaultMu(1);
                 end
             end
             if this.T < 40
                 warning('T < 40ms! Action potential shape might be uncorrect!');
             end
-            [t,y] = this.simulate(mu,1);
+            % Always run with max activation to immediately have a peak
+            [t,y] = this.simulate([fibre_type;9],1);
             % Criteria via absolute value is bad for slow-twitch fibres.
             startidx = find((y(1,:) > basemV),1,'first');
             diffstartidx = find((diff(y(1,:)) > .01),1,'first');
@@ -165,7 +166,6 @@ classdef Shorten < models.BaseFullModel
             pos = startidx + (1:len);
             apshape = y(1,pos);
             times = t(pos)-min(t(pos));
-            %plot(times,apshape); 
         end
     end
     
