@@ -369,7 +369,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     for n = 1:ntypes
                         % Get shape from internal Shorten model using full
                         % activation (for early peak)
-                        this.APShapes{n} = m.getActionPotentialShape([types(n);9]);
+                        this.APShapes{n} = m.getActionPotentialShape(types(n));
                         %this.APShapes{n} = interp1(times, shape, ltimes, 'pchip', shape(1));
                         pi.step;
                     end
@@ -387,7 +387,8 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     pi = ProcessIndicator('Interpolating %d action potential shapes...',...
                         ntypes,false,ntypes);
                     for n = 1:ntypes
-                        % Get index of closest matching fibre type
+                        % Get index of closest matching fibre type (could
+                        % be exact match!)
                         [~, idx] = min(abs(d.mus(1,:) - types(n)));
                         shape = d.Shapes{idx};
                         times = d.Times{idx};

@@ -23,9 +23,10 @@ for sv = 1:2
     m.dt = .001;
     Shapes = cell(1,numsamples);
     Times = cell(1,numsamples);
+    ctimes = zeros(1,numsamples);
     parfor i = 1:numsamples
-        [Shapes{i}, Times{i}] = m.getActionPotentialShape(fibretypes(:,i));%#ok
+        [Shapes{i}, Times{i}, ctimes(i)] = m.getActionPotentialShape(fibretypes(:,i));%#ok
     end
-    save(sprintf('ShapeData_v%d.mat',sv),'Shapes','Times','fibretypes');
+    save(sprintf('ShapeData_v%d.mat',sv),'Shapes','Times','fibretypes','ctimes');
 end
 PCPool.close;
