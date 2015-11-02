@@ -83,8 +83,16 @@ classdef System < models.BaseFirstOrderSystem
                 sparse(2,2,1,6,2));
             this.B = B;
             
-            % Constant initial values
-            this.x0 = dscomponents.ConstInitialValue(zeros(6,1));
+            % Dynamic initial values - same as computed for motorunit
+            mc = ?models.motorunit.Shorten;
+            s = load(fullfile(fileparts(which(mc.Name)),'x0coeff1.mat'));
+            x0 = dscomponents.AffineInitialValue;
+            for k=1:6
+                x0.addMatrix(sprintf('polyval([%s],mu(1))',...
+                    sprintf('%g ',s.coeff(k,:))),full(sparse(k,1,1,6,1)));
+            end
+            this.x0 = x0;
+            %this.x0 = dscomponents.ConstInitialValue(zeros(6,1));
             
             this.updateDimensions;
         end
