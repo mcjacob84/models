@@ -33,12 +33,12 @@ classdef DetailedVm < handle
         end
         
         function sig = computeSignal(this, t, mu)
-            pos = Utils.findVecInMatrix(mu,this.mus_precomp);
+            pos = Utils.findVecInMatrix(this.mus_precomp,mu);
             if pos > 0
+                fprintf('Loading cached file ... ');
                 s = load(sprintf('/data/local/musclefibre/Vm_%d.mat',pos));
-                if isequal(s.t,0:dt:T)
-                    fine_signal = s.Vm;
-                end
+                fprintf('done!\n');
+                fine_signal = s.Vm(:,1:2:2*length(t));
             else
                 mf = this.musclefibremodel;
                 mf.T = t(end); % infer from passed parameters

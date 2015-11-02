@@ -389,7 +389,7 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                     for n = 1:ntypes
                         % Get index of closest matching fibre type (could
                         % be exact match!)
-                        [~, idx] = min(abs(d.mus(1,:) - types(n)));
+                        [~, idx] = min(abs(d.fibretypes - types(n)));
                         shape = d.Shapes{idx};
                         times = d.Times{idx};
                         % Get absolute time span of shape
@@ -568,10 +568,6 @@ classdef RHS < dscomponents.ACompEvalCoreFun
                 datafile = fullfile(base,'propagationspeed.mat');
                 s = load(datafile);
                 this.ps_xiscale = s.ximax;
-                if ~isequal(this.amp_xiscale,this.ps_xiscale)
-                    warning('Xi argument scaling is not equal! Please check');
-%                     keyboard;
-                end
                 this.ps_kexp = s.ps;
                 s = load(models.motoneuron.Model.FILE_UPPERLIMITPOLY);
                 this.upperlimit_poly = s.upperlimit_poly;
