@@ -174,6 +174,13 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             
             % Limit mean current depending on fibre type
             mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
+            if inputidx == 2
+                i2 = this.Inputs{2};
+                maxmu2 = polyval(this.upperlimit_poly,mu(1));
+                i3 = @(t)min([maxmu2; maxmu2],i2(t),2);
+                this.Inputs{3} = i3;
+                inputidx = 3;
+            end
             prepareSimulation@models.BaseFirstOrderSystem(this, mu, inputidx);
         end
         
