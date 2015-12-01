@@ -116,8 +116,13 @@ classdef Pool < handle
                     m.T = T;
                     m.dt = dt;
                     for fidx = 1:nf
-                        [~,y] = this.shorten.simulate([ft(fidx); meancurrent],1);
-                        % Remove negative forces due to initial wobblyness
+                        
+                        %MJ
+                        % von 1 auf 2 gesetzt
+                        [~,y] = this.shorten.simulate([ft(fidx); meancurrent],2);
+                        %/MJ
+                        
+                        %Remove negative forces due to initial wobblyness
                         y(2,y(2,:)<0) = 0;
                         forces(fidx,:) = y(2,:);
                     end
@@ -209,6 +214,7 @@ classdef Pool < handle
     end
     
     methods(Static)
+        
         function res = test_MotorunitPool
             res = true;
             
@@ -244,6 +250,7 @@ classdef Pool < handle
             figure;
             plot(t,f,'r',t,allf,'g');
         end
+        
     end
     
 end

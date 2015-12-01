@@ -174,16 +174,23 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             
             % Limit mean current depending on fibre type
             mu(2) = min(polyval(this.upperlimit_poly,mu(1)),mu(2));
+            
+            %MJ (Daniel W.)
             if inputidx == 2
-                i2 = this.Inputs{2};
-                maxmu2 = polyval(this.upperlimit_poly,mu(1));
-                i3 = @(t)min([maxmu2; maxmu2],i2(t),2);
-                this.Inputs{3} = i3;
+                this.Inputs{3} = @this.f_getStim;
                 inputidx = 3;
+                %{
+                maxmu2 = polyval(this.upperlimit_poly,mu(1));                
+                stim = @(t)(min([maxmu2; maxmu2],this.Inputs{2}(t)).*ng.getInput(t));
+                %this.Inputs{3} = @(t)f_getStim(t);
+                this.Inputs{3}=@(t)min([maxmu2; maxmu2],this.Inputs{2}(t));
+                %Abfrage mit funktionhandle funktioniert nicht!
+                %Input nimmt er nur mit funktion handle an
+                %}
             end
             prepareSimulation@models.BaseFirstOrderSystem(this, mu, inputidx);
         end
-        
+            
         function y = computeOutput(this, x, mu)
             if nargin < 3
                 mu = this.mu;
@@ -212,6 +219,17 @@ classdef MotorunitBaseSystem < models.BaseFirstOrderSystem
             end
             status = 0;
         end
+        
+        function [stim] = f_getStim(this, t)
+            %function fuer stim (siehe prepareSimulation)
+            %edit MJ (Daniel Wirtz)
+            maxmu2 = polyval(this.upperlimit_poly,this.mu(1));        
+            ng = this.noiseGen;
+            stim = min([maxmu2; maxmu2],this.Inputs{2}(t)).^[1;1.24635].*ng.getInput(t);
+            %Exponent für Sigma 2?
+%             stim = min([maxmu2; maxmu2],this.Inputs{2}(t)); %ohne noise
+        end
+        
     end
     
     methods(Abstract, Access=protected)
